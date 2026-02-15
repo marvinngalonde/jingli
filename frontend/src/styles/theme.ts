@@ -4,16 +4,16 @@ export const theme = createTheme({
   primaryColor: 'brand',
   colors: {
     brand: [
-      '#eef3ff',
-      '#dce4f5',
-      '#b9c7e2',
-      '#94a8d0',
-      '#748dc1',
-      '#5f7cb8',
-      '#5474b4',
-      '#44639f',
-      '#39588f',
-      '#2d4b81',
+      '#e7f5ff', // 0
+      '#d0ebff', // 1
+      '#a5d8ff', // 2
+      '#74c0fc', // 3
+      '#4dabf7', // 4
+      '#339af0', // 5
+      '#228be6', // 6 - Primary
+      '#1c7ed6', // 7
+      '#1971c2', // 8
+      '#1864ab', // 9
     ],
   },
   shadows: {
@@ -39,9 +39,9 @@ export const theme = createTheme({
         shadow: 'sm',
         withBorder: true,
       },
-      styles: (theme) => ({
+      styles: () => ({
         root: {
-          backgroundColor: 'rgba(255, 255, 255, 0.8)', // Glassmorphism base
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(10px)',
         },
       }),
@@ -50,7 +50,7 @@ export const theme = createTheme({
       defaultProps: {
         radius: 'lg',
       },
-      styles: (theme) => ({
+      styles: () => ({
         root: {
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
         },

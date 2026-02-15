@@ -11,17 +11,22 @@ import Marks from './pages/Marks';
 import Library from './pages/Library';
 import Attendance from './pages/Attendance';
 
+import { Signup } from './pages/Signup';
+import Admissions from './pages/Admissions';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/students" element={<Students />} />
           <Route path="/students/:id" element={<StudentDetail />} />
+          <Route path="/admissions" element={<Admissions />} />
           <Route path="/staff" element={<Staff />} />
           <Route path="/attendance" element={<Attendance />} />
           <Route path="/finance" element={<Finance />} />

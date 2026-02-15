@@ -15,8 +15,6 @@ import {
     Book,
     ClipboardList,
     Building,
-    Calendar,
-    GraduationCap,
     PanelLeftClose,
     PanelLeftOpen,
 } from 'lucide-react';
@@ -49,6 +47,7 @@ const navSections: NavSection[] = [
                 label: 'Students',
                 children: [
                     { icon: Users, label: 'All Students', path: '/students' },
+                    { icon: ClipboardList, label: 'Admissions', path: '/admissions' },
                     { icon: ClipboardList, label: 'Attendance', path: '/attendance' },
                 ]
             },
@@ -201,7 +200,8 @@ function NavItemComponent({ item, collapsed, isMobile, closeMobile }: { item: Na
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
-    const isMobile = useMediaQuery('(max-width: 768px)');
+    const isMobileQuery = useMediaQuery('(max-width: 768px)');
+    const isMobile = isMobileQuery || false;
 
     const NavItems = () => (
         <Stack

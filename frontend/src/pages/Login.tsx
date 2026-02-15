@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import {
-    Paper,
     TextInput,
     PasswordInput,
     Button,
     Title,
     Text,
-    Container,
     Group,
     Anchor,
-    Center,
     Box,
     rem,
     LoadingOverlay,
+    Stack,
+    Image
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
-import { IconSchool, IconLock, IconAt } from '@tabler/icons-react';
-import { api } from '../services/api';
+import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
+import sideImage from '../assets/images/sideimg.png';
 
 export function Login() {
     const navigate = useNavigate();
@@ -35,131 +34,113 @@ export function Login() {
         },
     });
 
-    const handleSubmit = async (values: typeof form.values) => {
+    const handleSubmit = async () => {
         setLoading(true);
-        try {
-            // TODO: Replace with actual Auth implementation
-            // const res = await api.post('/auth/login', values); 
-            // localStorage.setItem('token', res.data.token);
-
-            // Simulating login for UI demo
-            setTimeout(() => {
-                notifications.show({
-                    title: 'Welcome back!',
-                    message: 'You have successfully logged in.',
-                    color: 'green',
-                });
-                navigate('/dashboard');
-                setLoading(false);
-            }, 1500);
-
-        } catch (error) {
+        // Simulate login
+        setTimeout(() => {
             notifications.show({
-                title: 'Login failed',
-                message: 'Please check your credentials and try again.',
-                color: 'red',
+                title: 'Welcome back!',
+                message: 'Login successful.',
+                color: 'green',
             });
+            navigate('/dashboard');
             setLoading(false);
-        }
+        }, 1500);
     };
 
     return (
-        <Box
-            style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, #eef3ff 0%, #dce4f5 100%)',
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
+            {/* LEFT SIDE: FORM */}
+            <div style={{
+                flex: '0 0 50%',
+                maxWidth: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
-        >
-            {/* Decorative Circles */}
-            <Box
-                style={{
-                    position: 'absolute',
-                    top: '-10%',
-                    left: '-5%',
-                    width: rem(500),
-                    height: rem(500),
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(95,124,184,0.2) 0%, rgba(255,255,255,0) 70%)',
-                    zIndex: 0,
-                }}
-            />
-            <Box
-                style={{
-                    position: 'absolute',
-                    bottom: '-10%',
-                    right: '-5%',
-                    width: rem(400),
-                    height: rem(400),
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(116,141,193,0.2) 0%, rgba(255,255,255,0) 70%)',
-                    zIndex: 0,
-                }}
-            />
-
-            <Container size={420} my={40} style={{ position: 'relative', zIndex: 1 }}>
-                <Paper
-                    withBorder
-                    shadow="xl"
-                    p={30}
-                    radius="md"
-                    mt="xl"
-                    style={{
-                        backdropFilter: 'blur(10px)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    }}
-                >
-                    <Center mb="md">
-                        <ThemeIcon variant="light" size={60} radius="xl" color="brand">
-                            <IconSchool size={34} stroke={1.5} />
-                        </ThemeIcon>
-                    </Center>
-
-                    <Title ta="center" order={2} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                        Welcome back
+                background: 'white'
+            }} className="login-form-container">
+                {/* Mobile Responsive: On small screens, this should be 100% width.
+                    However, inline styles are hard for media queries.
+                    Mantine's Box with style props or classes is better.
+                    Let's stick to simple inline for the "split" requirement first.
+                */}
+                <Box maw={450} w="100%" px="xl" py="xl">
+                    <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
+                        Login to Jingli
                     </Title>
-                    <Text c="dimmed" size="sm" ta="center" mt={5} mb="xl">
-                        Sign in to Jingli to continue
+                    <Text ta="center" c="dimmed" mb={40}>
+                        Welcome back!
                     </Text>
 
-                    <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+                    <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
+                        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
-                    <form onSubmit={form.onSubmit(handleSubmit)}>
-                        <TextInput
-                            label="Email"
-                            placeholder="you@jingli.school"
-                            required
-                            leftSection={<IconAt size={16} />}
-                            {...form.getInputProps('email')}
-                        />
-                        <PasswordInput
-                            label="Password"
-                            placeholder="Your password"
-                            required
-                            mt="md"
-                            leftSection={<IconLock size={16} />}
-                            {...form.getInputProps('password')}
-                        />
-                        <Group justify="space-between" mt="lg">
-                            <Anchor component="button" size="sm" type="button" c="dimmed">
-                                Forgot password?
+                        <Stack gap="lg">
+                            <TextInput
+                                label="Email Address"
+                                placeholder="Email Address"
+                                size="md"
+                                radius="md"
+                                required
+                                {...form.getInputProps('email')}
+                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                            />
+
+                            <PasswordInput
+                                label="Password"
+                                placeholder="Password"
+                                size="md"
+                                radius="md"
+                                required
+                                visibilityToggleIcon={({ reveal }) =>
+                                    reveal ? (
+                                        <IconEyeOff style={{ width: rem(20), height: rem(20) }} />
+                                    ) : (
+                                        <IconEyeCheck style={{ width: rem(20), height: rem(20) }} />
+                                    )
+                                }
+                                {...form.getInputProps('password')}
+                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                            />
+                        </Stack>
+
+                        <Group justify="flex-end" mt="sm">
+                            <Anchor component="button" type="button" size="sm" fw={600} c="brand">
+                                Forgot Password?
                             </Anchor>
                         </Group>
-                        <Button fullWidth mt="xl" size="md" type="submit" loading={loading}>
-                            Sign in
+
+                        <Button fullWidth mt="xl" size="lg" radius="xl" type="submit" color="brand" loading={loading}>
+                            Login
                         </Button>
+
+                        <Text ta="center" mt="xl" size="sm">
+                            Don't have an account?{' '}
+                            <Anchor component="button" type="button" fw={700} onClick={() => navigate('/signup')} c="brand">
+                                Sign up
+                            </Anchor>
+                        </Text>
                     </form>
-                </Paper>
-                <Text ta="center" mt="md" size="sm" c="dimmed">
-                    © 2026 Jingli School Management
-                </Text>
-            </Container>
-        </Box>
+                </Box>
+            </div>
+
+            {/* RIGHT SIDE: IMAGE */}
+            <div style={{
+                flex: '1',
+                background: '#f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
+            }}>
+                <Image
+                    src={sideImage}
+                    alt="Login Background"
+                    w="100%"
+                    h="100%"
+                    fit="cover"
+                />
+            </div>
+        </div>
     );
 }
-
-import { ThemeIcon } from '@mantine/core';
