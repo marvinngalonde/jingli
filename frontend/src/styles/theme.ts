@@ -1,22 +1,60 @@
-import { createTheme } from '@mantine/core';
+import { createTheme, rem } from '@mantine/core';
 
 export const theme = createTheme({
-  // Dark Navy Blue (#000035) color palette
+  primaryColor: 'brand',
   colors: {
-    navy: [
-      '#e6e6f0', // 0: very light (backgrounds, hover states)
-      '#ccccde', // 1: light
-      '#9999bd', // 2: 
-      '#66669c', // 3:
-      '#33337b', // 4:
-      '#1a1a58', // 5:
-      '#0d0d46', // 6: lighter version for some elements
-      '#000035', // 7: Main color - the exact color requested
-      '#00002b', // 8: slightly darker
-      '#000021', // 9: deepest (for very dark elements)
+    brand: [
+      '#eef3ff',
+      '#dce4f5',
+      '#b9c7e2',
+      '#94a8d0',
+      '#748dc1',
+      '#5f7cb8',
+      '#5474b4',
+      '#44639f',
+      '#39588f',
+      '#2d4b81',
     ],
   },
-  primaryColor: 'navy',
-  fontFamily: 'Inter, sans-serif', // Clean professional font
-  defaultRadius: 'xs', // Sharp corners as requested
+  shadows: {
+    md: '1px 1px 3px rgba(0, 0, 0, .25)',
+    xl: '5px 5px 3px rgba(0, 0, 0, .25)',
+  },
+  headings: {
+    fontFamily: 'Inter, sans-serif',
+    sizes: {
+      h1: { fontSize: rem(36) },
+    },
+  },
+  components: {
+    Button: {
+      defaultProps: {
+        radius: 'md',
+        variant: 'filled',
+      },
+    },
+    Card: {
+      defaultProps: {
+        radius: 'lg',
+        shadow: 'sm',
+        withBorder: true,
+      },
+      styles: (theme) => ({
+        root: {
+          backgroundColor: 'rgba(255, 255, 255, 0.8)', // Glassmorphism base
+          backdropFilter: 'blur(10px)',
+        },
+      }),
+    },
+    Paper: {
+      defaultProps: {
+        radius: 'lg',
+      },
+      styles: (theme) => ({
+        root: {
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        },
+      }),
+    }
+  },
 });
