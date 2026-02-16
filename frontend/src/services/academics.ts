@@ -132,3 +132,49 @@ export const academicYearsApi = {
         await api.delete(`/academic-years/${id}`);
     },
 };
+
+// ============================================================================
+// TIMETABLE
+// ============================================================================
+
+import type {
+    TimetableEntry,
+    CreateTimetableDto,
+    BulkCreateTimetableDto
+} from '../types/academics';
+
+export const timetableApi = {
+    // Get all entries (with optional filters)
+    getAll: async (filters?: { sectionId?: string; teacherId?: string; subjectId?: string }): Promise<TimetableEntry[]> => {
+        const { data } = await api.get('/timetable', { params: filters });
+        return data;
+    },
+
+    // Get single entry
+    getOne: async (id: string): Promise<TimetableEntry> => {
+        const { data } = await api.get(`/timetable/${id}`);
+        return data;
+    },
+
+    // Create entry
+    create: async (dto: CreateTimetableDto): Promise<TimetableEntry> => {
+        const { data } = await api.post('/timetable', dto);
+        return data;
+    },
+
+    // Bulk create entries
+    bulkCreate: async (dto: BulkCreateTimetableDto): Promise<void> => {
+        await api.post('/timetable/bulk', dto);
+    },
+
+    // Update entry
+    update: async (id: string, dto: Partial<CreateTimetableDto>): Promise<TimetableEntry> => {
+        const { data } = await api.patch(`/timetable/${id}`, dto);
+        return data;
+    },
+
+    // Delete entry
+    delete: async (id: string): Promise<void> => {
+        await api.delete(`/timetable/${id}`);
+    },
+};

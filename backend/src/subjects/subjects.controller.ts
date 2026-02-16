@@ -39,4 +39,19 @@ export class SubjectsController {
     remove(@Req() req: any, @Param('id') id: string) {
         return this.subjectsService.remove(id, req.user.schoolId);
     }
+
+    @Get(':id/assignments')
+    getAssignments(@Req() req: any, @Param('id') id: string) {
+        return this.subjectsService.getAssignments(id, req.user.schoolId);
+    }
+
+    @Get(':id/teachers')
+    getTeachers(@Req() req: any, @Param('id') id: string) {
+        return this.subjectsService.getTeachers(id, req.user.schoolId);
+    }
+
+    @Get(':id/classes')
+    getClasses(@Req() req: any, @Param('id') id: string) {
+        return this.subjectsService.getClasses(id, req.user.schoolId);
+    }
 }

@@ -44,4 +44,19 @@ export class ClassesController {
     remove(@Req() req: any, @Param('id') id: string) {
         return this.classesService.remove(id, req.user.schoolId);
     }
+
+    @Get('sections/:id/students')
+    getStudents(@Req() req: any, @Param('id') id: string) {
+        return this.classesService.getStudents(id, req.user.schoolId);
+    }
+
+    @Get('sections/:id/timetable')
+    getTimetable(@Req() req: any, @Param('id') id: string) {
+        return this.classesService.getTimetable(id, req.user.schoolId);
+    }
+
+    @Get('sections/:id/teachers')
+    getTeachers(@Req() req: any, @Param('id') id: string) {
+        return this.classesService.getTeachers(id, req.user.schoolId);
+    }
 }

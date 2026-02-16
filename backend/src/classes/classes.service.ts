@@ -98,4 +98,83 @@ export class ClassesService {
 
         throw new NotFoundException('Record not found');
     }
+
+    // Get all students in a class section
+    async getStudents(sectionId: string, schoolId: string) {
+        // Verify section belongs to school
+        const section = await this.prisma.classSection.findFirst({
+            where: { id: sectionId, schoolId }
+        });
+        if (!section) throw new NotFoundException('Section not found');
+
+        return this.prisma.student.findMany({
+            where: { sectionId },
+            include: {
+                user: true
+            },
+            orderBy: { rollNo: 'asc' }
+        });
+    }
+
+    // Get timetable for a class section
+    async getTimetable(sectionId: string, schoolId: string) {
+        // Verify section belongs to school
+        const section = await this.prisma.classSection.findFirst({
+            where: { id: sectionId, schoolId }
+        });
+        if (!section) throw new NotFoundException('Section not found');
+
+        return this.prisma.timetable.findMany({
+            where: { sectionId },
+            include: {
+                subject: true,
+                teacher: {
+                    include: {
+                        user: true
+                    }
+                }
+            },
+            orderBy: [
+                { day: 'asc' },
+                { startTime: 'asc' }
+            ]
+        });
+    }
+
+    // Get all teachers teaching a class section
+    async getTeachers(sectionId: string, schoolId: string) {
+        // Verify section belongs to school
+        const section = await this.prisma.classSection.findFirst({
+            where: { id: sectionId, schoolId }
+        });
+        if (!section) throw new NotFoundException('Section not found');
+
+        // Get unique teachers from timetable
+        const timetableEntries = await this.prisma.timetable.findMany({
+            where: { sectionId },
+            include: {
+                teacher: {
+                    include: {
+                        user: true
+                    }
+                },
+                subject: true
+            }
+        });
+
+        // Group by teacher and collect subjects
+        const teacherMap = new Map();
+        timetableEntries.forEach((entry: any) => {
+            const teacherId = entry.teacherId;
+            if (!teacherMap.has(teacherId)) {
+                teacherMap.set(teacherId, {
+                    ...entry.teacher,
+                    subjects: []
+                });
+            }
+            teacherMap.get(teacherId).subjects.push(entry.subject);
+        });
+
+        return Array.from(teacherMap.values());
+    }
 }

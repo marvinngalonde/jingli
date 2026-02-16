@@ -68,4 +68,108 @@ export class SubjectsService {
             }
         });
     }
+
+    // Get all timetable assignments for a subject (which classes and teachers)
+    async getAssignments(subjectId: string, schoolId: string) {
+        // Verify subject belongs to school
+        await this.findOne(subjectId, schoolId);
+
+        return this.prisma.timetable.findMany({
+            where: { subjectId },
+            include: {
+                section: {
+                    include: {
+                        classLevel: true
+                    }
+                },
+                teacher: {
+                    include: {
+                        user: true
+                    }
+                }
+            },
+            orderBy: [
+                { day: 'asc' },
+                { startTime: 'asc' }
+            ]
+        });
+    }
+
+    // Get all teachers teaching this subject
+    async getTeachers(subjectId: string, schoolId: string) {
+        // Verify subject belongs to school
+        await this.findOne(subjectId, schoolId);
+
+        const timetableEntries = await this.prisma.timetable.findMany({
+            where: { subjectId },
+            include: {
+                teacher: {
+                    include: {
+                        user: true
+                    }
+                },
+                section: {
+                    include: {
+                        classLevel: true
+                    }
+                }
+            }
+        });
+
+        // Group by teacher and collect classes
+        const teacherMap = new Map();
+        timetableEntries.forEach((entry: any) => {
+            const teacherId = entry.teacherId;
+            if (!teacherMap.has(teacherId)) {
+                teacherMap.set(teacherId, {
+                    ...entry.teacher,
+                    classes: [],
+                    totalHours: 0
+                });
+            }
+            const teacher = teacherMap.get(teacherId);
+            teacher.classes.push({
+                section: entry.section,
+                day: entry.day,
+                startTime: entry.startTime,
+                endTime: entry.endTime
+            });
+            // Calculate hours (simplified - assumes each entry is 1 hour)
+            teacher.totalHours += 1;
+        });
+
+        return Array.from(teacherMap.values());
+    }
+
+    // Get all classes teaching this subject
+    async getClasses(subjectId: string, schoolId: string) {
+        // Verify subject belongs to school
+        await this.findOne(subjectId, schoolId);
+
+        const timetableEntries = await this.prisma.timetable.findMany({
+            where: { subjectId },
+            include: {
+                section: {
+                    include: {
+                        classLevel: true
+                    }
+                }
+            }
+        });
+
+        // Get unique sections
+        const sectionMap = new Map();
+        timetableEntries.forEach((entry: any) => {
+            const sectionId = entry.sectionId;
+            if (!sectionMap.has(sectionId)) {
+                sectionMap.set(sectionId, {
+                    ...entry.section,
+                    weeklyHours: 0
+                });
+            }
+            sectionMap.get(sectionId).weeklyHours += 1;
+        });
+
+        return Array.from(sectionMap.values());
+    }
 }

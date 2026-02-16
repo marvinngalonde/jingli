@@ -59,6 +59,7 @@ function App() {
             <Route path="/classes/:id" element={<ClassDetail />} />
             <Route path="/subjects" element={<Subjects />} />
             <Route path="/subjects/:id" element={<SubjectDetail />} />
+            <Route path="/timetable" element={<Timetable />} /> {/* Added Timetable route */}
             <Route path="/marks" element={<Marks />} />
             <Route path="/library" element={<Library />} />
 
