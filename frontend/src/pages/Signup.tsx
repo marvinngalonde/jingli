@@ -17,10 +17,14 @@ import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
 import sideImage from '../assets/images/sideimg.png';
+import { supabase } from '../lib/supabase';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export function Signup() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const { setSkipNextProfileFetch, fetchProfile } = useAuth();
 
     const form = useForm({
         initialValues: {
@@ -38,16 +42,68 @@ export function Signup() {
 
     const handleSubmit = async () => {
         setLoading(true);
-        // Simulate Signup
-        setTimeout(() => {
-            notifications.show({
-                title: 'Account Created!',
-                message: 'Please login to continue.',
-                color: 'green',
+        try {
+            const { name, email, password } = form.values;
+
+            // Tell AuthContext to skip auto-fetching profile on the next SIGNED_IN event
+            setSkipNextProfileFetch(true);
+
+            // 1. SignUp with Supabase
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { full_name: name }
+                }
             });
-            navigate('/login');
+
+            if (error) throw error;
+
+            if (data.session) {
+                // 2. Sync user to backend DB
+                const token = data.session.access_token;
+
+                await api.post('/auth/sync', {
+                    email,
+                    firstName: name.split(' ')[0],
+                    lastName: name.split(' ').slice(1).join(' ') || '',
+                    role: 'STUDENT'
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                // 3. Now fetch the profile (user exists in DB after sync)
+                await fetchProfile();
+
+                notifications.show({
+                    title: 'Account Created!',
+                    message: 'Welcome to Jingli! Redirecting to dashboard...',
+                    color: 'green',
+                });
+
+                navigate('/');
+            } else {
+                // Email confirmation required
+                notifications.show({
+                    title: 'Check your email',
+                    message: 'A confirmation link has been sent to your email address.',
+                    color: 'blue',
+                    autoClose: 5000,
+                });
+                navigate('/login');
+            }
+
+        } catch (error: any) {
+            notifications.show({
+                title: 'Signup Failed',
+                message: error.response?.data?.message || error.message || 'An error occurred during signup',
+                color: 'red',
+            });
+        } finally {
             setLoading(false);
-        }, 1500);
+        }
     };
 
     return (

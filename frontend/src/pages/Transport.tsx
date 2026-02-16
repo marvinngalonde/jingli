@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
     Box,
     Card,
-    Table,
     Button,
     Group,
     Text,
@@ -10,28 +9,13 @@ import {
     Badge,
     Stack,
     Accordion,
-    rem,
 } from '@mantine/core';
-import { Bus, MapPin, Clock, AlertCircle, Plus } from 'lucide-react';
+import { Bus, MapPin, Plus } from 'lucide-react';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect } from 'react';
 import AddRouteModal from '../components/AddRouteModal';
 import { transportService } from '../services/transportService';
 import { showErrorNotification } from '../utils/notifications';
-
-
-function getStatusColor(status: string) {
-    if (status.includes('En Route')) return 'blue';
-    if (status === 'At School') return 'green';
-    if (status.includes('Delayed')) return 'red';
-    return 'gray';
-}
-
-function getStopStatusColor(status: string) {
-    if (status === 'Completed') return 'green';
-    if (status === 'Next Stop') return 'orange';
-    return 'gray';
-}
 
 
 export default function Transport() {

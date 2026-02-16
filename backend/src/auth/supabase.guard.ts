@@ -1,11 +1,12 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+import { ConfigService } from '@nestjs/config';
+import { jwtVerify } from 'jose';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SupabaseGuard implements CanActivate {
     constructor(
-        private readonly supabaseService: SupabaseService,
+        private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
     ) { }
 
@@ -23,50 +24,59 @@ export class SupabaseGuard implements CanActivate {
         }
 
         try {
-            const { data: { user }, error } = await this.supabaseService.getClient().auth.getUser(token);
-
-            if (error || !user) {
-                throw new UnauthorizedException('Invalid token');
+            // Verify JWT using the Supabase JWT secret
+            const jwtSecret = this.configService.get<string>('SUPABASE_JWT_SECRET');
+            if (!jwtSecret) {
+                throw new UnauthorizedException('JWT secret not configured');
             }
+            const secret = new TextEncoder().encode(jwtSecret);
+            const { payload } = await jwtVerify(token, secret, {
+                algorithms: ['HS256'],
+            });
+
+            const supabaseUserId = payload.sub as string;
+            const email = payload.email as string;
 
             // ---------------------------------------------------------
             // MULTI-TENANCY RESOLUTION
             // ---------------------------------------------------------
-            // We need to find the internal User record to get the school_id
-            // In a real scenario, we might cache this or store school_id in JWT metadata.
-            // For now, we query the DB.
-
             const internalUser = await this.prisma.user.findFirst({
-                where: { email: user.email },
-                select: { id: true, schoolId: true, role: true, supabaseUid: true } // Added supabaseUid to select
+                where: {
+                    OR: [
+                        { supabaseUid: supabaseUserId },
+                        { email: email },
+                    ]
+                },
+                select: { id: true, schoolId: true, role: true, supabaseUid: true }
             });
 
             if (!internalUser) {
-                // Option: Auto-create user if they exist in Supabase but not in DB?
-                // Or throw error. For now, throw error as registration should be explicit.
                 throw new UnauthorizedException('User record not found in system');
             }
 
             // Sync Supabase UID if missing (Lazy Linking for RLS)
-            if (internalUser.supabaseUid !== user.id) {
+            if (internalUser.supabaseUid !== supabaseUserId) {
                 await this.prisma.user.update({
                     where: { id: internalUser.id },
-                    data: { supabaseUid: user.id }
+                    data: { supabaseUid: supabaseUserId }
                 });
             }
 
             // Attach user and tenant context to request
             request.user = {
                 id: internalUser.id,
-                supabaseId: user.id,
-                email: user.email,
+                supabaseId: supabaseUserId,
+                email: email,
                 role: internalUser.role,
-                schoolId: internalUser.schoolId, // TENANT ID
+                schoolId: internalUser.schoolId,
             };
 
             return true;
         } catch (err) {
+            if (err instanceof UnauthorizedException) throw err;
+            console.error('SupabaseGuard Error:', err);
             throw new UnauthorizedException('Authentication failed');
         }
     }
 }
+

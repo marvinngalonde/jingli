@@ -16,7 +16,13 @@ export class SupabaseService implements OnModuleInit {
             throw new Error('Supabase URL and Key must be provided in .env');
         }
 
-        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+            },
+        });
     }
 
     getClient(): SupabaseClient {

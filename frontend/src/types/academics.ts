@@ -1,0 +1,64 @@
+// Academic Module Types
+export interface AcademicYear {
+    id: string;
+    schoolId: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    current: boolean;
+}
+
+export interface ClassLevel {
+    id: string;
+    schoolId: string;
+    name: string;
+    level: number;
+    sections?: ClassSection[];
+}
+
+export interface ClassSection {
+    id: string;
+    schoolId: string;
+    classLevelId: string;
+    name: string;
+    capacity: number;
+    classTeacherId?: string;
+    classLevel?: ClassLevel;
+    _count?: {
+        students: number;
+    };
+}
+
+export interface Subject {
+    id: string;
+    schoolId: string;
+    name: string;
+    code: string;
+    department?: string;
+}
+
+// DTOs
+export interface CreateClassLevelDto {
+    name: string;
+    level: number;
+}
+
+export interface CreateClassSectionDto {
+    classLevelId: string;
+    name: string;
+    capacity?: number;
+    classTeacherId?: string;
+}
+
+export interface CreateSubjectDto {
+    name: string;
+    code: string;
+    department?: string;
+}
+
+export interface CreateAcademicYearDto {
+    name: string;
+    startDate: string;
+    endDate: string;
+    current?: boolean;
+}

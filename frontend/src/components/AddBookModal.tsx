@@ -172,7 +172,7 @@ export default function AddBookModal({ opened, onClose, onSuccess }: AddBookModa
                                 size="sm"
                                 radius={2}
                                 accept="image/*"
-                                error={errors.coverImage?.message}
+                                error={errors.coverImage?.message as string}
                             />
                         )}
                     />

@@ -31,6 +31,7 @@ import StudentLogistics from './pages/reception/StudentLogistics';
 import Communication from './pages/Communication';
 
 import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -39,9 +40,10 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-          <Route element={<DashboardLayout />}>
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<Students />} />
             <Route path="/students/:id" element={<StudentDetail />} />
@@ -55,10 +57,6 @@ function App() {
             <Route path="/classes/:id" element={<ClassDetail />} />
             <Route path="/marks" element={<Marks />} />
             <Route path="/library" element={<Library />} />
-
-            {/* Finance Routes - Now handled within Finance component tabs */}
-
-            // ...
 
             {/* Reception Routes */}
             <Route path="/reception/visitors" element={<Visitors />} />
@@ -76,8 +74,8 @@ function App() {
             <Route path="*" element={<div>Page Not Found</div>} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </BrowserRouter >
+    </AuthProvider >
   );
 }
 

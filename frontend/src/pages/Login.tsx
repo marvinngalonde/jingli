@@ -19,8 +19,7 @@ import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
 import sideImage from '../assets/images/sideimg.png';
 
-import { useAuth, type UserRole } from '../context/AuthContext';
-import { Select } from '@mantine/core';
+import { useAuth } from '../context/AuthContext';
 
 export function Login() {
     const navigate = useNavigate();
@@ -31,7 +30,6 @@ export function Login() {
         initialValues: {
             email: '',
             password: '',
-            role: 'admin' as UserRole,
         },
         validate: {
             email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
@@ -41,17 +39,23 @@ export function Login() {
 
     const handleSubmit = async (values: typeof form.values) => {
         setLoading(true);
-        // Simulate login
-        setTimeout(() => {
-            login(values.role);
+        try {
+            await login(values.email, values.password);
             notifications.show({
                 title: 'Welcome back!',
-                message: `Logged in as ${values.role}`,
+                message: 'Login successful',
                 color: 'green',
             });
             navigate('/dashboard');
+        } catch (error: any) {
+            notifications.show({
+                title: 'Login Failed',
+                message: error.message || 'Invalid credentials',
+                color: 'red',
+            });
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -70,28 +74,16 @@ export function Login() {
                         Login to Jingli
                     </Title>
                     <Text ta="center" c="dimmed" mb={40}>
-                        Select a role to demo the portal
+                        Enterprise School Management System
                     </Text>
 
                     <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
                         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
                         <Stack gap="lg">
-                            <Select
-                                label="Login As"
-                                data={[
-                                    { value: 'admin', label: 'Administrator' },
-                                    { value: 'teacher', label: 'Teacher' },
-                                    { value: 'student', label: 'Student' },
-                                    { value: 'parent', label: 'Parent' },
-                                    { value: 'reception', label: 'Receptionist' },
-                                ]}
-                                {...form.getInputProps('role')}
-                            />
-
                             <TextInput
                                 label="Email Address"
-                                placeholder="Email Address"
+                                placeholder="name@school.com"
                                 size="md"
                                 radius="md"
                                 required
@@ -101,7 +93,7 @@ export function Login() {
 
                             <PasswordInput
                                 label="Password"
-                                placeholder="Password"
+                                placeholder="Your Password"
                                 size="md"
                                 radius="md"
                                 required
@@ -124,13 +116,13 @@ export function Login() {
                         </Group>
 
                         <Button fullWidth mt="xl" size="lg" radius="xl" type="submit" color="brand" loading={loading}>
-                            Login
+                            Login to Dashboard
                         </Button>
 
                         <Text ta="center" mt="xl" size="sm">
-                            Don't have an account?{' '}
-                            <Anchor component="button" type="button" fw={700} onClick={() => navigate('/signup')} c="brand">
-                                Sign up
+                            Need an account? ' '
+                            <Anchor component="button" type="button" fw={700} c="brand" onClick={() => notifications.show({ title: 'Contact Admin', message: 'Please contact your school administrator to get an account.', color: 'blue' })}>
+                                Contact Admin
                             </Anchor>
                         </Text>
                     </form>

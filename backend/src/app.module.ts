@@ -19,12 +19,14 @@ import { NoticesModule } from './notices/notices.module';
 import { MessagesModule } from './messages/messages.module';
 import { VisitorsModule } from './visitors/visitors.module';
 import { GuardiansModule } from './guardians/guardians.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    UsersModule,
     SubjectsModule,
     AcademicYearsModule,
     SupabaseModule,

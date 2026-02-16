@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Button,
     Group,
     Text,
-    Badge
+    LoadingOverlay,
+    Alert
 } from '@mantine/core';
 import {
     IconPlus,
-    IconUsers
+    IconUsers,
+    IconAlertCircle
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
@@ -17,16 +19,22 @@ import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { ActionMenu } from '../components/common/ActionMenu';
 
-interface ClassGroup {
-    id: string;
-    grade: string;
-    section: string;
-    classTeacher: string;
-    studentCount: number;
-    roomNumber: string;
-}
+// API
+import { classesApi } from '../services/academics';
+import type { ClassLevel } from '../types/academics';
 
 import { useAuth } from '../context/AuthContext';
+
+// Flatten class levels + sections for table display
+interface ClassRow {
+    id: string;
+    levelId: string;
+    levelName: string;
+    sectionName: string;
+    fullName: string;
+    studentCount: number;
+    classTeacherId?: string;
+}
 
 export default function Classes() {
     const navigate = useNavigate();
@@ -34,40 +42,65 @@ export default function Classes() {
     const { user } = useAuth();
     const isTeacher = user?.role === 'teacher';
 
-    // Mock Data
-    const mockClasses: ClassGroup[] = [
-        { id: '1', grade: '10', section: 'A', classTeacher: 'Sarah Teacher', studentCount: 28, roomNumber: '101' },
-        { id: '2', grade: '10', section: 'B', classTeacher: 'Ellen Ripley', studentCount: 26, roomNumber: '102' },
-        { id: '3', grade: '9', section: 'A', classTeacher: 'Sarah Teacher', studentCount: 30, roomNumber: '201' },
-        { id: '4', grade: '9', section: 'B', classTeacher: 'Kyle Reese', studentCount: 29, roomNumber: '202' },
-        { id: '5', grade: '11', section: 'A', classTeacher: 'James Cameron', studentCount: 25, roomNumber: '301' },
-    ];
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
 
-    const filteredData = mockClasses.filter(item => {
-        const matchesSearch = `${item.grade}${item.section}`.toLowerCase().includes(search.toLowerCase()) ||
-            item.classTeacher.toLowerCase().includes(search.toLowerCase());
+    // Fetch classes on mount
+    useEffect(() => {
+        fetchClasses();
+    }, []);
+
+    const fetchClasses = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await classesApi.getAll();
+            setClassLevels(data);
+        } catch (err: any) {
+            console.error('Failed to fetch classes:', err);
+            setError(err.response?.data?.message || 'Failed to load classes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Flatten class levels into rows (one row per section)
+    const rows: ClassRow[] = classLevels.flatMap(level =>
+        (level.sections || []).map(section => ({
+            id: section.id,
+            levelId: level.id,
+            levelName: level.name,
+            sectionName: section.name,
+            fullName: `${level.name}-${section.name}`,
+            studentCount: section._count?.students || 0,
+            classTeacherId: section.classTeacherId,
+        }))
+    );
+
+    const filteredData = rows.filter(item => {
+        const matchesSearch = item.fullName.toLowerCase().includes(search.toLowerCase());
 
         if (isTeacher) {
-            // Mock filtering: In real app, this would be based on ID. 
-            // Here we match the mock logged-in teacher's name 'Sarah Teacher'
-            return matchesSearch && item.classTeacher === 'Sarah Teacher';
+            // Filter by class teacher (if assigned)
+            return matchesSearch && item.classTeacherId === user?.id;
         }
 
         return matchesSearch;
     });
 
-    const columns: Column<ClassGroup>[] = [
+    const columns: Column<ClassRow>[] = [
         {
             accessor: 'name',
             header: 'Class Name',
             render: (item) => (
-                <Text fw={600} size="sm">Grade {item.grade}-{item.section}</Text>
+                <Text fw={600} size="sm">{item.fullName}</Text>
             )
         },
         {
             accessor: 'classTeacher',
             header: 'Class Teacher',
-            render: (item) => <Text size="sm">{item.classTeacher}</Text>
+            render: (item) => <Text size="sm" c="dimmed">{item.classTeacherId ? 'Assigned' : 'Not Assigned'}</Text>
         },
         {
             accessor: 'studentCount',
@@ -78,11 +111,6 @@ export default function Classes() {
                     <Text size="sm">{item.studentCount}</Text>
                 </Group>
             )
-        },
-        {
-            accessor: 'roomNumber',
-            header: 'Room',
-            render: (item) => <Badge variant="light" color="gray">Rm {item.roomNumber}</Badge>
         },
         {
             accessor: 'actions',
@@ -113,17 +141,27 @@ export default function Classes() {
                 }
             />
 
-            <DataTable
-                data={filteredData}
-                columns={columns}
-                search={search}
-                onSearchChange={setSearch}
-                pagination={{
-                    total: 1,
-                    page: 1,
-                    onChange: () => { }
-                }}
-            />
+            {error && (
+                <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mb="md">
+                    {error}
+                </Alert>
+            )}
+
+            <LoadingOverlay visible={loading} />
+
+            {!loading && !error && (
+                <DataTable
+                    data={filteredData}
+                    columns={columns}
+                    search={search}
+                    onSearchChange={setSearch}
+                    pagination={{
+                        total: 1,
+                        page: 1,
+                        onChange: () => { }
+                    }}
+                />
+            )}
         </>
     );
 }

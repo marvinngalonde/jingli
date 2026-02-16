@@ -65,6 +65,119 @@ async function main() {
         }
     });
 
+    console.log(`👨‍💼 Created Staff Profile for Admin`);
+
+    // 4. Create Academic Year
+    let academicYear = await prisma.academicYear.findFirst({
+        where: {
+            schoolId: school.id,
+            name: '2024-2025'
+        }
+    });
+
+    if (!academicYear) {
+        academicYear = await prisma.academicYear.create({
+            data: {
+                schoolId: school.id,
+                name: '2024-2025',
+                startDate: new Date('2024-09-01'),
+                endDate: new Date('2025-06-30'),
+                current: true
+            }
+        });
+    }
+
+    console.log(`📅 Created Academic Year: ${academicYear.name}`);
+
+    // 5. Create Class Levels (Grades 1-12)
+    const classLevels = [];
+    for (let i = 1; i <= 12; i++) {
+        let classLevel = await prisma.classLevel.findFirst({
+            where: {
+                schoolId: school.id,
+                level: i
+            }
+        });
+
+        if (!classLevel) {
+            classLevel = await prisma.classLevel.create({
+                data: {
+                    schoolId: school.id,
+                    name: `Grade ${i}`,
+                    level: i
+                }
+            });
+        }
+        classLevels.push(classLevel);
+    }
+
+    console.log(`🎓 Created ${classLevels.length} Class Levels (Grade 1-12)`);
+
+    // 6. Create Class Sections (A, B for each grade)
+    const sections = ['A', 'B'];
+    let sectionCount = 0;
+    for (const classLevel of classLevels) {
+        for (const sectionName of sections) {
+            const existing = await prisma.classSection.findFirst({
+                where: {
+                    schoolId: school.id,
+                    classLevelId: classLevel.id,
+                    name: sectionName
+                }
+            });
+
+            if (!existing) {
+                await prisma.classSection.create({
+                    data: {
+                        schoolId: school.id,
+                        classLevelId: classLevel.id,
+                        name: sectionName,
+                        capacity: 30
+                    }
+                });
+                sectionCount++;
+            }
+        }
+    }
+
+    console.log(`📚 Created ${sectionCount} Class Sections`);
+
+    // 7. Create Core Subjects
+    const subjectsData = [
+        { name: 'Mathematics', code: 'MATH', department: 'Science' },
+        { name: 'English Language', code: 'ENG', department: 'Languages' },
+        { name: 'Science', code: 'SCI', department: 'Science' },
+        { name: 'Social Studies', code: 'SOC', department: 'Humanities' },
+        { name: 'Physical Education', code: 'PE', department: 'Sports' },
+        { name: 'Computer Science', code: 'CS', department: 'Technology' },
+        { name: 'Art & Design', code: 'ART', department: 'Arts' },
+        { name: 'Music', code: 'MUS', department: 'Arts' },
+    ];
+
+    let subjectCount = 0;
+    for (const subject of subjectsData) {
+        const existing = await prisma.subject.findFirst({
+            where: {
+                schoolId: school.id,
+                code: subject.code
+            }
+        });
+
+        if (!existing) {
+            await prisma.subject.create({
+                data: {
+                    schoolId: school.id,
+                    name: subject.name,
+                    code: subject.code,
+                    department: subject.department
+                }
+            });
+            subjectCount++;
+        }
+    }
+
+    console.log(`📖 Created ${subjectCount} Subjects`);
+
     console.log(`✅ Seeding complete!`);
 }
 
