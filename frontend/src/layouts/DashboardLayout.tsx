@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Center, Badge, Button } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Center, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
@@ -47,6 +47,7 @@ export function DashboardLayout() {
             links: [
                 { icon: IconCurrencyDollar, label: 'Finance', to: '/finance' },
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports' },
+                { icon: IconUsers, label: 'Users', to: '/admin/users' },
                 { icon: IconSettings, label: 'Settings', to: '/settings' },
             ]
         }
@@ -158,7 +159,9 @@ export function DashboardLayout() {
                                         <div style={{ flex: 1 }}>
                                             <Text size="sm" fw={600} lh={1} visibleFrom="xs">Admin</Text>
                                         </div>
-                                        <IconChevronDown size={14} color="gray" visibleFrom="xs" />
+                                        <Box visibleFrom="xs">
+                                            <IconChevronDown size={14} color="gray" />
+                                        </Box>
                                     </Group>
                                 </UnstyledButton>
                             </Menu.Target>

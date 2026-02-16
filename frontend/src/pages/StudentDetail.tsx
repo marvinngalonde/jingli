@@ -12,8 +12,10 @@ import {
     Divider,
     Timeline,
     Center,
-    ThemeIcon
+    ThemeIcon,
+    Drawer
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
     IconId,
     IconPhone,
@@ -27,7 +29,8 @@ import {
     IconCurrencyDollar,
     IconCheckupList
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom'; // Removed unused useParams
+import { useNavigate } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
@@ -38,11 +41,16 @@ import { ActionMenu } from '../components/common/ActionMenu';
 import { HealthRecord } from '../components/students/HealthRecord';
 import { DisciplinaryRecord } from '../components/students/DisciplinaryRecord';
 import { ECARecord } from '../components/students/ECARecord';
+import { GradesRecord } from '../components/students/GradesRecord';
+import { AttendanceRecord } from '../components/students/AttendanceRecord';
+import { FinanceRecord } from '../components/students/FinanceRecord';
+import { StudentForm } from '../components/students/StudentForm';
 
 export default function StudentDetail() {
     // const { id } = useParams(); // Unused for now
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<string | null>('overview');
+    const [opened, { open, close }] = useDisclosure(false);
 
     // Mock Data
     const student = {
@@ -89,9 +97,9 @@ export default function StudentDetail() {
                     </div>
                     <Group style={{ paddingBottom: 10 }}>
                         <StatusBadge status={student.status} size="lg" />
-                        <Button variant="light" leftSection={<IconPencil size={18} />}>Edit Profile</Button>
+                        <Button variant="light" leftSection={<IconPencil size={18} />} onClick={open}>Edit Profile</Button>
                         <ActionMenu
-                            onEdit={() => { }}
+                            onEdit={open}
                             onDelete={() => { }}
                         />
                     </Group>
@@ -234,19 +242,54 @@ export default function StudentDetail() {
                             </Grid>
                         </Tabs.Panel>
 
-                        {/* Other Panels Placeholder */}
                         <Tabs.Panel value="grades">
-                            <Paper p="xl" withBorder radius="md"><Text c="dimmed" ta="center">Grades Module Loading...</Text></Paper>
+                            <GradesRecord />
                         </Tabs.Panel>
                         <Tabs.Panel value="attendance">
-                            <Paper p="xl" withBorder radius="md"><Text c="dimmed" ta="center">Detailed Attendance Log</Text></Paper>
+                            <AttendanceRecord />
                         </Tabs.Panel>
                         <Tabs.Panel value="finance">
-                            <Paper p="xl" withBorder radius="md"><Text c="dimmed" ta="center">Invoice & Payment History</Text></Paper>
+                            <FinanceRecord />
+                        </Tabs.Panel>
+
+                        <Tabs.Panel value="medical">
+                            <HealthRecord />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="disciplinary">
+                            <DisciplinaryRecord />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="eca">
+                            <ECARecord />
                         </Tabs.Panel>
                     </Tabs>
                 </Grid.Col>
             </Grid>
+
+            <Drawer opened={opened} onClose={close} title="Edit Student" position="right" size="md">
+                <Box p={0}>
+                    <StudentForm
+                        initialValues={{
+                            firstName: student.first_name,
+                            lastName: student.last_name,
+                            email: student.email,
+                            phone: student.phone,
+                            dob: new Date(student.dob),
+                            gender: 'Male',
+                            address: student.address,
+                            grade: student.class.name,
+                            parentName: student.parent.name,
+                            parentPhone: student.parent.phone,
+                            parentEmail: 'parent@example.com'
+                        }}
+                        onSubmit={(values) => {
+                            console.log(values);
+                            notifications.show({ message: 'Profile updated', color: 'green' });
+                            close();
+                        }}
+                        onCancel={close}
+                    />
+                </Box>
+            </Drawer>
         </Box>
     );
 }

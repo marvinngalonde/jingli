@@ -1,3 +1,4 @@
+import { Paper, Title, Group, Button, Table, Text, Badge } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
 export function DisciplinaryRecord() {

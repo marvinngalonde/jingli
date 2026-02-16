@@ -5,14 +5,18 @@ import {
     Avatar,
     Text,
     Select,
-    rem
+    rem,
+    Drawer,
+    Box
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
     IconPlus,
     IconFilter,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
+import { StudentForm } from '../components/students/StudentForm';
 // import { studentService } from '../services/studentService'; // Unused until API is ready
 
 // Common Components
@@ -27,6 +31,7 @@ export default function Students() {
     const [data, setData] = useState<any[]>([]);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [opened, { open, close }] = useDisclosure(false);
 
     // Mock Data
     const mockStudents = [
@@ -53,6 +58,12 @@ export default function Students() {
             notifications.show({ title: 'Error', message: 'Failed to load students', color: 'red' });
             setLoading(false);
         }
+    };
+
+    const handleCreate = (values: any) => {
+        console.log(values);
+        notifications.show({ message: 'Student created successfully', color: 'green' });
+        close();
     };
 
     const filteredData = useMemo(() => {
@@ -122,7 +133,7 @@ export default function Students() {
                 title="Students"
                 subtitle="Manage your student directory"
                 actions={
-                    <Button leftSection={<IconPlus size={18} />} onClick={() => notifications.show({ message: 'Add Student Modal - Coming Soon' })}>
+                    <Button leftSection={<IconPlus size={18} />} onClick={open}>
                         Add Student
                     </Button>
                 }
@@ -152,6 +163,15 @@ export default function Students() {
                 }
                 onExport={() => notifications.show({ message: 'Exporting...' })}
             />
+
+            <Drawer opened={opened} onClose={close} title="Add New Student" position="right" size="md">
+                <Box p={0}>
+                    <StudentForm
+                        onSubmit={handleCreate}
+                        onCancel={close}
+                    />
+                </Box>
+            </Drawer>
         </>
     );
 }

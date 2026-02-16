@@ -8,7 +8,7 @@ export function StatusBadge({ status, ...props }: StatusBadgeProps) {
     const getStatusColor = (status: string) => {
         const s = status.toLowerCase();
         if (s === 'active' || s === 'paid' || s === 'present' || s === 'approved') return 'green';
-        if (s === 'inactive' || s === 'absent' || s === 'rejected') return 'red';
+        if (s === 'inactive' || s === 'absent' || s === 'rejected' || s === 'overdue') return 'red';
         if (s === 'pending' || s === 'suspended' || s === 'late') return 'orange';
         if (s === 'completed') return 'blue';
         return 'gray';
@@ -18,7 +18,7 @@ export function StatusBadge({ status, ...props }: StatusBadgeProps) {
         <Badge
             color={getStatusColor(status)}
             variant="light"
-            transform="capitalize"
+            tt="capitalize"
             {...props}
         >
             {status}
