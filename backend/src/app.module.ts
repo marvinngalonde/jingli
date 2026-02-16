@@ -18,6 +18,7 @@ import { AssignmentsModule } from './assignments/assignments.module';
 import { NoticesModule } from './notices/notices.module';
 import { MessagesModule } from './messages/messages.module';
 import { VisitorsModule } from './visitors/visitors.module';
+import { GuardiansModule } from './guardians/guardians.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { VisitorsModule } from './visitors/visitors.module';
     NoticesModule,
     MessagesModule,
     VisitorsModule,
+    GuardiansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

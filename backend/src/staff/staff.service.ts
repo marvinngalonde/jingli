@@ -31,9 +31,6 @@ export class StaffService {
                 email: createDto.email,
                 passwordHash: 'temp_hash', // In real app, handle this securely
                 role: 'TEACHER', // Defaulting to teacher for staff, or pass in DTO?
-                firstName: createDto.firstName, // Wait, User model doesn't have names in schema I saw earlier? 
-                // Checked schema: User has schoolId, email, role, etc. no firstName. 
-                // Ah, the profile links (Staff, Student) hold the names. Good.
             }
         });
 
