@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { AcademicYearsModule } from './academic-years/academic-years.module';
 import { SupabaseModule } from './supabase/supabase.module';
@@ -14,6 +16,8 @@ import { ClassesModule } from './classes/classes.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
     SubjectsModule,
     AcademicYearsModule,
     SupabaseModule,

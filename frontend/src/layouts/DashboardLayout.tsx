@@ -237,12 +237,12 @@ function activeNavLink(link: any, isActive: boolean, expanded: boolean, navigate
                 <Center my={4}>
                     <ActionIcon
                         size="xl"
-                        variant={isActive ? 'filled' : 'subtle'}
+                        variant={isActive ? 'light' : 'subtle'}
                         color="brand"
                         onClick={() => navigate(link.to)}
                         radius="md"
                     >
-                        <link.icon size="1.4rem" stroke={1.5} />
+                        <link.icon size="1.2rem" stroke={1.5} />
                     </ActionIcon>
                 </Center>
             </Tooltip>
