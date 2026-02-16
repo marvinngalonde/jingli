@@ -1,34 +1,42 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AcademicYearsService } from './academic-years.service';
+import { SupabaseGuard } from '../auth/supabase.guard';
 
 @ApiTags('academics')
+@ApiBearerAuth()
+@UseGuards(SupabaseGuard)
 @Controller('academic-years')
 export class AcademicYearsController {
     constructor(private readonly academicYearsService: AcademicYearsService) { }
 
     @Post()
-    create(@Body() createDto: any) {
-        return this.academicYearsService.create(createDto);
+    create(@Req() req: any, @Body() createDto: any) {
+        return this.academicYearsService.create(createDto, req.user.schoolId);
     }
 
     @Get()
-    findAll(@Query('school_id') schoolId: string) {
-        return this.academicYearsService.findAll(schoolId);
+    findAll(@Req() req: any) {
+        return this.academicYearsService.findAll(req.user.schoolId);
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.academicYearsService.findOne(id);
+    findOne(@Req() req: any, @Param('id') id: string) {
+        return this.academicYearsService.findOne(id, req.user.schoolId);
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateDto: any) {
-        return this.academicYearsService.update(id, updateDto);
+    update(@Req() req: any, @Param('id') id: string, @Body() updateDto: any) {
+        return this.academicYearsService.update(id, updateDto, req.user.schoolId);
+    }
+
+    @Patch(':id/activate')
+    activate(@Req() req: any, @Param('id') id: string) {
+        return this.academicYearsService.activate(id, req.user.schoolId);
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.academicYearsService.remove(id);
+    remove(@Req() req: any, @Param('id') id: string) {
+        return this.academicYearsService.remove(id, req.user.schoolId);
     }
 }

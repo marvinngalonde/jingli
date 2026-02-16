@@ -38,13 +38,21 @@ export class SupabaseGuard implements CanActivate {
 
             const internalUser = await this.prisma.user.findFirst({
                 where: { email: user.email },
-                select: { id: true, schoolId: true, role: true }
+                select: { id: true, schoolId: true, role: true, supabaseUid: true } // Added supabaseUid to select
             });
 
             if (!internalUser) {
                 // Option: Auto-create user if they exist in Supabase but not in DB?
                 // Or throw error. For now, throw error as registration should be explicit.
                 throw new UnauthorizedException('User record not found in system');
+            }
+
+            // Sync Supabase UID if missing (Lazy Linking for RLS)
+            if (internalUser.supabaseUid !== user.id) {
+                await this.prisma.user.update({
+                    where: { id: internalUser.id },
+                    data: { supabaseUid: user.id }
+                });
             }
 
             // Attach user and tenant context to request

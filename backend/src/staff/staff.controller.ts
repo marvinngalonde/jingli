@@ -1,19 +1,24 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { StaffService } from './staff.service';
+import { CreateStaffDto } from './dto/create-staff.dto';
+import { UpdateStaffDto } from './dto/update-staff.dto';
 
-@ApiTags('core')
+@ApiTags('staff')
 @Controller('staff')
 export class StaffController {
     constructor(private readonly staffService: StaffService) { }
 
     @Post()
-    create(@Body() createDto: any) {
+    @ApiOperation({ summary: 'Create new staff member (and user account)' })
+    create(@Body() createDto: CreateStaffDto) {
         return this.staffService.create(createDto);
     }
 
     @Get()
-    findAll(@Query('school_id') schoolId: string) {
+    @ApiOperation({ summary: 'Get all staff for a school' })
+    @ApiQuery({ name: 'schoolId' })
+    findAll(@Query('schoolId') schoolId: string) {
         return this.staffService.findAll(schoolId);
     }
 
@@ -23,7 +28,7 @@ export class StaffController {
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateDto: any) {
+    update(@Param('id') id: string, @Body() updateDto: UpdateStaffDto) {
         return this.staffService.update(id, updateDto);
     }
 

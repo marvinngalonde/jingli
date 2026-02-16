@@ -1,20 +1,26 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { StudentsService } from './students.service';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 
-@ApiTags('core')
+@ApiTags('students')
 @Controller('students')
 export class StudentsController {
     constructor(private readonly studentsService: StudentsService) { }
 
     @Post()
-    create(@Body() createDto: any) {
+    @ApiOperation({ summary: 'Create new student' })
+    create(@Body() createDto: CreateStudentDto) {
         return this.studentsService.create(createDto);
     }
 
     @Get()
-    findAll(@Query('school_id') schoolId: string) {
-        return this.studentsService.findAll(schoolId);
+    @ApiOperation({ summary: 'Get all students' })
+    @ApiQuery({ name: 'schoolId' })
+    @ApiQuery({ name: 'sectionId', required: false })
+    findAll(@Query('schoolId') schoolId: string, @Query('sectionId') sectionId?: string) {
+        return this.studentsService.findAll(schoolId, sectionId);
     }
 
     @Get(':id')
@@ -23,7 +29,7 @@ export class StudentsController {
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateDto: any) {
+    update(@Param('id') id: string, @Body() updateDto: UpdateStudentDto) {
         return this.studentsService.update(id, updateDto);
     }
 

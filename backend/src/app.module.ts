@@ -12,6 +12,12 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { StudentsModule } from './students/students.module';
 import { StaffModule } from './staff/staff.module';
 import { ClassesModule } from './classes/classes.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { AssignmentsModule } from './assignments/assignments.module';
+import { NoticesModule } from './notices/notices.module';
+import { MessagesModule } from './messages/messages.module';
+import { VisitorsModule } from './visitors/visitors.module';
 
 @Module({
   imports: [
@@ -26,6 +32,12 @@ import { ClassesModule } from './classes/classes.module';
     StudentsModule,
     StaffModule,
     ClassesModule,
+    AttendanceModule,
+    TimetableModule,
+    AssignmentsModule,
+    NoticesModule,
+    MessagesModule,
+    VisitorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

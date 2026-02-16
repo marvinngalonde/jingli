@@ -64,6 +64,7 @@ enum UserStatus {
 model User {
   id           String     @id @default(uuid())
   schoolId     String     @map("school_id")
+  supabaseUid  String?    @unique @map("supabase_uid") // Link to auth.users
   email        String
   passwordHash String     @map("password_hash")
   role         UserRole
