@@ -26,23 +26,35 @@ interface ClassGroup {
     roomNumber: string;
 }
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Classes() {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
+    const { user } = useAuth();
+    const isTeacher = user?.role === 'teacher';
 
     // Mock Data
     const mockClasses: ClassGroup[] = [
-        { id: '1', grade: '10', section: 'A', classTeacher: 'Sarah Connor', studentCount: 28, roomNumber: '101' },
+        { id: '1', grade: '10', section: 'A', classTeacher: 'Sarah Teacher', studentCount: 28, roomNumber: '101' },
         { id: '2', grade: '10', section: 'B', classTeacher: 'Ellen Ripley', studentCount: 26, roomNumber: '102' },
-        { id: '3', grade: '9', section: 'A', classTeacher: 'Marty McFly', studentCount: 30, roomNumber: '201' },
+        { id: '3', grade: '9', section: 'A', classTeacher: 'Sarah Teacher', studentCount: 30, roomNumber: '201' },
         { id: '4', grade: '9', section: 'B', classTeacher: 'Kyle Reese', studentCount: 29, roomNumber: '202' },
         { id: '5', grade: '11', section: 'A', classTeacher: 'James Cameron', studentCount: 25, roomNumber: '301' },
     ];
 
-    const filteredData = mockClasses.filter(item =>
-        `${item.grade}${item.section}`.toLowerCase().includes(search.toLowerCase()) ||
-        item.classTeacher.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredData = mockClasses.filter(item => {
+        const matchesSearch = `${item.grade}${item.section}`.toLowerCase().includes(search.toLowerCase()) ||
+            item.classTeacher.toLowerCase().includes(search.toLowerCase());
+
+        if (isTeacher) {
+            // Mock filtering: In real app, this would be based on ID. 
+            // Here we match the mock logged-in teacher's name 'Sarah Teacher'
+            return matchesSearch && item.classTeacher === 'Sarah Teacher';
+        }
+
+        return matchesSearch;
+    });
 
     const columns: Column<ClassGroup>[] = [
         {
@@ -90,12 +102,14 @@ export default function Classes() {
     return (
         <>
             <PageHeader
-                title="Classes & Sections"
-                subtitle="Manage class sections, timetables, and teacher assignments"
+                title={isTeacher ? "My Classes" : "Classes & Sections"}
+                subtitle={isTeacher ? "Manage your assigned classes" : "Manage class sections, timetables, and teacher assignments"}
                 actions={
-                    <Button leftSection={<IconPlus size={18} />} onClick={() => notifications.show({ message: 'Create Class - Coming Soon' })}>
-                        Add Class
-                    </Button>
+                    !isTeacher && (
+                        <Button leftSection={<IconPlus size={18} />} onClick={() => notifications.show({ message: 'Create Class - Coming Soon' })}>
+                            Add Class
+                        </Button>
+                    )
                 }
             />
 

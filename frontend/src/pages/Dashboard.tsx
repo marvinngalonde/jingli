@@ -10,7 +10,9 @@ import {
     IconCalendarEvent,
     IconBook,
     IconClock,
-    IconSchool
+    IconSchool,
+    IconUserPlus,
+    IconSearch
 } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -20,8 +22,41 @@ export function Dashboard() {
 
     if (role === 'teacher') return <TeacherDashboard />;
     if (role === 'student' || role === 'parent') return <StudentDashboard role={role} />;
+    if (role === 'reception') return <ReceptionDashboard />;
 
     return <AdminDashboard />;
+}
+
+function ReceptionDashboard() {
+    return (
+        <div>
+            <Title order={2} mb="lg">Reception Desk</Title>
+            <Grid gutter="lg">
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <StatsCard title="Visitors Today" value="12" subtext="4 Currently In" icon={IconUsers} color="blue" iconBg="blue.1" />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <StatsCard title="Todays Attendance" value="94%" subtext="12 Late Arrivals" icon={IconCalendarStats} color="orange" iconBg="orange.1" />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <StatsCard title="Pending Inquiries" value="5" subtext="New admissions" icon={IconSpeakerphone} color="teal" iconBg="teal.1" />
+                </Grid.Col>
+            </Grid>
+            <Grid mt="xl">
+                <Grid.Col span={12}>
+                    <Paper p="lg" radius="md" shadow="sm" withBorder>
+                        <Title order={4} mb="md">Quick Actions</Title>
+                        <Group>
+                            <QuickAction title="Check In Visitor" icon={IconUserPlus} color="blue" />
+                            <QuickAction title="New Admission" icon={IconPlus} color="green" />
+                            <QuickAction title="Student Search" icon={IconSearch} color="violet" />
+                            <QuickAction title="Collect Fees" icon={IconCurrencyDollar} color="teal" />
+                        </Group>
+                    </Paper>
+                </Grid.Col>
+            </Grid>
+        </div>
+    )
 }
 
 function TeacherDashboard() {

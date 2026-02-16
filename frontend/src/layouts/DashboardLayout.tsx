@@ -12,12 +12,14 @@ import {
     IconLogout,
     IconBell,
     IconChevronDown,
-    
+
     IconHelp,
     IconCalendar,
     IconBook,
     IconLayoutSidebarLeftCollapse,
-    IconLayoutSidebarLeftExpand
+    IconLayoutSidebarLeftExpand,
+    IconSpeakerphone,
+    IconDoorExit
 } from '@tabler/icons-react';
 
 // Import Logos
@@ -36,6 +38,7 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'student', 'parent', 'reception'],
             links: [
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
+                { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
             ]
         },
         {
@@ -54,6 +57,8 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'reception', 'student'],
             links: [
                 { icon: IconCalendar, label: 'Attendance', to: '/attendance', roles: ['admin', 'teacher', 'reception', 'student', 'parent'] },
+                { icon: IconUsers, label: 'Visitors', to: '/reception/visitors', roles: ['admin', 'reception'] },
+                { icon: IconDoorExit, label: 'Student Logistics', to: '/reception/logistics', roles: ['admin', 'reception'] },
                 { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'teacher', 'student'] },
             ]
         },

@@ -3,6 +3,7 @@ import { IconBook, IconCalendar, IconPlus, IconClock } from '@tabler/icons-react
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 // --- Subjects Mock Data ---
 interface Subject {
@@ -44,7 +45,10 @@ const mockTimetable: Record<string, string[]> = {
 };
 
 export default function Academics() {
-    const [activeTab, setActiveTab] = useState<string | null>('subjects');
+    const { user } = useAuth();
+    const isStudentOrParent = user?.role === 'student' || user?.role === 'parent';
+
+    const [activeTab, setActiveTab] = useState<string | null>(isStudentOrParent ? 'timetable' : 'subjects');
     const [search, setSearch] = useState('');
 
     const filteredSubjects = mockSubjects.filter(item =>
@@ -55,8 +59,10 @@ export default function Academics() {
     const SubjectsTab = () => (
         <>
             <Group justify="space-between" mb="md">
-                <Text size="sm" c="dimmed">Manage subjects and assign them to grades/departments.</Text>
-                <Button leftSection={<IconPlus size={16} />}>Add Subject</Button>
+                <Text size="sm" c="dimmed">
+                    {isStudentOrParent ? "Subjects enrolled in for the current academic year." : "Manage subjects and assign them to grades/departments."}
+                </Text>
+                {!isStudentOrParent && <Button leftSection={<IconPlus size={16} />}>Add Subject</Button>}
             </Group>
             <DataTable
                 data={filteredSubjects}
@@ -71,13 +77,20 @@ export default function Academics() {
     const TimetableTab = () => (
         <>
             <Group mb="lg">
-                <Select
-                    placeholder="Select Class"
-                    data={['Grade 10A', 'Grade 10B', 'Grade 11A']}
-                    defaultValue="Grade 10A"
-                    label="View Timetable For"
-                />
-                <Button variant="light" mt={24} leftSection={<IconPlus size={16} />}>Edit Schedule</Button>
+                {isStudentOrParent ? (
+                    <Text fw={700} size="lg">My Timetable (Grade 10A)</Text>
+                ) : (
+                    <Select
+                        placeholder="Select Class"
+                        data={['Grade 10A', 'Grade 10B', 'Grade 11A']}
+                        defaultValue="Grade 10A"
+                        label="View Timetable For"
+                    />
+                )}
+
+                {!isStudentOrParent && (
+                    <Button variant="light" mt={isStudentOrParent ? 0 : 24} leftSection={<IconPlus size={16} />}>Edit Schedule</Button>
+                )}
             </Group>
 
             <Paper withBorder radius="md" overflow="hidden">
@@ -135,12 +148,16 @@ export default function Academics() {
         <>
             <PageHeader
                 title="Academics"
-                subtitle="Manage subjects, timetables, and curriculum"
+                subtitle={isStudentOrParent ? "My curriculum and schedule" : "Manage subjects, timetables, and curriculum"}
             />
 
             <Tabs value={activeTab} onChange={setActiveTab} radius="md">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="subjects" leftSection={<IconBook size={16} />}>Subjects</Tabs.Tab>
+                    {/* Re-ordering for students maybe? Or keeping same. Let's keep same for consistency but default to timetable */}
+                    {!isStudentOrParent && <Tabs.Tab value="subjects" leftSection={<IconBook size={16} />}>Subjects</Tabs.Tab>}
+                    {/* Actually students might want to see subjects too, just read only. Keeping it. */}
+                    {isStudentOrParent && <Tabs.Tab value="subjects" leftSection={<IconBook size={16} />}>My Subjects</Tabs.Tab>}
+
                     <Tabs.Tab value="timetable" leftSection={<IconCalendar size={16} />}>Timetable</Tabs.Tab>
                 </Tabs.List>
 

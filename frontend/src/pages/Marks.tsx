@@ -2,7 +2,8 @@ import { Tabs, Button, Group, Text, Select, TextInput, NumberInput, Paper, Table
 import { IconClipboardList, IconTypography, IconDeviceFloppy, IconEye, IconPrinter } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 // --- Marks Mock Data ---
 interface StudentMark {
@@ -25,10 +26,20 @@ const mockStudents: StudentMark[] = [
 ];
 
 export default function Marks() {
+    const { user } = useAuth();
+    const isStudent = user?.role === 'student' || user?.role === 'parent';
+
     const [activeTab, setActiveTab] = useState<string | null>('marks-entry');
     const [selectedClass, setSelectedClass] = useState<string | null>('Grade 10A');
     const [selectedSubject, setSelectedSubject] = useState<string | null>('Mathematics');
     const [studentData, setStudentData] = useState<StudentMark[]>(mockStudents);
+
+    // Forces tab switch for students
+    useEffect(() => {
+        if (isStudent) {
+            setActiveTab('report-cards');
+        }
+    }, [isStudent]);
 
     const handleMarkChange = (id: string, value: number | '') => {
         setStudentData(prev => prev.map(student => {
@@ -128,14 +139,20 @@ export default function Marks() {
 
     const ReportCardsTab = () => (
         <>
-            <Group mb="lg">
-                <Select label="Class" data={['Grade 10A', 'Grade 10B']} defaultValue="Grade 10A" />
-                <Select label="Exam Term" data={['Term 1', 'Finals']} defaultValue="Term 1" />
-                <Button mt={24} leftSection={<IconPrinter size={16} />}>Print All Reports</Button>
+            <Group mb="lg" justify="space-between">
+                <Group>
+                    {!isStudent && <Select label="Class" data={['Grade 10A', 'Grade 10B']} defaultValue="Grade 10A" />}
+                    <Select label="Exam Term" data={['Term 1', 'Finals']} defaultValue="Term 1" />
+                </Group>
+                {!isStudent && <Button mt={24} leftSection={<IconPrinter size={16} />}>Print All Reports</Button>}
+                {isStudent && <Button mt={24} leftSection={<IconPrinter size={16} />}>Download My Report</Button>}
             </Group>
 
+            {/* For Students, we simulate filtering to only show their "own" record if we had real auth data. 
+                For now we just show the table but with limited actions. */}
+
             <DataTable
-                data={mockStudents} // Reusing student list for demo
+                data={isStudent ? mockStudents.slice(0, 1) : mockStudents} // Demonstrate filtering for student
                 columns={[
                     { accessor: 'rollNo', header: 'Roll No', width: 100 },
                     { accessor: 'studentName', header: 'Student Name' },
@@ -150,7 +167,7 @@ export default function Marks() {
                         render: () => (
                             <Group gap={4}>
                                 <Button size="xs" variant="light" leftSection={<IconEye size={14} />}>View Report</Button>
-                                <ActionIcon size="sm" variant="subtle" color="gray"><IconPrinter size={14} /></ActionIcon>
+                                {isStudent && <ActionIcon size="sm" variant="subtle" color="gray"><IconPrinter size={14} /></ActionIcon>}
                             </Group>
                         )
                     }
@@ -165,19 +182,21 @@ export default function Marks() {
     return (
         <>
             <PageHeader
-                title="Marks & Examinations"
-                subtitle="Enter marks, manage grading, and generate report cards"
+                title={isStudent ? "My Performance" : "Marks & Examinations"}
+                subtitle={isStudent ? "View your grades and download report cards" : "Enter marks, manage grading, and generate report cards"}
             />
 
             <Tabs value={activeTab} onChange={setActiveTab} radius="md">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="marks-entry" leftSection={<IconClipboardList size={16} />}>Marks Entry</Tabs.Tab>
+                    {!isStudent && <Tabs.Tab value="marks-entry" leftSection={<IconClipboardList size={16} />}>Marks Entry</Tabs.Tab>}
                     <Tabs.Tab value="report-cards" leftSection={<IconTypography size={16} />}>Report Cards</Tabs.Tab>
                 </Tabs.List>
 
-                <Tabs.Panel value="marks-entry">
-                    <MarksEntryTab />
-                </Tabs.Panel>
+                {!isStudent && (
+                    <Tabs.Panel value="marks-entry">
+                        <MarksEntryTab />
+                    </Tabs.Panel>
+                )}
 
                 <Tabs.Panel value="report-cards">
                     <ReportCardsTab />

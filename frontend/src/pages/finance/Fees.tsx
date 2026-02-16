@@ -1,4 +1,4 @@
-import { Button, Drawer, Box, SimpleGrid, Paper, Text } from '@mantine/core';
+import { Button, Drawer, Box, SimpleGrid, Paper, Text, Modal, Select, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -42,6 +42,8 @@ const columns: Column<Fee>[] = [
 export default function Fees() {
     const [search, setSearch] = useState('');
     const [opened, { open, close }] = useDisclosure(false);
+    const [paymentModalOpened, { open: openPaymentModal, close: closePaymentModal }] = useDisclosure(false);
+    const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
 
     const filteredData = mockData.filter(item =>
         item.studentName.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,6 +56,31 @@ export default function Fees() {
         notifications.show({ message: 'Invoice created successfully', color: 'green' });
         close();
     };
+
+    const handlePay = () => {
+        notifications.show({ message: `Payment recorded for ${selectedFee?.studentName}`, color: 'green' });
+        closePaymentModal();
+    };
+
+    const paymentColumns: Column<Fee>[] = [
+        ...columns,
+        {
+            accessor: 'actions',
+            header: 'Actions',
+            render: (item) => (
+                item.status !== 'Paid' && (
+                    <Button
+                        size="compact-xs"
+                        variant="light"
+                        color="green"
+                        onClick={() => { setSelectedFee(item); openPaymentModal(); }}
+                    >
+                        Collect Payment
+                    </Button>
+                )
+            )
+        }
+    ];
 
     return (
         <>
@@ -80,7 +107,7 @@ export default function Fees() {
 
             <DataTable
                 data={filteredData}
-                columns={columns}
+                columns={paymentColumns}
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{ total: 1, page: 1, onChange: () => { } }}
@@ -94,6 +121,40 @@ export default function Fees() {
                     />
                 </Box>
             </Drawer>
+
+            <Modal opened={paymentModalOpened} onClose={closePaymentModal} title="Receive Payment">
+                {selectedFee && (
+                    <Box>
+                        <Text size="sm" mb="md">Following payment will be recorded for <b>{selectedFee.studentName}</b> ({selectedFee.grade})</Text>
+                        <SimpleGrid cols={2} mb="md">
+                            <Box>
+                                <Text size="xs" c="dimmed">Invoice Type</Text>
+                                <Text fw={500}>{selectedFee.type}</Text>
+                            </Box>
+                            <Box>
+                                <Text size="xs" c="dimmed">Amount Due</Text>
+                                <Text fw={500}>${selectedFee.amount}</Text>
+                            </Box>
+                        </SimpleGrid>
+
+                        <Select
+                            label="Payment Method"
+                            placeholder="Select method"
+                            data={['Cash', 'Credit Card', 'Bank Transfer', 'Cheque']}
+                            defaultValue="Cash"
+                            mb="md"
+                        />
+
+                        <Text size="xs" c="dimmed" mb={4}>Remarks (Optional)</Text>
+                        <Box mb="lg" style={{ border: '1px solid #ced4da', borderRadius: 4, padding: 8, minHeight: 60 }} contentEditable />
+
+                        <Group justify="flex-end">
+                            <Button variant="default" onClick={closePaymentModal}>Cancel</Button>
+                            <Button color="green" onClick={handlePay}>Confirm Payment</Button>
+                        </Group>
+                    </Box>
+                )}
+            </Modal>
         </>
     );
 }

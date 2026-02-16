@@ -1,8 +1,9 @@
 import { Tabs, Button, Group, Text, Select, Table, Avatar, Badge, SegmentedControl, Paper, Grid, RingProgress, Center, Stack } from '@mantine/core';
 import { IconCalendar, IconCheck, IconHistory, IconDeviceFloppy } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
-import { useState } from 'react';
-import { DatePickerInput } from '@mantine/dates'; // Make sure you have @mantine/dates installed or mock it
+import { useState, useEffect } from 'react';
+import { DatePickerInput } from '@mantine/dates';
+import { useAuth } from '../context/AuthContext';
 
 // --- Mock Data ---
 interface StudentAttendance {
@@ -30,10 +31,20 @@ const stats = {
 };
 
 export default function Attendance() {
+    const { user } = useAuth();
+    const isStudent = user?.role === 'student' || user?.role === 'parent';
+
     const [activeTab, setActiveTab] = useState<string | null>('daily');
     const [date, setDate] = useState<Date | null>(new Date());
     const [students, setStudents] = useState<StudentAttendance[]>(mockClassStudents);
     const [selectedClass, setSelectedClass] = useState<string | null>('Grade 10A');
+
+    // Forces tab switch for students
+    useEffect(() => {
+        if (isStudent) {
+            setActiveTab('history');
+        }
+    }, [isStudent]);
 
     const handleStatusChange = (id: string, newStatus: string) => {
         setStudents(prev => prev.map(s => s.id === id ? { ...s, status: newStatus as any } : s));
@@ -150,8 +161,16 @@ export default function Attendance() {
             <Center>
                 <Stack align="center">
                     <IconCalendar size={48} color="gray" />
-                    <Text c="dimmed">Detailed attendance history calendar view will be implemented here.</Text>
-                    <Button variant="light">Download Monthly Report</Button>
+                    <Text c="dimmed">
+                        {isStudent
+                            ? "Your attendance history will be displayed here."
+                            : "Detailed attendance history calendar view will be implemented here."
+                        }
+                    </Text>
+                    <Group>
+                        <Button variant="light">Download Monthly Report</Button>
+                        {isStudent && <Button variant="outline">Request Leave</Button>}
+                    </Group>
                 </Stack>
             </Center>
         </Paper>
@@ -160,19 +179,21 @@ export default function Attendance() {
     return (
         <>
             <PageHeader
-                title="Attendance"
-                subtitle="Track daily student attendance"
+                title={isStudent ? "My Attendance" : "Attendance"}
+                subtitle={isStudent ? "Track your daily attendance and leave status" : "Track daily student attendance"}
             />
 
             <Tabs value={activeTab} onChange={setActiveTab} radius="md">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="daily" leftSection={<IconCheck size={16} />}>Daily Register</Tabs.Tab>
+                    {!isStudent && <Tabs.Tab value="daily" leftSection={<IconCheck size={16} />}>Daily Register</Tabs.Tab>}
                     <Tabs.Tab value="history" leftSection={<IconHistory size={16} />}>Attendance History</Tabs.Tab>
                 </Tabs.List>
 
-                <Tabs.Panel value="daily">
-                    <DailyRegisterTab />
-                </Tabs.Panel>
+                {!isStudent && (
+                    <Tabs.Panel value="daily">
+                        <DailyRegisterTab />
+                    </Tabs.Panel>
+                )}
 
                 <Tabs.Panel value="history">
                     <HistoryTab />

@@ -26,6 +26,9 @@ import Reports from './pages/Reports';
 
 import { Signup } from './pages/Signup';
 import Admissions from './pages/Admissions';
+import Visitors from './pages/reception/Visitors';
+import StudentLogistics from './pages/reception/StudentLogistics';
+import Communication from './pages/Communication';
 
 import { AuthProvider } from './context/AuthContext';
 
@@ -54,6 +57,16 @@ function App() {
             <Route path="/library" element={<Library />} />
 
             {/* Finance Routes - Now handled within Finance component tabs */}
+
+            // ...
+
+            {/* Reception Routes */}
+            <Route path="/reception/visitors" element={<Visitors />} />
+            <Route path="/reception/logistics" element={<StudentLogistics />} />
+
+            {/* Communication Route */}
+            <Route path="/communication" element={<Communication />} />
+
             {/* Admin Routes */}
             <Route path="/admin/users" element={<Users />} />
             <Route path="/settings" element={<Settings />} />
