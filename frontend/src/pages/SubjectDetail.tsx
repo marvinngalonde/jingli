@@ -23,8 +23,8 @@ import {
     IconCalendar
 } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
-import { subjectsApi } from '../services/academics';
-import type { Subject } from '../types/academics';
+import { subjectsApi, timetableApi } from '../services/academics';
+import type { Subject, TimetableEntry } from '../types/academics';
 import { EditSubjectModal } from '../components/modals/EditSubjectModal';
 import { DeleteSubjectModal } from '../components/modals/DeleteSubjectModal';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +34,7 @@ export default function SubjectDetail() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [subject, setSubject] = useState<Subject | null>(null);
+    const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [editModalOpened, setEditModalOpened] = useState(false);
@@ -41,21 +42,27 @@ export default function SubjectDetail() {
 
     useEffect(() => {
         if (id) {
-            fetchSubject();
+            fetchData();
         }
     }, [id]);
 
-    const fetchSubject = async () => {
+    const fetchData = async () => {
         if (!id) return;
 
         try {
             setLoading(true);
             setError(null);
-            const data = await subjectsApi.getOne(id);
-            setSubject(data);
+
+            const [subjectData, timetableData] = await Promise.all([
+                subjectsApi.getOne(id),
+                timetableApi.getAll({ subjectId: id })
+            ]);
+
+            setSubject(subjectData);
+            setTimetableEntries(timetableData);
         } catch (err: any) {
-            console.error('Failed to fetch subject:', err);
-            setError(err.response?.data?.message || 'Failed to load subject');
+            console.error('Failed to fetch subject data:', err);
+            setError(err.response?.data?.message || 'Failed to load subject data');
         } finally {
             setLoading(false);
         }
@@ -64,6 +71,65 @@ export default function SubjectDetail() {
     const handleDeleteSuccess = () => {
         navigate('/academics');
     };
+
+    // Calculate Grade Assignments (Group by Class Section -> Class Level)
+    const gradeAssignments = Object.values(timetableEntries.reduce((acc, entry) => {
+        if (!entry.section) return acc;
+
+        const sectionId = entry.section.id;
+        if (!acc[sectionId]) {
+            acc[sectionId] = {
+                id: sectionId,
+                grade: entry.section.classLevel?.name || `Grade ${entry.section.classLevel?.level}`, // Need classLevel included
+                section: entry.section.name,
+                teachers: new Set<string>(),
+                hours: 0
+            };
+        }
+
+        if (entry.teacher) {
+            acc[sectionId].teachers.add(`${entry.teacher.firstName} ${entry.teacher.lastName}`);
+        }
+
+        // Calculate duration (assuming 1 hour slots for simplicity or calculate diff)
+        const start = new Date(entry.startTime);
+        const end = new Date(entry.endTime);
+        const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        acc[sectionId].hours += durationHours;
+
+        return acc;
+    }, {} as Record<string, any>));
+
+    // Calculate Teacher Assignments
+    const teacherAssignments = Object.values(timetableEntries.reduce((acc, entry) => {
+        if (!entry.teacher) return acc;
+
+        const teacherId = entry.teacher.id;
+        if (!acc[teacherId]) {
+            acc[teacherId] = {
+                id: teacherId,
+                name: `${entry.teacher.firstName} ${entry.teacher.lastName}`,
+                grades: new Set<string>(),
+                classes: 0,
+                hours: 0
+            };
+        }
+
+        if (entry.section?.classLevel) {
+            acc[teacherId].grades.add(entry.section.classLevel.name);
+        } else if (entry.section) {
+            acc[teacherId].grades.add(entry.section.name);
+        }
+
+        acc[teacherId].classes += 1;
+
+        const start = new Date(entry.startTime);
+        const end = new Date(entry.endTime);
+        const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        acc[teacherId].hours += durationHours;
+
+        return acc;
+    }, {} as Record<string, any>));
 
     if (loading) {
         return <LoadingOverlay visible />;
@@ -160,79 +226,91 @@ export default function SubjectDetail() {
                     <Tabs.Panel value="grades" pt="md">
                         <Paper withBorder p="md">
                             <Text fw={600} mb="md">Grades Teaching This Subject</Text>
-                            <Alert color="blue" mb="md">
-                                Grade assignments will be automatically populated when timetables are created.
-                            </Alert>
-                            <Box style={{ overflowX: 'auto' }}>
-                                <Table striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Grade Level</Table.Th>
-                                            <Table.Th>Sections</Table.Th>
-                                            <Table.Th>Teachers</Table.Th>
-                                            <Table.Th>Weekly Hours</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        <Table.Tr>
-                                            <Table.Td colSpan={4}>
-                                                <Text c="dimmed" ta="center" py="xl">
-                                                    No timetable assignments yet. Create timetables to see grade assignments.
-                                                </Text>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    </Table.Tbody>
-                                </Table>
-                            </Box>
+                            {gradeAssignments.length === 0 ? (
+                                <Alert color="blue" mb="md">
+                                    No timetable assignments yet. Create timetables to see grade assignments.
+                                </Alert>
+                            ) : (
+                                <Box style={{ overflowX: 'auto' }}>
+                                    <Table striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Grade / Level</Table.Th>
+                                                <Table.Th>Section</Table.Th>
+                                                <Table.Th>Teachers</Table.Th>
+                                                <Table.Th>Weekly Hours</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {gradeAssignments.map((assignment: any) => (
+                                                <Table.Tr key={assignment.id}>
+                                                    <Table.Td>{assignment.grade}</Table.Td>
+                                                    <Table.Td>{assignment.section}</Table.Td>
+                                                    <Table.Td>{Array.from(assignment.teachers).join(', ')}</Table.Td>
+                                                    <Table.Td>{assignment.hours.toFixed(1)} hrs</Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                </Box>
+                            )}
                         </Paper>
                     </Tabs.Panel>
 
                     <Tabs.Panel value="teachers" pt="md">
                         <Paper withBorder p="md">
                             <Text fw={600} mb="md">Teachers Assigned to This Subject</Text>
-                            <Alert color="blue" mb="md">
-                                Teacher assignments will be automatically populated when timetables are created.
-                            </Alert>
-                            <Box style={{ overflowX: 'auto' }}>
-                                <Table striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Teacher Name</Table.Th>
-                                            <Table.Th>Grades Teaching</Table.Th>
-                                            <Table.Th>Total Classes</Table.Th>
-                                            <Table.Th>Weekly Hours</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        <Table.Tr>
-                                            <Table.Td colSpan={4}>
-                                                <Text c="dimmed" ta="center" py="xl">
-                                                    No teacher assignments yet. Create timetables to see teacher assignments.
-                                                </Text>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    </Table.Tbody>
-                                </Table>
-                            </Box>
+                            {teacherAssignments.length === 0 ? (
+                                <Alert color="blue" mb="md">
+                                    No teacher assignments yet. Create timetables to see teacher assignments.
+                                </Alert>
+                            ) : (
+                                <Box style={{ overflowX: 'auto' }}>
+                                    <Table striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Teacher Name</Table.Th>
+                                                <Table.Th>Grades Teaching</Table.Th>
+                                                <Table.Th>Total Classes</Table.Th>
+                                                <Table.Th>Weekly Hours</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {teacherAssignments.map((assignment: any) => (
+                                                <Table.Tr key={assignment.id}>
+                                                    <Table.Td>{assignment.name}</Table.Td>
+                                                    <Table.Td>{Array.from(assignment.grades).join(', ')}</Table.Td>
+                                                    <Table.Td>{assignment.classes}</Table.Td>
+                                                    <Table.Td>{assignment.hours.toFixed(1)} hrs</Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                </Box>
+                            )}
                         </Paper>
                     </Tabs.Panel>
                 </Tabs>
             </Stack>
 
-            <EditSubjectModal
-                opened={editModalOpened}
-                onClose={() => setEditModalOpened(false)}
-                onSuccess={fetchSubject}
-                subject={subject}
-            />
+            {subject && (
+                <>
+                    <EditSubjectModal
+                        opened={editModalOpened}
+                        onClose={() => setEditModalOpened(false)}
+                        onSuccess={fetchData}
+                        subject={subject}
+                    />
 
-            <DeleteSubjectModal
-                opened={deleteModalOpened}
-                onClose={() => setDeleteModalOpened(false)}
-                onSuccess={handleDeleteSuccess}
-                subjectId={subject.id}
-                subjectName={subject.name}
-            />
+                    <DeleteSubjectModal
+                        opened={deleteModalOpened}
+                        onClose={() => setDeleteModalOpened(false)}
+                        onSuccess={handleDeleteSuccess}
+                        subjectId={subject.id}
+                        subjectName={subject.name}
+                    />
+                </>
+            )}
         </>
     );
 }

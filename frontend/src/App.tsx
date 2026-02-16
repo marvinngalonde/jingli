@@ -12,6 +12,7 @@ import Classes from './pages/Classes';
 import ClassDetail from './pages/ClassDetail';
 import Subjects from './pages/Subjects';
 import SubjectDetail from './pages/SubjectDetail';
+import Timetable from './pages/Timetable';
 import Marks from './pages/Marks';
 import Library from './pages/Library';
 import Attendance from './pages/Attendance';

@@ -1,5 +1,5 @@
-import { Tabs, Button, Group, Text, Select, SimpleGrid, Paper, Box, LoadingOverlay } from '@mantine/core';
-import { IconBook, IconCalendar, IconPlus, IconClock } from '@tabler/icons-react';
+import { Tabs, Button, Group, Text, LoadingOverlay } from '@mantine/core';
+import { IconBook, IconCalendar, IconPlus } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { useState, useEffect } from 'react';
@@ -11,19 +11,7 @@ import { CreateSubjectModal } from '../components/modals/CreateSubjectModal';
 import { EditSubjectModal } from '../components/modals/EditSubjectModal';
 import { DeleteSubjectModal } from '../components/modals/DeleteSubjectModal';
 import { ActionMenu } from '../components/common/ActionMenu';
-
-// --- Timetable Mock Data ---
-const timeSlots = ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 10:30', '10:30 - 11:30', '11:30 - 12:30', '12:30 - 13:30'];
-const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-// Simple mock for a specific class timetable (e.g., Grade 10A)
-const mockTimetable: Record<string, string[]> = {
-    'Monday': ['Math (Rm 101)', 'English (Rm 102)', 'BREAK', 'Physics (Lab 1)', 'History (Rm 103)', 'Biology (Lab 2)'],
-    'Tuesday': ['English (Rm 102)', 'Math (Rm 101)', 'BREAK', 'Chemistry (Lab 1)', 'Geography (Rm 104)', 'PE (Field)'],
-    'Wednesday': ['Math (Rm 101)', 'Physics (Lab 1)', 'BREAK', 'English (Rm 102)', 'History (Rm 103)', 'Art (Studio)'],
-    'Thursday': ['Biology (Lab 2)', 'Chemistry (Lab 1)', 'BREAK', 'Math (Rm 101)', 'English (Rm 102)', 'Music (Rm 201)'],
-    'Friday': ['History (Rm 103)', 'Geography (Rm 104)', 'BREAK', 'Math (Rm 101)', 'Physics (Lab 1)', 'Assembly'],
-};
+import { TimetableManagement } from '../components/timetable/TimetableManagement';
 
 export default function Academics() {
     const { user } = useAuth();
@@ -151,76 +139,6 @@ export default function Academics() {
         </>
     );
 
-    const TimetableTab = () => (
-        <>
-            <Group mb="lg">
-                {isStudentOrParent ? (
-                    <Text fw={700} size="lg">My Timetable (Grade 10A)</Text>
-                ) : (
-                    <Select
-                        placeholder="Select Class"
-                        data={['Grade 10A', 'Grade 10B', 'Grade 11A']}
-                        defaultValue="Grade 10A"
-                        label="View Timetable For"
-                    />
-                )}
-
-                {!isStudentOrParent && (
-                    <Button variant="light" mt={isStudentOrParent ? 0 : 24} leftSection={<IconPlus size={16} />}>Edit Schedule</Button>
-                )}
-            </Group>
-
-            <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
-                <Box p="md" bg="gray.1" style={{ overflowX: 'auto' }}>
-                    <SimpleGrid cols={6} spacing="xs" style={{ minWidth: 800 }}>
-                        {/* Header Row */}
-                        <Box fw={700} c="dimmed">Day / Time</Box>
-                        {timeSlots.map(time => (
-                            <Box key={time} fw={700} ta="center" fz="xs" c="dimmed">
-                                <Group justify="center" gap={4}>
-                                    <IconClock size={12} />
-                                    {time}
-                                </Group>
-                            </Box>
-                        ))}
-
-                        {/* Schedule Rows */}
-                        {weekDays.map(day => (
-                            <>
-                                <Box key={day} fw={700} py="sm" style={{ display: 'flex', alignItems: 'center' }}>
-                                    {day}
-                                </Box>
-                                {mockTimetable[day]?.map((subject, index) => {
-                                    const isBreak = subject === 'BREAK';
-                                    return (
-                                        <Paper
-                                            key={`${day}-${index}`}
-                                            p="xs"
-                                            radius="sm"
-                                            bg={isBreak ? 'gray.2' : 'blue.0'}
-                                            withBorder={!isBreak}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                minHeight: 60,
-                                                opacity: isBreak ? 0.7 : 1
-                                            }}
-                                        >
-                                            <Text ta="center" size="xs" fw={isBreak ? 700 : 500} c={isBreak ? 'dimmed' : 'black'}>
-                                                {subject}
-                                            </Text>
-                                        </Paper>
-                                    );
-                                })}
-                            </>
-                        ))}
-                    </SimpleGrid>
-                </Box>
-            </Paper>
-        </>
-    );
-
     return (
         <>
             <PageHeader
@@ -243,7 +161,7 @@ export default function Academics() {
                 </Tabs.Panel>
 
                 <Tabs.Panel value="timetable">
-                    <TimetableTab />
+                    <TimetableManagement isStudentOrParent={isStudentOrParent} />
                 </Tabs.Panel>
             </Tabs>
 
