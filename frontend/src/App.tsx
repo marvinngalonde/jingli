@@ -10,6 +10,8 @@ import Finance from './pages/Finance';
 import Academics from './pages/Academics';
 import Classes from './pages/Classes';
 import ClassDetail from './pages/ClassDetail';
+import Subjects from './pages/Subjects';
+import SubjectDetail from './pages/SubjectDetail';
 import Marks from './pages/Marks';
 import Library from './pages/Library';
 import Attendance from './pages/Attendance';
@@ -55,6 +57,8 @@ function App() {
             <Route path="/academics" element={<Academics />} />
             <Route path="/classes" element={<Classes />} />
             <Route path="/classes/:id" element={<ClassDetail />} />
+            <Route path="/subjects" element={<Subjects />} />
+            <Route path="/subjects/:id" element={<SubjectDetail />} />
             <Route path="/marks" element={<Marks />} />
             <Route path="/library" element={<Library />} />
 

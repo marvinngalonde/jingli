@@ -12,16 +12,18 @@ import {
     IconAlertCircle
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { ActionMenu } from '../components/common/ActionMenu';
+import { CreateClassModal } from '../components/modals/CreateClassModal';
+import { EditClassModal } from '../components/modals/EditClassModal';
+import { DeleteClassModal } from '../components/modals/DeleteClassModal';
 
 // API
 import { classesApi } from '../services/academics';
-import type { ClassLevel } from '../types/academics';
+import type { ClassLevel, ClassSection } from '../types/academics';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -34,7 +36,10 @@ interface ClassRow {
     fullName: string;
     studentCount: number;
     classTeacherId?: string;
+    section: ClassSection;
 }
+
+const ITEMS_PER_PAGE = 10;
 
 export default function Classes() {
     const navigate = useNavigate();
@@ -45,6 +50,12 @@ export default function Classes() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
+    const [createModalOpened, setCreateModalOpened] = useState(false);
+    const [editModalOpened, setEditModalOpened] = useState(false);
+    const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+    const [selectedSection, setSelectedSection] = useState<ClassSection | null>(null);
+    const [selectedClassLevel, setSelectedClassLevel] = useState<ClassLevel | null>(null);
+    const [page, setPage] = useState(1);
 
     // Fetch classes on mount
     useEffect(() => {
@@ -75,6 +86,7 @@ export default function Classes() {
             fullName: `${level.name}-${section.name}`,
             studentCount: section._count?.students || 0,
             classTeacherId: section.classTeacherId,
+            section: section,
         }))
     );
 
@@ -88,6 +100,26 @@ export default function Classes() {
 
         return matchesSearch;
     });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+    const paginatedData = filteredData.slice(
+        (page - 1) * ITEMS_PER_PAGE,
+        page * ITEMS_PER_PAGE
+    );
+
+    const handleEdit = (item: ClassRow) => {
+        const level = classLevels.find(l => l.id === item.levelId);
+        setSelectedSection(item.section);
+        setEditModalOpened(true);
+        // Store the class level in state
+        setSelectedClassLevel(level || null);
+    };
+
+    const handleDelete = (item: ClassRow) => {
+        setSelectedSection(item.section);
+        setDeleteModalOpened(true);
+    };
 
     const columns: Column<ClassRow>[] = [
         {
@@ -113,14 +145,19 @@ export default function Classes() {
             )
         },
         {
+            accessor: 'capacity',
+            header: 'Capacity',
+            render: (item) => <Text size="sm">{item.section.capacity}</Text>
+        },
+        {
             accessor: 'actions',
             header: '',
             render: (item) => (
                 <Group justify="flex-end">
                     <ActionMenu
                         onView={() => navigate(`/classes/${item.id}`)}
-                        onEdit={() => notifications.show({ message: 'Edit Class - Coming Soon' })}
-                        onDelete={() => notifications.show({ message: 'Delete Class - Coming Soon', color: 'red' })}
+                        onEdit={() => handleEdit(item)}
+                        onDelete={() => handleDelete(item)}
                     />
                 </Group>
             )
@@ -134,7 +171,10 @@ export default function Classes() {
                 subtitle={isTeacher ? "Manage your assigned classes" : "Manage class sections, timetables, and teacher assignments"}
                 actions={
                     !isTeacher && (
-                        <Button leftSection={<IconPlus size={18} />} onClick={() => notifications.show({ message: 'Create Class - Coming Soon' })}>
+                        <Button
+                            leftSection={<IconPlus size={18} />}
+                            onClick={() => setCreateModalOpened(true)}
+                        >
                             Add Class
                         </Button>
                     )
@@ -151,17 +191,51 @@ export default function Classes() {
 
             {!loading && !error && (
                 <DataTable
-                    data={filteredData}
+                    data={paginatedData}
                     columns={columns}
                     search={search}
-                    onSearchChange={setSearch}
+                    onSearchChange={(val) => {
+                        setSearch(val);
+                        setPage(1); // Reset to first page on search
+                    }}
                     pagination={{
-                        total: 1,
-                        page: 1,
-                        onChange: () => { }
+                        total: totalPages,
+                        page: page,
+                        onChange: setPage
                     }}
                 />
             )}
+
+            <CreateClassModal
+                opened={createModalOpened}
+                onClose={() => setCreateModalOpened(false)}
+                onSuccess={fetchClasses}
+                classLevels={classLevels}
+            />
+
+            <EditClassModal
+                opened={editModalOpened}
+                onClose={() => {
+                    setEditModalOpened(false);
+                    setSelectedSection(null);
+                    setSelectedClassLevel(null);
+                }}
+                onSuccess={fetchClasses}
+                section={selectedSection}
+                classLevel={selectedClassLevel}
+            />
+
+            <DeleteClassModal
+                opened={deleteModalOpened}
+                onClose={() => {
+                    setDeleteModalOpened(false);
+                    setSelectedSection(null);
+                }}
+                onSuccess={fetchClasses}
+                sectionId={selectedSection?.id || null}
+                sectionName={selectedSection ? `${classLevels.find(l => l.id === selectedSection.classLevelId)?.name}-${selectedSection.name}` : null}
+            />
         </>
     );
 }
+

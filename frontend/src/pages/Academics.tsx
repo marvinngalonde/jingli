@@ -1,35 +1,16 @@
-import { Tabs, Button, Group, Text, Select, SimpleGrid, Paper, Badge, Box } from '@mantine/core';
+import { Tabs, Button, Group, Text, Select, SimpleGrid, Paper, Box, LoadingOverlay } from '@mantine/core';
 import { IconBook, IconCalendar, IconPlus, IconClock } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-// --- Subjects Mock Data ---
-interface Subject {
-    id: string;
-    code: string;
-    name: string;
-    department: string;
-    level: string;
-    teachers: string;
-}
-
-const mockSubjects: Subject[] = [
-    { id: '1', code: 'MATH101', name: 'Mathematics', department: 'Science', level: 'Grade 10', teachers: 'Mr. Smith' },
-    { id: '2', code: 'ENG101', name: 'English Literature', department: 'Arts', level: 'Grade 10', teachers: 'Mrs. Davis' },
-    { id: '3', code: 'PHY101', name: 'Physics', department: 'Science', level: 'Grade 10', teachers: 'Dr. Brown' },
-    { id: '4', code: 'HIS101', name: 'History', department: 'Humanities', level: 'Grade 10', teachers: 'Mr. Wilson' },
-    { id: '5', code: 'BIO101', name: 'Biology', department: 'Science', level: 'Grade 10', teachers: 'Ms. Clark' },
-];
-
-const subjectColumns: Column<Subject>[] = [
-    { accessor: 'code', header: 'Code', width: 100 },
-    { accessor: 'name', header: 'Subject Name' },
-    { accessor: 'department', header: 'Department' },
-    { accessor: 'level', header: 'Level/Grade' },
-    { accessor: 'teachers', header: 'Teachers' },
-];
+import { subjectsApi } from '../services/academics';
+import type { Subject } from '../types/academics';
+import { CreateSubjectModal } from '../components/modals/CreateSubjectModal';
+import { EditSubjectModal } from '../components/modals/EditSubjectModal';
+import { DeleteSubjectModal } from '../components/modals/DeleteSubjectModal';
+import { ActionMenu } from '../components/common/ActionMenu';
 
 // --- Timetable Mock Data ---
 const timeSlots = ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 10:30', '10:30 - 11:30', '11:30 - 12:30', '12:30 - 13:30'];
@@ -46,15 +27,103 @@ const mockTimetable: Record<string, string[]> = {
 
 export default function Academics() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const isStudentOrParent = user?.role === 'student' || user?.role === 'parent';
 
     const [activeTab, setActiveTab] = useState<string | null>(isStudentOrParent ? 'timetable' : 'subjects');
     const [search, setSearch] = useState('');
 
-    const filteredSubjects = mockSubjects.filter(item =>
+    // Subjects state
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [loadingSubjects, setLoadingSubjects] = useState(true);
+    const [createModalOpened, setCreateModalOpened] = useState(false);
+    const [editModalOpened, setEditModalOpened] = useState(false);
+    const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+    const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+
+    // Fetch subjects on mount
+    useEffect(() => {
+        fetchSubjects();
+    }, []);
+
+    const fetchSubjects = async () => {
+        try {
+            setLoadingSubjects(true);
+            const data = await subjectsApi.getAll();
+            setSubjects(data);
+        } catch (err) {
+            console.error('Failed to fetch subjects:', err);
+        } finally {
+            setLoadingSubjects(false);
+        }
+    };
+
+    const handleEditSubject = (item: Subject) => {
+        setSelectedSubject(item);
+        setEditModalOpened(true);
+    };
+
+    const handleDeleteSubject = (item: Subject) => {
+        setSelectedSubject(item);
+        setDeleteModalOpened(true);
+    };
+
+    const filteredSubjects = subjects.filter(item =>
         item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.code.toLowerCase().includes(search.toLowerCase())
+        item.code.toLowerCase().includes(search.toLowerCase()) ||
+        (item.department?.toLowerCase().includes(search.toLowerCase()) || false)
     );
+
+    const subjectColumns: Column<Subject>[] = [
+        {
+            accessor: 'code',
+            header: 'Code',
+            width: 100,
+            render: (item) => <Text fw={500} size="sm">{item.code}</Text>
+        },
+        {
+            accessor: 'name',
+            header: 'Subject Name',
+            render: (item) => (
+                <Text
+                    fw={600}
+                    size="sm"
+                    style={{ cursor: 'pointer' }}
+                    c="blue"
+                    onClick={() => navigate(`/subjects/${item.id}`)}
+                >
+                    {item.name}
+                </Text>
+            )
+        },
+        {
+            accessor: 'department',
+            header: 'Department',
+            render: (item) => <Text size="sm">{item.department || 'N/A'}</Text>
+        },
+        {
+            accessor: 'level',
+            header: 'Level/Grade',
+            render: () => <Text size="sm" c="dimmed">All Grades</Text>
+        },
+        {
+            accessor: 'teachers',
+            header: 'Teachers',
+            render: () => <Text size="sm" c="dimmed">Not assigned</Text>
+        },
+        {
+            accessor: 'actions',
+            header: '',
+            render: (item) => !isStudentOrParent ? (
+                <Group justify="flex-end">
+                    <ActionMenu
+                        onEdit={() => handleEditSubject(item)}
+                        onDelete={() => handleDeleteSubject(item)}
+                    />
+                </Group>
+            ) : null
+        }
+    ];
 
     const SubjectsTab = () => (
         <>
@@ -62,8 +131,16 @@ export default function Academics() {
                 <Text size="sm" c="dimmed">
                     {isStudentOrParent ? "Subjects enrolled in for the current academic year." : "Manage subjects and assign them to grades/departments."}
                 </Text>
-                {!isStudentOrParent && <Button leftSection={<IconPlus size={16} />}>Add Subject</Button>}
+                {!isStudentOrParent && (
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setCreateModalOpened(true)}
+                    >
+                        Add Subject
+                    </Button>
+                )}
             </Group>
+            <LoadingOverlay visible={loadingSubjects} />
             <DataTable
                 data={filteredSubjects}
                 columns={subjectColumns}
@@ -93,7 +170,7 @@ export default function Academics() {
                 )}
             </Group>
 
-            <Paper withBorder radius="md" overflow="hidden">
+            <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
                 <Box p="md" bg="gray.1" style={{ overflowX: 'auto' }}>
                     <SimpleGrid cols={6} spacing="xs" style={{ minWidth: 800 }}>
                         {/* Header Row */}
@@ -169,6 +246,34 @@ export default function Academics() {
                     <TimetableTab />
                 </Tabs.Panel>
             </Tabs>
+
+            {/* Subject Modals */}
+            <CreateSubjectModal
+                opened={createModalOpened}
+                onClose={() => setCreateModalOpened(false)}
+                onSuccess={fetchSubjects}
+            />
+
+            <EditSubjectModal
+                opened={editModalOpened}
+                onClose={() => {
+                    setEditModalOpened(false);
+                    setSelectedSubject(null);
+                }}
+                onSuccess={fetchSubjects}
+                subject={selectedSubject}
+            />
+
+            <DeleteSubjectModal
+                opened={deleteModalOpened}
+                onClose={() => {
+                    setDeleteModalOpened(false);
+                    setSelectedSubject(null);
+                }}
+                onSuccess={fetchSubjects}
+                subjectId={selectedSubject?.id || null}
+                subjectName={selectedSubject?.name || null}
+            />
         </>
     );
 }
