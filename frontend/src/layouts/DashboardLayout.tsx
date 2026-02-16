@@ -1,5 +1,6 @@
 import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Center, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
     IconLayoutDashboard,
@@ -11,10 +12,12 @@ import {
     IconLogout,
     IconBell,
     IconChevronDown,
-    IconChevronLeft,
-    IconChevronRight,
+    
     IconHelp,
-    IconCalendar
+    IconCalendar,
+    IconBook,
+    IconLayoutSidebarLeftCollapse,
+    IconLayoutSidebarLeftExpand
 } from '@tabler/icons-react';
 
 // Import Logos
@@ -27,31 +30,52 @@ export function DashboardLayout() {
     const location = useLocation();
 
     // Sidebar Groups
-    const linkGroups = [
+    const allLinkGroups = [
         {
             title: 'Overview',
+            roles: ['admin', 'teacher', 'student', 'parent', 'reception'],
             links: [
-                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard' },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
             ]
         },
         {
             title: 'Academic',
+            roles: ['admin', 'teacher', 'student', 'parent'],
             links: [
-                { icon: IconUsers, label: 'Students', to: '/students' },
-                { icon: IconUsers, label: 'Teachers', to: '/staff' },
-                { icon: IconChalkboard, label: 'Classes', to: '/classes' },
+                { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'teacher', 'reception'] },
+                { icon: IconUsers, label: 'Teachers', to: '/staff', roles: ['admin', 'reception'] },
+                { icon: IconChalkboard, label: 'Classes', to: '/classes', roles: ['admin', 'teacher'] },
+                { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] }, // Timetables etc
+                { icon: IconFileAnalytics, label: 'Marks & Exams', to: '/marks', roles: ['admin', 'teacher', 'student', 'parent'] },
+            ]
+        },
+        {
+            title: 'Logistics',
+            roles: ['admin', 'teacher', 'reception', 'student'],
+            links: [
+                { icon: IconCalendar, label: 'Attendance', to: '/attendance', roles: ['admin', 'teacher', 'reception', 'student', 'parent'] },
+                { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'teacher', 'student'] },
             ]
         },
         {
             title: 'Finance & Admin',
+            roles: ['admin', 'finance', 'reception'], // Reception needs cash desk maybe
             links: [
-                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance' },
-                { icon: IconFileAnalytics, label: 'Reports', to: '/reports' },
-                { icon: IconUsers, label: 'Users', to: '/admin/users' },
-                { icon: IconSettings, label: 'Settings', to: '/settings' },
+                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'reception'] }, // Reception sees fees only? handled in page
+                { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
+                { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
+                { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
             ]
         }
     ];
+
+    const { user, logout } = useAuth();
+    const userRole = user?.role || 'admin'; // Default to admin if no user (dev fallback)
+
+    const linkGroups = allLinkGroups.map(group => ({
+        ...group,
+        links: group.links.filter(link => link.roles.includes(userRole))
+    })).filter(group => group.links.length > 0 && group.roles.includes(userRole));
 
     const renderLinks = (group: { title: string, links: any[] }, index: number) => (
         <Box key={index} mb="md">
@@ -70,7 +94,7 @@ export function DashboardLayout() {
                             onClick={toggleDesktop}
                             visibleFrom="sm" // Desktop only
                         >
-                            <IconChevronLeft size={16} />
+                            <IconLayoutSidebarLeftCollapse size={20} stroke={1.5} />
                         </ActionIcon>
                     )}
                 </Group>
@@ -80,7 +104,7 @@ export function DashboardLayout() {
             {!desktopOpened && index === 0 && (
                 <Center mb="md" visibleFrom="sm">
                     <ActionIcon variant="light" size="md" onClick={toggleDesktop} title="Expand Sidebar">
-                        <IconChevronRight size={16} />
+                        <IconLayoutSidebarLeftExpand size={20} stroke={1.5} />
                     </ActionIcon>
                 </Center>
             )}
@@ -97,7 +121,7 @@ export function DashboardLayout() {
         <AppShell
             header={{ height: 70 }}
             navbar={{
-                width: desktopOpened ? 280 : 80,
+                width: desktopOpened ? 240 : 80,
                 breakpoint: 'sm',
                 collapsed: { mobile: !mobileOpened },
             }}
@@ -155,9 +179,10 @@ export function DashboardLayout() {
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar radius="md" src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-1.png" size={34} />
+                                        <Avatar radius="md" color="brand" size={34}>{user?.avatar}</Avatar>
                                         <div style={{ flex: 1 }}>
-                                            <Text size="sm" fw={600} lh={1} visibleFrom="xs">Admin</Text>
+                                            <Text size="sm" fw={600} lh={1} visibleFrom="xs">{user?.name}</Text>
+                                            <Text size="xs" c="dimmed" visibleFrom="xs">{user?.role}</Text>
                                         </div>
                                         <Box visibleFrom="xs">
                                             <IconChevronDown size={14} color="gray" />
@@ -167,17 +192,28 @@ export function DashboardLayout() {
                             </Menu.Target>
                             <Menu.Dropdown>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
-                                <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={() => navigate('/login')}>Logout</Menu.Item>
+                                <Menu.Item
+                                    color="red"
+                                    leftSection={<IconLogout size={14} />}
+                                    onClick={() => {
+                                        logout();
+                                        navigate('/login');
+                                    }}
+                                >
+                                    Logout
+                                </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
                     </Group>
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar p="md" style={{ backgroundColor: 'white', borderRight: '1px solid #e2e8f0' }}>
+            <AppShell.Navbar style={{ backgroundColor: 'white', borderRight: '1px solid #e2e8f0' }}>
                 {/* Sidebar content starts directly since Logo is moved to Header */}
-                <AppShell.Section grow component={ScrollArea} mt="xs">
-                    {linkGroups.map((group, i) => renderLinks(group, i))}
+                <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
+                    <Box p="md">
+                        {linkGroups.map((group, i) => renderLinks(group, i))}
+                    </Box>
                 </AppShell.Section>
             </AppShell.Navbar>
 

@@ -15,9 +15,9 @@ import Library from './pages/Library';
 import Attendance from './pages/Attendance';
 
 // Finance Pages
-import Fees from './pages/finance/Fees';
-import Expenses from './pages/finance/Expenses';
-import Salaries from './pages/finance/Salaries';
+// import Fees from './pages/finance/Fees';
+// import Expenses from './pages/finance/Expenses';
+// import Salaries from './pages/finance/Salaries';
 
 // Admin Pages
 import Users from './pages/admin/Users';
@@ -27,45 +27,44 @@ import Reports from './pages/Reports';
 import { Signup } from './pages/Signup';
 import Admissions from './pages/Admissions';
 
+import { AuthProvider } from './context/AuthContext';
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/students/:id" element={<StudentDetail />} />
-          <Route path="/admissions" element={<Admissions />} />
-          <Route path="/staff" element={<Staff />} />
-          <Route path="/staff/:id" element={<StaffDetail />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/finance" element={<Finance />} />
-          <Route path="/academics" element={<Academics />} />
-          <Route path="/classes" element={<Classes />} />
-          <Route path="/classes/:id" element={<ClassDetail />} />
-          <Route path="/marks" element={<Marks />} />
-          <Route path="/library" element={<Library />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/students" element={<Students />} />
+            <Route path="/students/:id" element={<StudentDetail />} />
+            <Route path="/admissions" element={<Admissions />} />
+            <Route path="/staff" element={<Staff />} />
+            <Route path="/staff/:id" element={<StaffDetail />} />
+            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/finance" element={<Finance />} />
+            <Route path="/academics" element={<Academics />} />
+            <Route path="/classes" element={<Classes />} />
+            <Route path="/classes/:id" element={<ClassDetail />} />
+            <Route path="/marks" element={<Marks />} />
+            <Route path="/library" element={<Library />} />
 
-          {/* Finance Routes */}
-          <Route path="/finance/fees" element={<Fees />} />
-          <Route path="/finance/expenses" element={<Expenses />} />
-          <Route path="/finance/salaries" element={<Salaries />} />
-          <Route path="/finance" element={<Navigate to="/finance/fees" replace />} />
+            {/* Finance Routes - Now handled within Finance component tabs */}
+            {/* Admin Routes */}
+            <Route path="/admin/users" element={<Users />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/reports" element={<Reports />} />
 
-          {/* Admin Routes */}
-          <Route path="/admin/users" element={<Users />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/reports" element={<Reports />} />
-
-          {/* Placeholders for routes to be implemented */}
-          <Route path="*" element={<div>Page Not Found</div>} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            {/* Placeholders for routes to be implemented */}
+            <Route path="*" element={<div>Page Not Found</div>} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

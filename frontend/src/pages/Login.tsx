@@ -19,14 +19,19 @@ import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
 import sideImage from '../assets/images/sideimg.png';
 
+import { useAuth, type UserRole } from '../context/AuthContext';
+import { Select } from '@mantine/core';
+
 export function Login() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const { login } = useAuth();
 
     const form = useForm({
         initialValues: {
             email: '',
             password: '',
+            role: 'admin' as UserRole,
         },
         validate: {
             email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
@@ -34,18 +39,19 @@ export function Login() {
         },
     });
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (values: typeof form.values) => {
         setLoading(true);
         // Simulate login
         setTimeout(() => {
+            login(values.role);
             notifications.show({
                 title: 'Welcome back!',
-                message: 'Login successful.',
+                message: `Logged in as ${values.role}`,
                 color: 'green',
             });
             navigate('/dashboard');
             setLoading(false);
-        }, 1500);
+        }, 1000);
     };
 
     return (
@@ -59,23 +65,30 @@ export function Login() {
                 justifyContent: 'center',
                 background: 'white'
             }} className="login-form-container">
-                {/* Mobile Responsive: On small screens, this should be 100% width.
-                    However, inline styles are hard for media queries.
-                    Mantine's Box with style props or classes is better.
-                    Let's stick to simple inline for the "split" requirement first.
-                */}
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
                         Login to Jingli
                     </Title>
                     <Text ta="center" c="dimmed" mb={40}>
-                        Welcome back!
+                        Select a role to demo the portal
                     </Text>
 
                     <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
                         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
                         <Stack gap="lg">
+                            <Select
+                                label="Login As"
+                                data={[
+                                    { value: 'admin', label: 'Administrator' },
+                                    { value: 'teacher', label: 'Teacher' },
+                                    { value: 'student', label: 'Student' },
+                                    { value: 'parent', label: 'Parent' },
+                                    { value: 'reception', label: 'Receptionist' },
+                                ]}
+                                {...form.getInputProps('role')}
+                            />
+
                             <TextInput
                                 label="Email Address"
                                 placeholder="Email Address"
