@@ -2,15 +2,15 @@ import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum } from 'class-va
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStudentDto {
-    @ApiProperty({ example: 'school-uuid' })
+    @ApiProperty({ example: 'school-uuid', required: false })
     @IsString()
-    @IsNotEmpty()
-    schoolId: string;
+    @IsOptional()
+    schoolId?: string;
 
-    @ApiProperty({ example: 'ADM001' })
+    @ApiProperty({ example: 'ADM001', required: false })
     @IsString()
-    @IsNotEmpty()
-    admissionNo: string;
+    @IsOptional()
+    admissionNo?: string;
 
     @ApiProperty({ example: 'John' })
     @IsString()

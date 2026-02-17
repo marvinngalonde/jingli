@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Title,
     Text,
@@ -13,12 +13,12 @@ import {
     Timeline,
     Center,
     ThemeIcon,
-    Drawer
+    Drawer,
+    LoadingOverlay
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
     IconId,
-    IconPhone,
     IconMail,
     IconMapPin,
     IconSchool,
@@ -29,8 +29,10 @@ import {
     IconCurrencyDollar,
     IconCheckupList
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
+import { studentService } from '../services/studentService';
+import type { Student } from '../types/students';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
@@ -47,25 +49,53 @@ import { FinanceRecord } from '../components/students/FinanceRecord';
 import { StudentForm } from '../components/students/StudentForm';
 
 export default function StudentDetail() {
-    // const { id } = useParams(); // Unused for now
+    const { id } = useParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<string | null>('overview');
     const [opened, { open, close }] = useDisclosure(false);
+    const [student, setStudent] = useState<Student | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const student = {
-        id: '1',
-        first_name: 'Alice',
-        last_name: 'Johnson',
-        email: 'alice@example.com',
-        phone: '+1 234 567 890',
-        address: '123 Main St, Springfield',
-        dob: '2008-05-15',
-        class: { name: 'Grade 10-A' },
-        status: 'active',
-        parent: { name: 'Robert Johnson', phone: '+1 987 654 321' },
-        avatar_url: null
+    useEffect(() => {
+        if (id) {
+            loadStudent(id);
+        }
+    }, [id]);
+
+    const loadStudent = async (studentId: string) => {
+        setLoading(true);
+        try {
+            const data = await studentService.getById(studentId);
+            setStudent(data);
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to load student details', color: 'red' });
+            navigate('/students');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleUpdate = async (values: any) => {
+        if (!student) return;
+        try {
+            const updated = await studentService.update(student.id, values);
+            setStudent(updated);
+            notifications.show({ message: 'Profile updated', color: 'green' });
+            close();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to update student', color: 'red' });
+        }
+    };
+
+    if (loading) {
+        return <LoadingOverlay visible={true} />;
+    }
+
+    if (!student) {
+        return <Text>Student not found</Text>;
+    }
 
     return (
         <Box p="md">
@@ -83,20 +113,20 @@ export default function StudentDetail() {
 
                 <Group align="flex-end" mt={60} style={{ position: 'relative', zIndex: 1 }}>
                     <Avatar
-                        src={student.avatar_url}
+                        src={student.photoUrl}
                         size={120}
                         radius={120}
                         style={{ border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                         color="brand"
                     >
-                        {student.first_name[0]}{student.last_name[0]}
+                        {student.firstName[0]}{student.lastName[0]}
                     </Avatar>
                     <div style={{ flex: 1, paddingBottom: 10 }}>
-                        <Title order={2}>{student.first_name} {student.last_name}</Title>
-                        <Text c="dimmed" size="sm">Student ID: #ST-2024-001</Text>
+                        <Title order={2}>{student.firstName} {student.lastName}</Title>
+                        <Text c="dimmed" size="sm">Admission No: {student.admissionNo}</Text>
                     </div>
                     <Group style={{ paddingBottom: 10 }}>
-                        <StatusBadge status={student.status} size="lg" />
+                        <StatusBadge status={student.status || 'ACTIVE'} size="lg" />
                         <Button variant="light" leftSection={<IconPencil size={18} />} onClick={open}>Edit Profile</Button>
                         <ActionMenu
                             onEdit={open}
@@ -118,25 +148,27 @@ export default function StudentDetail() {
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Email</Text>
-                                <Text size="sm">{student.email}</Text>
+                                <Text size="sm">{student.user?.email || 'N/A'}</Text>
                             </div>
                         </Group>
+                        {/* 
                         <Group gap="sm" mb="sm">
                             <ThemeIcon variant="light" color="gray" size="md">
                                 <IconPhone size={16} />
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Phone</Text>
-                                <Text size="sm">{student.phone}</Text>
+                                <Text size="sm">{student.phone || 'N/A'}</Text>
                             </div>
-                        </Group>
+                        </Group> 
+                        */}
                         <Group gap="sm" mb="sm">
                             <ThemeIcon variant="light" color="gray" size="md">
                                 <IconCalendar size={16} />
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Date of Birth</Text>
-                                <Text size="sm">{student.dob}</Text>
+                                <Text size="sm">{student.dob ? new Date(student.dob).toLocaleDateString() : 'N/A'}</Text>
                             </div>
                         </Group>
                         <Group gap="sm" mb="sm">
@@ -145,7 +177,7 @@ export default function StudentDetail() {
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Address</Text>
-                                <Text size="sm">{student.address}</Text>
+                                <Text size="sm">{student.address || 'N/A'}</Text>
                             </div>
                         </Group>
 
@@ -158,19 +190,46 @@ export default function StudentDetail() {
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Class</Text>
-                                <Text size="sm" fw={600}>{student.class.name}</Text>
+                                <Text size="sm" fw={600}>{student.section?.classLevel?.name} - {student.section?.name}</Text>
                             </div>
                         </Group>
                         <Group gap="sm" mb="sm">
-                            <ThemeIcon variant="light" color="orange" size="md">
-                                <IconId size={16} />
+                            <ThemeIcon variant="light" color="blue" size="md">
+                                <IconFileAnalytics size={16} />
                             </ThemeIcon>
                             <div>
-                                <Text size="xs" c="dimmed">Guardian</Text>
-                                <Text size="sm">{student.parent.name}</Text>
-                                <Text size="xs" c="dimmed">{student.parent.phone}</Text>
+                                <Text size="xs" c="dimmed">Roll No / Admission No</Text>
+                                <Text size="sm">{student.rollNo || 'N/A'} / {student.admissionNo}</Text>
                             </div>
                         </Group>
+                        <Group gap="sm" mb="sm">
+                            <ThemeIcon variant="light" color="green" size="md">
+                                <IconCalendar size={16} />
+                            </ThemeIcon>
+                            <div>
+                                <Text size="xs" c="dimmed">Enrollment Date</Text>
+                                <Text size="sm">{student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : 'N/A'}</Text>
+                            </div>
+                        </Group>
+
+                        {student.guardians && student.guardians.length > 0 && (
+                            <>
+                                <Divider my="md" />
+                                <Title order={4} mb="md">Guardian Info</Title>
+                                {student.guardians.map((g: any) => (
+                                    <Group gap="sm" mb="sm" key={g.id}>
+                                        <ThemeIcon variant="light" color="orange" size="md">
+                                            <IconId size={16} />
+                                        </ThemeIcon>
+                                        <div>
+                                            <Text size="xs" c="dimmed">{g.relation}</Text>
+                                            <Text size="sm">{g.guardian.firstName} {g.guardian.lastName}</Text>
+                                            <Text size="xs" c="dimmed">{g.guardian.phone}</Text>
+                                        </div>
+                                    </Group>
+                                ))}
+                            </>
+                        )}
                     </Paper>
                 </Grid.Col>
 
@@ -204,39 +263,14 @@ export default function StudentDetail() {
 
                         <Tabs.Panel value="overview">
                             <Grid>
-                                <Grid.Col span={6}>
+                                <Grid.Col span={12}>
                                     <Paper p="md" withBorder radius="md">
-                                        <Title order={5} mb="md">Recent Activity</Title>
-                                        <Timeline active={1} bulletSize={24} lineWidth={2}>
-                                            <Timeline.Item bullet={<IconSchool size={12} />} title="Term 1 Grades Published">
-                                                <Text c="dimmed" size="xs" mt={4}>2 hours ago</Text>
-                                            </Timeline.Item>
-                                            <Timeline.Item bullet={<IconCurrencyDollar size={12} />} title="Tuition Fee Paid" lineVariant="dashed">
-                                                <Text c="dimmed" size="xs" mt={4}>1 day ago</Text>
-                                            </Timeline.Item>
-                                            <Timeline.Item title="Absent from Math Class">
-                                                <Text c="dimmed" size="xs" mt={4}>3 days ago</Text>
-                                            </Timeline.Item>
-                                        </Timeline>
-                                    </Paper>
-                                </Grid.Col>
-                                <Grid.Col span={6}>
-                                    <Paper p="md" withBorder radius="md">
-                                        <Title order={5} mb="xl">Attendance Overview</Title>
-                                        {/* Placeholder for chart/heatmap */}
-                                        <Center h={100} bg="gray.1" style={{ borderRadius: 8 }}>
-                                            <Text c="dimmed">Attendance Chart Placeholder</Text>
-                                        </Center>
-                                        <Group mt="md" grow>
-                                            <Box>
-                                                <Text size="xl" fw={700} c="brand">92%</Text>
-                                                <Text size="xs" c="dimmed">Present</Text>
-                                            </Box>
-                                            <Box>
-                                                <Text size="xl" fw={700} c="red">4</Text>
-                                                <Text size="xs" c="dimmed">Absent</Text>
-                                            </Box>
-                                        </Group>
+                                        <Title order={5} mb="md">Student Status</Title>
+                                        <Text>Student account is active.</Text>
+                                        <Text size="sm" c="dimmed" mt="xs">
+                                            Enrolled on {student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : 'N/A'}
+                                        </Text>
+                                        {/* TODO: Integrate real Activity Feed and Attendance Stats */}
                                     </Paper>
                                 </Grid.Col>
                             </Grid>
@@ -267,27 +301,30 @@ export default function StudentDetail() {
 
             <Drawer opened={opened} onClose={close} title="Edit Student" position="right" size="md">
                 <Box p={0}>
-                    <StudentForm
-                        initialValues={{
-                            firstName: student.first_name,
-                            lastName: student.last_name,
-                            email: student.email,
-                            phone: student.phone,
-                            dob: new Date(student.dob),
-                            gender: 'Male',
-                            address: student.address,
-                            grade: student.class.name,
-                            parentName: student.parent.name,
-                            parentPhone: student.parent.phone,
-                            parentEmail: 'parent@example.com'
-                        }}
-                        onSubmit={(values) => {
-                            console.log(values);
-                            notifications.show({ message: 'Profile updated', color: 'green' });
-                            close();
-                        }}
-                        onCancel={close}
-                    />
+                    {opened && (
+                        <StudentForm
+                            initialValues={{
+                                firstName: student.firstName,
+                                lastName: student.lastName,
+                                email: student.user?.email || '',
+                                // phone: student.phone, // Not in student DTO yet
+                                dob: student.dob ? new Date(student.dob) : undefined,
+                                gender: student.gender,
+                                address: student.address || '',
+                                // grade: student.sectionId, // Need to handle selection logic in form
+                                sectionId: student.sectionId,
+                                admissionNo: student.admissionNo,
+                                rollNo: student.rollNo || '',
+                                enrollmentDate: new Date(student.enrollmentDate)
+                                // parentName: '', // Complex update logic TODO
+                                // parentPhone: '',
+                                // parentEmail: ''
+                            }}
+                            onSubmit={handleUpdate}
+                            onCancel={close}
+                            isEditing
+                        />
+                    )}
                 </Box>
             </Drawer>
         </Box>

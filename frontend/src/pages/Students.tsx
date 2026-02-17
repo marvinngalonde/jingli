@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Button,
     Group,
@@ -7,7 +7,8 @@ import {
     Select,
     rem,
     Drawer,
-    Box
+    Box,
+    Badge
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -17,7 +18,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StudentForm } from '../components/students/StudentForm';
-// import { studentService } from '../services/studentService'; // Unused until API is ready
+import { studentService } from '../services/studentService';
+import type { Student } from '../types/students';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
@@ -28,70 +30,123 @@ import { ActionMenu } from '../components/common/ActionMenu';
 export default function Students() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<Student[]>([]);
+    const [filteredData, setFilteredData] = useState<Student[]>([]);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
 
-    // Mock Data
-    const mockStudents = [
-        { id: '1', first_name: 'Alice', last_name: 'Johnson', email: 'alice@example.com', status: 'active', class: { name: 'Grade 10-A' }, avatar_url: null },
-        { id: '2', first_name: 'Bob', last_name: 'Smith', email: 'bob@example.com', status: 'inactive', class: { name: 'Grade 9-B' }, avatar_url: null },
-        { id: '3', first_name: 'Charlie', last_name: 'Brown', email: 'charlie@example.com', status: 'active', class: { name: 'Grade 11-C' }, avatar_url: null },
-        { id: '4', first_name: 'Diana', last_name: 'Prince', email: 'diana@example.com', status: 'suspended', class: { name: 'Grade 12-A' }, avatar_url: null },
-        { id: '5', first_name: 'Evan', last_name: 'Wright', email: 'evan@example.com', status: 'active', class: { name: 'Grade 10-A' }, avatar_url: null },
-    ];
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
     useEffect(() => {
         loadStudents();
     }, []);
 
+    // Filter logic
+    useEffect(() => {
+        let result = data;
+
+        if (search) {
+            const lowerSearch = search.toLowerCase();
+            result = result.filter(item =>
+                item.firstName.toLowerCase().includes(lowerSearch) ||
+                item.lastName.toLowerCase().includes(lowerSearch) ||
+                item.admissionNo.toLowerCase().includes(lowerSearch) ||
+                item.user?.email.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        if (statusFilter) {
+            result = result.filter(item => item.status === statusFilter);
+        }
+
+        setFilteredData(result);
+    }, [data, search, statusFilter]);
+
+
     const loadStudents = async () => {
         setLoading(true);
         try {
-            setTimeout(() => {
-                setData(mockStudents);
-                setLoading(false);
-            }, 800);
+            const students = await studentService.getAll();
+            setData(students);
+            setFilteredData(students);
         } catch (error) {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to load students', color: 'red' });
+        } finally {
             setLoading(false);
         }
     };
 
-    const handleCreate = (values: any) => {
-        console.log(values);
-        notifications.show({ message: 'Student created successfully', color: 'green' });
+    const handleCreate = async (values: any) => {
+        setLoading(true);
+        try {
+            await studentService.create(values);
+            notifications.show({ message: 'Student created successfully', color: 'green' });
+            closeDrawer();
+            loadStudents();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to create student', color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdate = async (values: any) => {
+        if (!selectedStudent) return;
+        setLoading(true);
+        try {
+            await studentService.update(selectedStudent.id, values);
+            notifications.show({ message: 'Student updated successfully', color: 'green' });
+            closeDrawer();
+            loadStudents();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to update student', color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this student?')) return;
+
+        try {
+            await studentService.delete(id);
+            notifications.show({ message: 'Student deleted successfully', color: 'green' });
+            loadStudents();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to delete student', color: 'red' });
+        }
+    }
+
+    const openEditDrawer = (student: Student) => {
+        setSelectedStudent(student);
+        open();
+    };
+
+    const closeDrawer = () => {
+        setSelectedStudent(null);
         close();
     };
 
-    const filteredData = useMemo(() => {
-        return data.filter(item => {
-            const matchesSearch =
-                item.first_name.toLowerCase().includes(search.toLowerCase()) ||
-                item.last_name.toLowerCase().includes(search.toLowerCase()) ||
-                item.email.toLowerCase().includes(search.toLowerCase());
-            const matchesStatus = statusFilter ? item.status === statusFilter : true;
-            return matchesSearch && matchesStatus;
-        });
-    }, [data, search, statusFilter]);
-
-    const columns: Column<any>[] = [
+    const columns: Column<Student>[] = [
         {
             accessor: 'name',
             header: 'Student',
             render: (item) => (
                 <Group gap="sm">
-                    <Avatar size={40} src={item.avatar_url} radius={40} color="brand" alt={item.first_name}>
-                        {item.first_name[0]}{item.last_name[0]}
+                    <Avatar size={40} src={item.photoUrl} radius={40} color="brand" alt={item.firstName}>
+                        {item.firstName[0]}{item.lastName[0]}
                     </Avatar>
                     <div>
                         <Text size="sm" fw={500}>
-                            {item.first_name} {item.last_name}
+                            {item.firstName} {item.lastName}
                         </Text>
                         <Text size="xs" c="dimmed">
-                            {item.email}
+                            {item.admissionNo}
                         </Text>
                     </div>
                 </Group>
@@ -100,17 +155,24 @@ export default function Students() {
         {
             accessor: 'class',
             header: 'Class/Grade',
-            render: (item) => <Text size="sm">{item.class?.name || 'Unassigned'}</Text>
+            render: (item) => <Text size="sm">{item.section?.classLevel?.name || ''} - {item.section?.name || 'Unassigned'}</Text>
         },
         {
-            accessor: 'balance',
-            header: 'Balance',
-            render: () => <Text size="sm">$0.00</Text>
+            accessor: 'feesStatus',
+            header: 'Fees Status',
+            render: (item) => {
+                // Mock fees status based on admission number or random logic for now
+                const statuses = ['PAID', 'PENDING', 'OVERDUE', 'PAID', 'PAID'];
+                const status = statuses[item.admissionNo.length % statuses.length];
+                const color = status === 'PAID' ? 'green' : status === 'PENDING' ? 'yellow' : 'red';
+
+                return <Badge color={color} variant="light">{status}</Badge>;
+            }
         },
         {
             accessor: 'status',
             header: 'Status',
-            render: (item) => <StatusBadge status={item.status} />
+            render: (item) => <StatusBadge status={item.status || 'active'} />
         },
         {
             accessor: 'actions',
@@ -119,8 +181,8 @@ export default function Students() {
                 <Group justify="flex-end">
                     <ActionMenu
                         onView={() => navigate(`/students/${item.id}`)}
-                        onEdit={() => notifications.show({ message: 'Edit Student - Coming Soon' })}
-                        onDelete={() => notifications.show({ message: 'Delete Student - Coming Soon', color: 'red' })}
+                        onEdit={() => openEditDrawer(item)}
+                        onDelete={() => handleDelete(item.id)}
                     />
                 </Group>
             )
@@ -146,14 +208,14 @@ export default function Students() {
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{
-                    total: 1,
+                    total: Math.ceil(filteredData.length / 10),
                     page: 1,
                     onChange: () => { }
                 }}
                 filterSlot={
                     <Select
                         placeholder="Status"
-                        data={['active', 'inactive', 'suspended']}
+                        data={['ACTIVE', 'INACTIVE', 'SUSPENDED', 'GRADUATED']}
                         value={statusFilter}
                         onChange={setStatusFilter}
                         clearable
@@ -164,11 +226,27 @@ export default function Students() {
                 onExport={() => notifications.show({ message: 'Exporting...' })}
             />
 
-            <Drawer opened={opened} onClose={close} title="Add New Student" position="right" size="md">
+            <Drawer opened={opened} onClose={closeDrawer} title={selectedStudent ? "Edit Student" : "Add New Student"} position="right" size="md">
                 <Box p={0}>
+                    {/* Re-render form when selectedStudent changes to ensure initialValues update */}
                     <StudentForm
-                        onSubmit={handleCreate}
-                        onCancel={close}
+                        key={selectedStudent ? selectedStudent.id : 'new'}
+                        initialValues={selectedStudent ? {
+                            firstName: selectedStudent.firstName,
+                            lastName: selectedStudent.lastName,
+                            email: selectedStudent.user?.email || '',
+                            dob: selectedStudent.dob ? new Date(selectedStudent.dob) : undefined,
+                            gender: selectedStudent.gender,
+                            address: selectedStudent.address || '',
+                            sectionId: selectedStudent.sectionId,
+                            admissionNo: selectedStudent.admissionNo,
+                            rollNo: selectedStudent.rollNo || '',
+                            enrollmentDate: new Date(selectedStudent.enrollmentDate)
+                        } : undefined}
+                        onSubmit={selectedStudent ? handleUpdate : handleCreate}
+                        onCancel={closeDrawer}
+                        loading={loading}
+                        isEditing={!!selectedStudent}
                     />
                 </Box>
             </Drawer>
