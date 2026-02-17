@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { dashboardService } from '../services/dashboardService';
 import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Timeline, RingProgress, Center, SimpleGrid } from '@mantine/core';
 import {
     IconUsers,
@@ -143,7 +145,34 @@ function StudentDashboard({ role }: { role: string }) {
     );
 }
 
+const data = [
+    { name: 'Jan', uv: 200 },
+    { name: 'Feb', uv: 300 },
+    { name: 'Mar', uv: 200 },
+    { name: 'Apr', uv: 600 },
+    { name: 'May', uv: 500 },
+    { name: 'Jun', uv: 800 },
+];
+
 function AdminDashboard() {
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadStats();
+    }, []);
+
+    const loadStats = async () => {
+        try {
+            const data = await dashboardService.getStats();
+            setStats(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div>
             <Title order={2} mb="lg">Super Admin Dashboard</Title>
@@ -153,8 +182,8 @@ function AdminDashboard() {
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
                         title="Total Students"
-                        value="1,450"
-                        subtext="+5% vs last month"
+                        value={loading ? '...' : stats?.students.toLocaleString()}
+                        subtext={loading ? '' : "Active Students"}
                         subtextColor="teal"
                         icon={IconUsers}
                         color="blue"
@@ -163,21 +192,22 @@ function AdminDashboard() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
-                        title="Revenue MTD"
-                        value="$125,000"
-                        subtext="$15k outstanding"
+                        title="Total Staff"
+                        value={loading ? '...' : stats?.staff.toLocaleString()}
+                        subtext="Teachers & Admin"
                         subtextColor="c"
-                        icon={IconCurrencyDollar}
+                        icon={IconUsers}
                         color="green"
                         iconBg="green.1"
                     />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
-                        title="Avg. Attendance Today"
-                        value="94%"
-                        isProgress
-                        icon={IconCalendarStats}
+                        title="Total Classes"
+                        value={loading ? '...' : stats?.classes.toLocaleString()}
+                        isProgress={false}
+                        subtext="Active Sections"
+                        icon={IconSchool}
                         color="orange"
                         iconBg="orange.1"
                     />
@@ -196,7 +226,7 @@ function AdminDashboard() {
             <Grid mt="xl" gutter="lg">
                 <Grid.Col span={{ base: 12, md: 8 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder h={420}>
-                        <Title order={4} mb="md">Revenue Trend (Last 6 Months)</Title>
+                        <Title order={4} mb="md">Revenue Trend (Mock Data)</Title>
                         <div style={{ width: '100%', height: 340 }}>
                             <ResponsiveContainer>
                                 <AreaChart data={data}>
@@ -212,25 +242,18 @@ function AdminDashboard() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder h={420}>
-                        <Title order={4} mb="lg">Recent Activity Feed</Title>
+                        <Title order={4} mb="lg">Recent Activity</Title>
 
                         <Timeline active={1} bulletSize={18} lineWidth={2}>
-                            <Timeline.Item bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#3b82f6' }}></div>} title="John Doe paid invoice #123">
-                                <Text c="dimmed" size="xs" mt={4}>14 hours ago</Text>
-                            </Timeline.Item>
-
-                            <Timeline.Item bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#3b82f6' }}></div>} title="Teacher Sarah posted Homework">
-                                <Text c="dimmed" size="xs" mt={4}>14 hours ago</Text>
-                                <Text size="xs" mt={4}>Grade 10B - Mathematics</Text>
-                            </Timeline.Item>
-
-                            <Timeline.Item bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#3b82f6' }}></div>} title="New Student Registration" lineVariant="dashed">
-                                <Text c="dimmed" size="xs" mt={4}>Yesterday</Text>
-                                <Text size="xs" mt={4}>Student: Michael Bay</Text>
-                            </Timeline.Item>
-                            <Timeline.Item bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#9ca3af' }}></div>} title="System Update">
-                                <Text c="dimmed" size="xs" mt={4}>2 days ago</Text>
-                            </Timeline.Item>
+                            {stats?.recentActivity?.map((activity: any) => (
+                                <Timeline.Item key={activity.id} bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#3b82f6' }}></div>} title={activity.title}>
+                                    <Text c="dimmed" size="xs" mt={4}>{new Date(activity.time).toLocaleDateString()}</Text>
+                                    <Text size="xs" mt={4}>{activity.description}</Text>
+                                </Timeline.Item>
+                            ))}
+                            {!loading && (!stats?.recentActivity || stats.recentActivity.length === 0) && (
+                                <Text size="sm" c="dimmed">No recent activity found.</Text>
+                            )}
                         </Timeline>
                     </Paper>
                 </Grid.Col>
@@ -296,11 +319,4 @@ function QuickAction({ title, icon: Icon, color }: any) {
     )
 }
 
-const data = [
-    { name: 'Jan', uv: 200 },
-    { name: 'Feb', uv: 300 },
-    { name: 'Mar', uv: 200 },
-    { name: 'Apr', uv: 600 },
-    { name: 'May', uv: 500 },
-    { name: 'Jun', uv: 800 },
-];
+

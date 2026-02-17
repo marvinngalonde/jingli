@@ -20,6 +20,7 @@ import { MessagesModule } from './messages/messages.module';
 import { VisitorsModule } from './visitors/visitors.module';
 import { GuardiansModule } from './guardians/guardians.module';
 import { UsersModule } from './users/users.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { UsersModule } from './users/users.module';
     MessagesModule,
     VisitorsModule,
     GuardiansModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
