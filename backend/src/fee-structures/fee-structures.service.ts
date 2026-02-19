@@ -1,43 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
-import { CreateFeeHeadDto } from './dto/create-fee-head.dto';
 
 @Injectable()
 export class FeeStructuresService {
     constructor(private readonly prisma: PrismaService) { }
 
-    // --- Fee Heads ---
-    async createHead(createDto: CreateFeeHeadDto, schoolId: string) {
-        return this.prisma.feeHead.create({
-            data: {
-                ...createDto,
-                schoolId,
-            }
-        });
-    }
-
-    async findAllHeads(schoolId: string) {
-        return this.prisma.feeHead.findMany({
-            where: { schoolId }
-        });
-    }
-
-    // --- Fee Structures ---
     async create(createDto: CreateFeeStructureDto, schoolId: string) {
-        // Validation: Verify Foreign Keys belong to school (optional but recommended)
-        // For brevity, assuming IDs are valid or Prisma will throw FK constraint error if not found.
-        // Ideally we should check if academicYear and classLevel belong to schoolId.
+        const { items, ...structureData } = createDto;
+
+        if ((!items || items.length === 0) && !structureData.feeHeadId) {
+            throw new BadRequestException('Either a main Fee Head or nested Fee Items must be provided.');
+        }
 
         return this.prisma.feeStructure.create({
             data: {
                 schoolId,
-                academicYearId: createDto.academicYearId,
-                classLevelId: createDto.classLevelId,
-                feeHeadId: createDto.feeHeadId,
-                amount: createDto.amount,
-                frequency: createDto.frequency as any,
+                academicYearId: structureData.academicYearId,
+                classLevelId: structureData.classLevelId,
+                feeHeadId: structureData.feeHeadId,
+                name: structureData.name,
+                amount: structureData.amount,
+                frequency: structureData.frequency,
+                items: items?.length ? {
+                    create: items.map(item => ({
+                        feeHeadId: item.feeHeadId,
+                        amount: item.amount
+                    }))
+                } : undefined
             },
+            include: {
+                items: { include: { head: true } },
+                feeHead: true
+            }
         });
     }
 
@@ -52,7 +47,11 @@ export class FeeStructuresService {
                 feeHead: true,
                 classLevel: true,
                 academicYear: true,
-            }
+                items: {
+                    include: { head: true }
+                }
+            },
+            orderBy: { name: 'asc' }
         });
     }
 
@@ -63,22 +62,37 @@ export class FeeStructuresService {
                 feeHead: true,
                 classLevel: true,
                 academicYear: true,
+                items: {
+                    include: { head: true }
+                }
             }
         });
     }
 
     async update(id: string, updateDto: any, schoolId: string) {
         await this.findOne(id, schoolId); // Check ownership
+
+        // Simple update for now, complex item update requires more logic (delete/upsert)
+        // For MVP, we might just allow updating scalar fields.
+        const { items, ...data } = updateDto;
+
         return this.prisma.feeStructure.update({
             where: { id },
-            data: updateDto,
+            data,
         });
     }
 
     async remove(id: string, schoolId: string) {
         await this.findOne(id, schoolId); // Check ownership
-        return this.prisma.feeStructure.delete({
-            where: { id },
+
+        const deleteItems = this.prisma.feeStructureItem.deleteMany({
+            where: { feeStructureId: id }
         });
+
+        const deleteStructure = this.prisma.feeStructure.delete({
+            where: { id }
+        });
+
+        return this.prisma.$transaction([deleteItems, deleteStructure]);
     }
 }

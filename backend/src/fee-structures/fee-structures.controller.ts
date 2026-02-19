@@ -2,7 +2,6 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Re
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { FeeStructuresService } from './fee-structures.service';
 import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
-import { CreateFeeHeadDto } from './dto/create-fee-head.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
 
 @ApiTags('finance')
@@ -12,20 +11,6 @@ import { SupabaseGuard } from '../auth/supabase.guard';
 export class FeeStructuresController {
     constructor(private readonly feeStructuresService: FeeStructuresService) { }
 
-    // --- Fee Heads ---
-    @Post('heads')
-    @ApiOperation({ summary: 'Create a Fee Head (e.g. Tuition, Transport)' })
-    createHead(@Req() req: any, @Body() createDto: CreateFeeHeadDto) {
-        return this.feeStructuresService.createHead(createDto, req.user.schoolId);
-    }
-
-    @Get('heads')
-    @ApiOperation({ summary: 'List all Fee Heads' })
-    findAllHeads(@Req() req: any) {
-        return this.feeStructuresService.findAllHeads(req.user.schoolId);
-    }
-
-    // --- Fee Structures ---
     @Post()
     @ApiOperation({ summary: 'Create a Fee Structure (Assign Head to Class)' })
     create(@Req() req: any, @Body() createDto: CreateFeeStructureDto) {

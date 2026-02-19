@@ -13,12 +13,14 @@ import ClassDetail from './pages/ClassDetail';
 import Subjects from './pages/Subjects';
 import SubjectDetail from './pages/SubjectDetail';
 import Timetable from './pages/Timetable';
+import { Exams } from './pages/Exams';
 import Marks from './pages/Marks';
 import Library from './pages/Library';
 import Attendance from './pages/Attendance';
 
 // Finance Pages
 // import Fees from './pages/finance/Fees';
+// import { FeeStructures } from './pages/Finance/FeeStructures';
 // import Expenses from './pages/finance/Expenses';
 // import Salaries from './pages/finance/Salaries';
 
@@ -54,13 +56,15 @@ function App() {
             <Route path="/staff" element={<Staff />} />
             <Route path="/staff/:id" element={<StaffDetail />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/attendance" element={<Attendance />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/academics" element={<Academics />} />
             <Route path="/classes" element={<Classes />} />
             <Route path="/classes/:id" element={<ClassDetail />} />
             <Route path="/subjects" element={<Subjects />} />
             <Route path="/subjects/:id" element={<SubjectDetail />} />
-            <Route path="/timetable" element={<Timetable />} /> {/* Added Timetable route */}
+            <Route path="/timetable" element={<Timetable />} />
+            <Route path="/exams" element={<Exams />} />
             <Route path="/marks" element={<Marks />} />
             <Route path="/library" element={<Library />} />
 

@@ -16,7 +16,8 @@ import type {
 
 export const classesApi = {
     // Get all classes (levels with sections)
-    getAll: async (): Promise<ClassLevel[]> => {
+    getAll: async (schoolId?: string): Promise<ClassLevel[]> => {
+        // schoolId is handled by backend token usually, but sometimes passed as param
         const { data } = await api.get('/classes');
         return data;
     },
@@ -63,7 +64,7 @@ export const classesApi = {
 
 export const subjectsApi = {
     // Get all subjects
-    getAll: async (): Promise<Subject[]> => {
+    getAll: async (schoolId?: string): Promise<Subject[]> => {
         const { data } = await api.get('/subjects');
         return data;
     },
@@ -177,4 +178,28 @@ export const timetableApi = {
     delete: async (id: string): Promise<void> => {
         await api.delete(`/timetable/${id}`);
     },
+};
+
+// Unified Service Export for Backward Compatibility
+export const academicsService = {
+    getSubjects: subjectsApi.getAll,
+    getSubject: subjectsApi.getOne,
+    createSubject: subjectsApi.create,
+    updateSubject: subjectsApi.update,
+    deleteSubject: subjectsApi.delete,
+
+    getClasses: classesApi.getAll,
+    getClass: classesApi.getOne,
+    createClassLevel: classesApi.createLevel,
+    createClassSection: classesApi.createSection,
+    updateClassLevel: classesApi.updateLevel,
+    updateClassSection: classesApi.updateSection,
+    deleteClass: classesApi.delete,
+
+    getAcademicYears: academicYearsApi.getAll,
+    getAcademicYear: academicYearsApi.getOne,
+    createAcademicYear: academicYearsApi.create,
+    updateAcademicYear: academicYearsApi.update,
+    activateAcademicYear: academicYearsApi.activate,
+    deleteAcademicYear: academicYearsApi.delete,
 };

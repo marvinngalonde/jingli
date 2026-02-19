@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { BulkGenerateInvoiceDto } from './dto/bulk-generate-invoice.dto';
 
 enum InvoiceStatus {
     PENDING = 'PENDING',
@@ -30,6 +31,51 @@ export class InvoicesService {
                 dueDate: new Date(createDto.dueDate),
                 status: InvoiceStatus.PENDING,
             },
+        });
+    }
+
+    async generateBulk(dto: BulkGenerateInvoiceDto, schoolId: string) {
+        // 1. Get Fee Structure to verify amount
+        const structure = await this.prisma.feeStructure.findFirst({
+            where: { id: dto.feeStructureId, schoolId }
+        });
+        if (!structure) throw new Error('Fee Structure not found');
+
+        // 2. Get All Students in the Class Level
+        // We need to find students whose section belongs to this classLevel
+        const students = await this.prisma.student.findMany({
+            where: {
+                schoolId,
+                section: { classLevelId: dto.classLevelId }
+            },
+            select: { id: true }
+        });
+
+        if (students.length === 0) {
+            return { count: 0, message: 'No students found in this class' };
+        }
+
+        // 3. Create Invoices
+        // Using transaction for safety
+        return this.prisma.$transaction(async (tx) => {
+            let count = 0;
+            for (const student of students) {
+                // Check if invoice already exists for this structure? 
+                // Optional: Skip if duplicate. For now, we allow multiple (e.g. monthly fees).
+
+                await tx.invoice.create({
+                    data: {
+                        schoolId,
+                        studentId: student.id,
+                        feeStructureId: structure.id,
+                        amount: structure.amount,
+                        dueDate: new Date(dto.dueDate),
+                        status: InvoiceStatus.PENDING,
+                    }
+                });
+                count++;
+            }
+            return { count, message: `Successfully generated ${count} invoices` };
         });
     }
 

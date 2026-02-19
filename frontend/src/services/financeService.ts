@@ -1,97 +1,61 @@
-import { supabase } from '../lib/supabase';
-import type { Database } from '../types/database.types';
-
-type Transaction = Database['public']['Tables']['finance_transactions']['Row'];
-type TransactionInsert = Database['public']['Tables']['finance_transactions']['Insert'];
+import { api } from './api';
+import type { CreateFeeHeadDto, CreateFeeStructureDto, FeeHead, FeeStructure, Invoice } from '../types/finance';
 
 export const financeService = {
-    // Get all transactions
-    async getAll() {
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .select(`
-                *,
-                student:students(*),
-                created_by_staff:staff(*)
-            `)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data;
+    // --- Fee Heads ---
+    getFeeHeads: async (): Promise<FeeHead[]> => {
+        const response = await api.get('/fee-heads');
+        return response.data;
     },
 
-    // Get transactions by student
-    async getByStudent(studentId: string) {
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('payment_date', { ascending: false });
-
-        if (error) throw error;
-        return data;
+    createFeeHead: async (data: CreateFeeHeadDto): Promise<FeeHead> => {
+        const response = await api.post('/fee-heads', data);
+        return response.data;
     },
 
-    // Create transaction
-    async create(transaction: TransactionInsert) {
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .insert(transaction)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
+    deleteFeeHead: async (id: string): Promise<void> => {
+        await api.delete(`/fee-heads/${id}`);
     },
 
-    // Get outstanding balance for student
-    async getOutstandingBalance(studentId: string) {
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .select('amount, transaction_type')
-            .eq('student_id', studentId)
-            .eq('status', 'completed');
+    // --- Fee Structures ---
+    getFeeStructures: async (academicYearId?: string, classLevelId?: string): Promise<FeeStructure[]> => {
+        const params: any = {};
+        if (academicYearId) params.academicYearId = academicYearId;
+        if (classLevelId) params.classLevelId = classLevelId;
 
-        if (error) throw error;
-
-        const balance = data.reduce((acc, transaction) => {
-            if (transaction.transaction_type === 'fee_payment') {
-                return acc - transaction.amount;
-            } else if (transaction.transaction_type === 'fine') {
-                return acc + transaction.amount;
-            } else if (transaction.transaction_type === 'refund') {
-                return acc - transaction.amount;
-            }
-            return acc;
-        }, 0);
-
-        return balance;
+        const response = await api.get('/fee-structures', { params });
+        return response.data;
     },
 
-    // Get financial summary
-    async getSummary(startDate?: string, endDate?: string) {
-        let query = supabase
-            .from('finance_transactions')
-            .select('amount, transaction_type, status');
-
-        if (startDate) query = query.gte('payment_date', startDate);
-        if (endDate) query = query.lte('payment_date', endDate);
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        const summary = {
-            totalCollected: data
-                .filter(t => t.status === 'completed' && t.transaction_type === 'fee_payment')
-                .reduce((sum, t) => sum + t.amount, 0),
-            totalPending: data
-                .filter(t => t.status === 'pending')
-                .reduce((sum, t) => sum + t.amount, 0),
-            totalFines: data
-                .filter(t => t.status === 'completed' && t.transaction_type === 'fine')
-                .reduce((sum, t) => sum + t.amount, 0),
-        };
-
-        return summary;
+    getFeeStructure: async (id: string): Promise<FeeStructure> => {
+        const response = await api.get(`/fee-structures/${id}`);
+        return response.data;
     },
+
+    createFeeStructure: async (data: CreateFeeStructureDto): Promise<FeeStructure> => {
+        const response = await api.post('/fee-structures', data);
+        return response.data;
+    },
+
+    updateFeeStructure: async (id: string, data: Partial<CreateFeeStructureDto>): Promise<FeeStructure> => {
+        const response = await api.patch(`/fee-structures/${id}`, data);
+        return response.data;
+    },
+
+    deleteFeeStructure: async (id: string): Promise<void> => {
+        await api.delete(`/fee-structures/${id}`);
+    },
+
+    // --- Invoices ---
+    getInvoices: async (schoolId: string, studentId?: string): Promise<Invoice[]> => {
+        const params: any = {};
+        if (studentId) params.studentId = studentId;
+        const response = await api.get('/invoices', { params });
+        return response.data;
+    },
+
+    generateBulkInvoices: async (data: { classLevelId: string; feeStructureId: string; dueDate: Date }) => {
+        const response = await api.post('/invoices/bulk', data);
+        return response.data;
+    }
 };

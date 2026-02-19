@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { BulkGenerateInvoiceDto } from './dto/bulk-generate-invoice.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
 
 @ApiTags('finance')
@@ -16,6 +17,12 @@ export class InvoicesController {
     @ApiOperation({ summary: 'Create Invoice' })
     create(@Req() req: any, @Body() createDto: CreateInvoiceDto) {
         return this.invoicesService.create(createDto, req.user.schoolId);
+    }
+
+    @Post('bulk')
+    @ApiOperation({ summary: 'Bulk Generate Invoices' })
+    generateBulk(@Req() req: any, @Body() dto: BulkGenerateInvoiceDto) {
+        return this.invoicesService.generateBulk(dto, req.user.schoolId);
     }
 
     @Post('collect')

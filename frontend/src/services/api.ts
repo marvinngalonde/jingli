@@ -20,11 +20,19 @@ export const setAuthToken = (token: string | null) => {
 // Response interceptor for global error handling
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         // Handle 401 Unauthorized
         if (error.response && error.response.status === 401) {
             console.error('Unauthorized access. Session might be expired.');
-            // Ideally, trigger a logout action in AuthContext via event or callback
+            // Import supabase dynamically to avoid potential circular dependencies if any (though likely safe)
+            // Or just import at top if safe. Let's check lib/supabase.ts. 
+            // It seems safe to import at top.
+
+            // Trigger logout via Supabase, which AuthContext listens to.
+            const { supabase } = await import('../lib/supabase');
+            await supabase.auth.signOut();
+
+            // Optional: User will be redirected by AuthContext state change.
         }
         return Promise.reject(error);
     }

@@ -49,7 +49,7 @@ export function DashboardLayout() {
                 { icon: IconUsers, label: 'Teachers', to: '/staff', roles: ['admin', 'reception'] },
                 { icon: IconChalkboard, label: 'Classes', to: '/classes', roles: ['admin', 'teacher'] },
                 { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] }, // Timetables etc
-                { icon: IconFileAnalytics, label: 'Marks & Exams', to: '/marks', roles: ['admin', 'teacher', 'student', 'parent'] },
+                { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'teacher', 'student', 'parent'] },
             ]
         },
         {
@@ -66,7 +66,7 @@ export function DashboardLayout() {
             title: 'Finance & Admin',
             roles: ['admin', 'finance', 'reception'], // Reception needs cash desk maybe
             links: [
-                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'reception'] }, // Reception sees fees only? handled in page
+                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'reception'] },
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
                 { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
                 { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },

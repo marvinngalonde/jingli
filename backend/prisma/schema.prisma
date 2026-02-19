@@ -36,6 +36,8 @@ model School {
   lateArrivals    LateArrival[]
   inquiries       Inquiry[]
   notices         Notice[]
+  exams           Exam[]
+  examTerms       ExamTerm[]
   
   // Implicit many-to-many relation table management handled by Prisma,
   // explicit tables below also link to School for RLS.
@@ -128,6 +130,7 @@ model AcademicYear {
 
   school    School   @relation(fields: [schoolId], references: [id])
   feeStructures FeeStructure[]
+  examTerms     ExamTerm[]
 
   @@map("academic_years")
 }
@@ -141,6 +144,7 @@ model ClassLevel {
   school    School   @relation(fields: [schoolId], references: [id])
   sections  ClassSection[]
   feeStructures FeeStructure[]
+  exams         Exam[]
 
   @@map("classes")
 }
@@ -177,6 +181,7 @@ model Subject {
   allocations SubjectAllocation[]
   timetables  Timetable[]
   assignments Assignment[]
+  exams       Exam[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -224,6 +229,7 @@ model Student {
   invoices      Invoice[]
   gatePasses    GatePass[]
   lateArrivals  LateArrival[]
+  examResults   ExamResult[]
 
   @@unique([schoolId, admissionNo])
   @@map("students")
@@ -261,6 +267,7 @@ model Staff {
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
   assignments        Assignment[]
+  gradedExams        ExamResult[]
 
   @@unique([schoolId, employeeId])
   @@map("staff")
@@ -372,6 +379,7 @@ model FeeHead {
 
   school   School @relation(fields: [schoolId], references: [id])
   structures FeeStructure[]
+  items    FeeStructureItem[]
 
   @@map("fee_heads")
 }
@@ -381,18 +389,32 @@ model FeeStructure {
   schoolId       String @map("school_id")
   academicYearId String @map("academic_year_id")
   classLevelId   String @map("class_id")
-  feeHeadId      String @map("fee_head_id")
+  feeHeadId      String? @map("fee_head_id")
+  name           String
   amount         Decimal
   frequency      FeeFrequency
 
   school         School       @relation(fields: [schoolId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
   classLevel     ClassLevel   @relation(fields: [classLevelId], references: [id])
-  feeHead        FeeHead      @relation(fields: [feeHeadId], references: [id])
+  feeHead        FeeHead?     @relation(fields: [feeHeadId], references: [id])
   
+  items          FeeStructureItem[]
   invoices       Invoice[]
 
   @@map("fee_structures")
+}
+
+model FeeStructureItem {
+  id             String @id @default(uuid())
+  feeStructureId String @map("fee_structure_id")
+  feeHeadId      String @map("fee_head_id")
+  amount         Decimal
+
+  structure      FeeStructure @relation(fields: [feeStructureId], references: [id])
+  head           FeeHead @relation(fields: [feeHeadId], references: [id])
+
+  @@map("fee_structure_items")
 }
 
 enum InvoiceStatus {
@@ -611,3 +633,5 @@ model ExamResult {
   @@unique([examId, studentId])
   @@map("exam_results")
 }
+
+

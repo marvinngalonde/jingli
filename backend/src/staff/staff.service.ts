@@ -87,15 +87,16 @@ export class StaffService {
     }
 
     async update(id: string, updateDto: UpdateStaffDto) {
-        const data: any = { ...updateDto };
-        if (updateDto.joinDate) data.joinDate = new Date(updateDto.joinDate);
-
-        // Remove email/schoolId from update to Staff table (email is on User)
-        delete data.email;
-        delete data.schoolId;
-
-        // If email update is needed, we should update User table too.
-        // For simplicity, skipping User email update here.
+        // Only pick scalar fields that belong to the Staff table.
+        // The frontend sends the full staff object (with nested user, sections, etc.)
+        // which Prisma would reject. We whitelist only what we can safely update.
+        const data: any = {};
+        if (updateDto.firstName !== undefined) data.firstName = updateDto.firstName;
+        if (updateDto.lastName !== undefined) data.lastName = updateDto.lastName;
+        if (updateDto.phone !== undefined) data.phone = updateDto.phone;
+        if (updateDto.designation !== undefined) data.designation = updateDto.designation;
+        if (updateDto.department !== undefined) data.department = updateDto.department;
+        if (updateDto.joinDate !== undefined) data.joinDate = new Date(updateDto.joinDate);
 
         return this.prisma.staff.update({
             where: { id },

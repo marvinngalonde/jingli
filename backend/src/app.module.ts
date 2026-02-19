@@ -8,6 +8,7 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { AcademicYearsModule } from './academic-years/academic-years.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { FeeStructuresModule } from './fee-structures/fee-structures.module';
+import { FeeHeadsModule } from './fee-heads/fee-heads.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { StudentsModule } from './students/students.module';
 import { StaffModule } from './staff/staff.module';
@@ -21,6 +22,8 @@ import { VisitorsModule } from './visitors/visitors.module';
 import { GuardiansModule } from './guardians/guardians.module';
 import { UsersModule } from './users/users.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ExamsModule } from './exams/exams.module';
+import { ExamResultsModule } from './exam-results/exam-results.module';
 
 @Module({
   imports: [
@@ -32,6 +35,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AcademicYearsModule,
     SupabaseModule,
     FeeStructuresModule,
+    FeeHeadsModule,
     InvoicesModule,
     StudentsModule,
     StaffModule,
@@ -44,6 +48,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     VisitorsModule,
     GuardiansModule,
     DashboardModule,
+    ExamsModule,
+    ExamResultsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

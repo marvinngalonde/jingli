@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, Min } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsEnum, IsNumber, Min, IsOptional, ValidateNested, IsArray } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export enum FeeFrequency {
     MONTHLY = 'MONTHLY',
@@ -8,7 +9,24 @@ export enum FeeFrequency {
     ONE_TIME = 'ONE_TIME',
 }
 
+class FeeStructureItemDto {
+    @ApiProperty({ example: 'fee-head-uuid' })
+    @IsString()
+    @IsNotEmpty()
+    feeHeadId: string;
+
+    @ApiProperty({ example: 100 })
+    @IsNumber()
+    @Min(0)
+    amount: number;
+}
+
 export class CreateFeeStructureDto {
+    @ApiProperty({ example: 'Term 1 Tuition & Fees' })
+    @IsString()
+    @IsNotEmpty()
+    name: string;
+
     @ApiProperty({ example: 'academic-year-uuid' })
     @IsString()
     @IsNotEmpty()
@@ -19,10 +37,10 @@ export class CreateFeeStructureDto {
     @IsNotEmpty()
     classLevelId: string;
 
-    @ApiProperty({ example: 'fee-head-uuid' })
+    @ApiPropertyOptional({ example: 'fee-head-uuid' })
     @IsString()
-    @IsNotEmpty()
-    feeHeadId: string;
+    @IsOptional()
+    feeHeadId?: string;
 
     @ApiProperty({ example: 5000 })
     @IsNumber()
@@ -33,4 +51,11 @@ export class CreateFeeStructureDto {
     @IsEnum(FeeFrequency)
     @IsNotEmpty()
     frequency: FeeFrequency;
+
+    @ApiPropertyOptional({ type: [FeeStructureItemDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => FeeStructureItemDto)
+    @IsOptional()
+    items?: FeeStructureItemDto[];
 }
