@@ -34,6 +34,7 @@ import Admissions from './pages/Admissions';
 import Visitors from './pages/reception/Visitors';
 import StudentLogistics from './pages/reception/StudentLogistics';
 import Communication from './pages/Communication';
+import { Installation } from './pages/Installation';
 
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -45,6 +46,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/install" element={<Installation />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

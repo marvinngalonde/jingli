@@ -28,11 +28,11 @@ export function Login() {
 
     const form = useForm({
         initialValues: {
-            email: '',
+            username: '',
             password: '',
         },
         validate: {
-            email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
+            username: (val) => (val.length >= 3 ? null : 'Username must be at least 3 characters'),
             password: (val) => (val.length <= 6 ? 'Password should include at least 6 characters' : null),
         },
     });
@@ -40,7 +40,7 @@ export function Login() {
     const handleSubmit = async (values: typeof form.values) => {
         setLoading(true);
         try {
-            await login(values.email, values.password);
+            await login(values.username, values.password);
             notifications.show({
                 title: 'Welcome back!',
                 message: 'Login successful',
@@ -82,12 +82,12 @@ export function Login() {
 
                         <Stack gap="lg">
                             <TextInput
-                                label="Email Address"
-                                placeholder="name@school.com"
+                                label="Username"
+                                placeholder="Enter your username"
                                 size="md"
                                 radius="md"
                                 required
-                                {...form.getInputProps('email')}
+                                {...form.getInputProps('username')}
                                 styles={{ input: { backgroundColor: '#f8fafc' } }}
                             />
 

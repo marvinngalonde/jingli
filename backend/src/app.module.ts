@@ -24,6 +24,7 @@ import { UsersModule } from './users/users.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ExamsModule } from './exams/exams.module';
 import { ExamResultsModule } from './exam-results/exam-results.module';
+import { SystemModule } from './system/system.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ExamResultsModule } from './exam-results/exam-results.module';
     DashboardModule,
     ExamsModule,
     ExamResultsModule,
+    SystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

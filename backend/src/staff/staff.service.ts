@@ -27,6 +27,7 @@ export class StaffService {
 
         const user = await this.prisma.user.create({
             data: {
+                username: `${createDto.firstName.toLowerCase()}.${createDto.lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
                 schoolId: createDto.schoolId,
                 email: createDto.email,
                 passwordHash: 'temp_hash', // In real app, handle this securely

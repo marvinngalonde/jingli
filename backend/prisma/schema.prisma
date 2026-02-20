@@ -69,7 +69,8 @@ model User {
   id           String     @id @default(uuid())
   schoolId     String     @map("school_id")
   supabaseUid  String?    @unique @map("supabase_uid") // Link to auth.users
-  email        String
+  username     String     @map("username")
+  email        String?
   passwordHash String     @map("password_hash")
   role         UserRole
   status       UserStatus @default(ACTIVE)
@@ -93,7 +94,8 @@ model User {
   receivedMessages   Message[]    @relation("Receiver")
   postedNotices      Notice[]
 
-  @@unique([schoolId, email]) // Email unique per school
+  @@unique([schoolId, username]) // Username unique per school
+  @@unique([schoolId, email])    // Email unique per school (if provided)
   @@map("users")
 }
 

@@ -1,7 +1,5 @@
 import {
     Tabs,
-    Paper,
-    Text,
 } from '@mantine/core';
 import {
     IconSpeakerphone,
@@ -9,7 +7,7 @@ import {
 } from '@tabler/icons-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { NoticeBoard } from '../components/communication/NoticeBoard';
-import { useAuth } from '../context/AuthContext';
+import { Messenger } from '../components/communication/Messenger';
 
 export default function Communication() {
     return (
@@ -19,13 +17,13 @@ export default function Communication() {
                 subtitle="School announcements and messages"
             />
 
-            <Tabs defaultValue="notices" variant="outline" mt="md">
-                <Tabs.List>
+            <Tabs defaultValue="notices" radius="md" mt="md">
+                <Tabs.List mb="md">
                     <Tabs.Tab value="notices" leftSection={<IconSpeakerphone size={16} />}>
                         Notice Board
                     </Tabs.Tab>
                     <Tabs.Tab value="messages" leftSection={<IconMessage size={16} />}>
-                        Messages (Coming Soon)
+                        Messages
                     </Tabs.Tab>
                 </Tabs.List>
 
@@ -34,9 +32,7 @@ export default function Communication() {
                 </Tabs.Panel>
 
                 <Tabs.Panel value="messages" pt="md">
-                    <Paper p="xl" withBorder radius="md">
-                        <Text c="dimmed" ta="center">Direct messaging system is coming soon in a future update.</Text>
-                    </Paper>
+                    <Messenger />
                 </Tabs.Panel>
             </Tabs>
         </>

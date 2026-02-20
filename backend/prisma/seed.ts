@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
     console.log('🌱 Seeding database...');
@@ -23,7 +30,39 @@ async function main() {
     console.log(`🏫 Created School: ${school.name} (${school.id})`);
 
     // 2. Create Admin User
-    const adminEmail = 'admin@demo.com';
+    const adminEmail = 'admin@school.com'; // Updated email
+    const adminPassword = 'Password123!';
+    let supabaseUid = 'admin-123';
+
+    try {
+        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+        let authUser = users?.find((u: any) => u.email === adminEmail);
+
+        if (!authUser) {
+            const { data, error } = await supabase.auth.admin.createUser({
+                email: adminEmail,
+                password: adminPassword,
+                email_confirm: true,
+                user_metadata: {
+                    role: 'ADMIN',
+                    username: 'admin',
+                    firstName: 'System',
+                    lastName: 'Admin'
+                }
+            });
+            if (error) throw error;
+            authUser = data.user;
+            console.log('🔒 Created Admin in Supabase Auth');
+        } else {
+            // Update password just in case
+            await supabase.auth.admin.updateUserById(authUser.id, { password: adminPassword });
+            console.log('🔒 Updated Admin password in Supabase Auth');
+        }
+        supabaseUid = authUser.id;
+    } catch (e) {
+        console.error('Error with Supabase Auth:', e);
+    }
+
     const adminUser = await prisma.user.upsert({
         where: {
             schoolId_email: {
@@ -34,12 +73,14 @@ async function main() {
         update: {},
         create: {
             schoolId: school.id,
+            supabaseUid: supabaseUid,
+            username: 'admin',
             email: adminEmail,
-            passwordHash: 'hashed_password_placeholder', // unique per auth provider
+            passwordHash: 'SUPABASE_MANAGED',
             role: 'ADMIN',
             status: 'ACTIVE',
-            avatarUrl: 'https://i.pravatar.cc/150?u=admin'
-        },
+            avatarUrl: 'https://ui-avatars.com/api/?name=System+Admin'
+        }
     });
 
     console.log(`👤 Created Admin: ${adminUser.email} (${adminUser.id})`);

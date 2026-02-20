@@ -57,9 +57,65 @@ export class MessagesService {
             },
             take: 50,
             include: {
-                sender: { select: { email: true } },
-                receiver: { select: { email: true } },
+                sender: {
+                    select: {
+                        email: true,
+                        staffProfile: { select: { firstName: true, lastName: true } },
+                        studentProfile: { select: { firstName: true, lastName: true } },
+                    }
+                },
+                receiver: {
+                    select: {
+                        email: true,
+                        staffProfile: { select: { firstName: true, lastName: true } },
+                        studentProfile: { select: { firstName: true, lastName: true } },
+                    }
+                },
             }
         });
+    }
+
+    // Get list of unique users the current user has discussed with
+    async getConversations(userId: string) {
+        const messages = await this.prisma.message.findMany({
+            where: {
+                OR: [{ senderId: userId }, { receiverId: userId }],
+            },
+            orderBy: { sentAt: 'desc' },
+            include: {
+                sender: {
+                    select: {
+                        id: true,
+                        email: true,
+                        role: true,
+                        staffProfile: { select: { firstName: true, lastName: true } },
+                        studentProfile: { select: { firstName: true, lastName: true } },
+                    },
+                },
+                receiver: {
+                    select: {
+                        id: true,
+                        email: true,
+                        role: true,
+                        staffProfile: { select: { firstName: true, lastName: true } },
+                        studentProfile: { select: { firstName: true, lastName: true } },
+                    },
+                },
+            },
+        });
+
+        const conversationsMap = new Map();
+
+        messages.forEach((msg) => {
+            const partner = msg.senderId === userId ? msg.receiver : msg.sender;
+            if (!conversationsMap.has(partner.id)) {
+                conversationsMap.set(partner.id, {
+                    partner,
+                    lastMessage: msg,
+                });
+            }
+        });
+
+        return Array.from(conversationsMap.values());
     }
 }

@@ -36,10 +36,11 @@ export class GuardiansService {
         } else {
             const newUser = await this.prisma.user.create({
                 data: {
-                    schoolId: createDto.schoolId,
+                    username: `${createDto.firstName.toLowerCase()}.${createDto.lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
                     email: createDto.email,
                     passwordHash: 'temp_hash_parent',
                     role: 'PARENT',
+                    schoolId: createDto.schoolId,
                 }
             });
             userId = newUser.id;

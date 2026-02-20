@@ -21,6 +21,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     fetchProfile: () => Promise<void>;
     setSkipNextProfileFetch: (skip: boolean) => void;
+    isInstalled: boolean | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isInstalled, setIsInstalled] = useState<boolean | null>(null);
     const skipNextProfileFetchRef = useRef(false);
 
     const fetchProfile = async () => {
@@ -63,6 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
+        // 0. Check Installation Status
+        api.get('/system/status')
+            .then(res => setIsInstalled(res.data.isInstalled))
+            .catch(() => setIsInstalled(false));
+
         // 1. Check initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
@@ -94,10 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (username: string, password: string) => {
         setLoading(true);
+        // Map username back to internal shadow email format
+        const shadowEmail = `${username.toLowerCase()}@jingli.local`;
+
         const { error } = await supabase.auth.signInWithPassword({
-            email,
+            email: shadowEmail,
             password,
         });
 
@@ -116,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user, fetchProfile, setSkipNextProfileFetch }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user, fetchProfile, setSkipNextProfileFetch, isInstalled }}>
             {children}
         </AuthContext.Provider>
     );

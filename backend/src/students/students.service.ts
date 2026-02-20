@@ -58,6 +58,7 @@ export class StudentsService {
 
         const user = await this.prisma.user.create({
             data: {
+                username: admissionNo,
                 schoolId: createDto.schoolId,
                 email: email,
                 passwordHash: 'temp_hash_student',

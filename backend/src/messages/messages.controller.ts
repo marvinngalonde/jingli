@@ -28,4 +28,11 @@ export class MessagesController {
     getUserMessages(@Query('userId') userId: string) {
         return this.messagesService.getUserMessages(userId);
     }
+
+    @Get('conversations')
+    @ApiOperation({ summary: 'Get grouped conversations for a user' })
+    @ApiQuery({ name: 'userId' })
+    getConversations(@Query('userId') userId: string) {
+        return this.messagesService.getConversations(userId);
+    }
 }

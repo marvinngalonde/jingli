@@ -52,9 +52,13 @@ export class AuthService {
             throw new BadRequestException('Invalid role');
         }
 
+        const email = user.email || 'unknown@example.com';
+        const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
+
         const newUser = await this.prisma.user.create({
             data: {
-                email: user.email,
+                username: username,
+                email: email,
                 passwordHash: 'SUPABASE_MANAGED', // Placeholder
                 supabaseUid: user.id,
                 role: role as any,
