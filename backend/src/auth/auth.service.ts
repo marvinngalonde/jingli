@@ -6,6 +6,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AuthService {
     constructor(private prisma: PrismaService) { }
 
+    async resolveEmail(username: string) {
+        const user = await this.prisma.user.findFirst({
+            where: { username },
+            select: { email: true }
+        });
+
+        if (!user || !user.email) {
+            throw new BadRequestException('User not found');
+        }
+
+        return { email: user.email };
+    }
+
     async syncUser(user: any, metadata: any) {
         if (!user || !user.id || !user.email) {
             throw new BadRequestException('Invalid user data');

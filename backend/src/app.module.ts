@@ -25,6 +25,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ExamsModule } from './exams/exams.module';
 import { ExamResultsModule } from './exam-results/exam-results.module';
 import { SystemModule } from './system/system.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { SystemModule } from './system/system.module';
     ExamsModule,
     ExamResultsModule,
     SystemModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

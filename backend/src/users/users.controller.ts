@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Delete, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
@@ -24,6 +24,14 @@ export class UsersController {
         const me = await this.usersService.findMe(req.user.id);
         if (!me || me.role !== 'ADMIN') throw new Error('Unauthorized');
         return this.usersService.create(me.schoolId, body);
+    }
+
+    @Patch(':id')
+    @ApiOperation({ summary: 'Update a user' })
+    async update(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+        const me = await this.usersService.findMe(req.user.id);
+        if (!me || me.role !== 'ADMIN') throw new Error('Unauthorized');
+        return this.usersService.update(id, body);
     }
 
     @Delete(':id')

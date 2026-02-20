@@ -41,6 +41,7 @@ export default function Users() {
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+    const [drawerUser, setDrawerUser] = useState<AdminUser | null>(null);
 
     const loadUsers = async () => {
         setLoading(true);
@@ -130,8 +131,6 @@ export default function Users() {
             header: '',
             width: 50,
             render: (item) => {
-                const profile = item.staffProfile || item.studentProfile;
-                const name = profile ? `${profile.firstName} ${profile.lastName}` : item.email;
                 return (
                     <Menu shadow="md" width={200}>
                         <Menu.Target>
@@ -140,7 +139,13 @@ export default function Users() {
                             </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
-                            <Menu.Item leftSection={<IconEdit style={{ width: rem(14), height: rem(14) }} />}>
+                            <Menu.Item
+                                leftSection={<IconEdit style={{ width: rem(14), height: rem(14) }} />}
+                                onClick={() => {
+                                    setDrawerUser(item);
+                                    setDrawerOpened(true);
+                                }}
+                            >
                                 Edit User
                             </Menu.Item>
                             <Menu.Item
@@ -179,7 +184,7 @@ export default function Users() {
         const name = profile ? `${profile.firstName} ${profile.lastName}` : '';
         const searchLower = search.toLowerCase();
         return name.toLowerCase().includes(searchLower) ||
-            item.email.toLowerCase().includes(searchLower) ||
+            (item.email || '').toLowerCase().includes(searchLower) ||
             item.role.toLowerCase().includes(searchLower);
     });
 
@@ -188,7 +193,10 @@ export default function Users() {
             <PageHeader
                 title="User Management"
                 subtitle="Manage system access and roles"
-                actions={<Button leftSection={<IconPlus size={16} />} onClick={() => setDrawerOpened(true)}>Add User</Button>}
+                actions={<Button leftSection={<IconPlus size={16} />} onClick={() => {
+                    setDrawerUser(null);
+                    setDrawerOpened(true);
+                }}>Add User</Button>}
             />
 
             <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb="xl">
@@ -221,7 +229,11 @@ export default function Users() {
 
             <UserForm
                 opened={drawerOpened}
-                onClose={() => setDrawerOpened(false)}
+                onClose={() => {
+                    setDrawerOpened(false);
+                    setDrawerUser(null);
+                }}
+                user={drawerUser}
                 onSuccess={loadUsers}
             />
 

@@ -103,15 +103,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (username: string, password: string) => {
         setLoading(true);
-        // Map username back to internal shadow email format
-        const shadowEmail = `${username.toLowerCase()}@jingli.local`;
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email: shadowEmail,
-            password,
-        });
+        try {
+            // First, resolve the email from the username
+            const resolveRes = await api.post('/auth/resolve-email', { username });
+            const email = resolveRes.data.email;
 
-        if (error) {
+            // Then sign in with the resolved email
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (signInError) {
+                setLoading(false);
+                throw signInError;
+            }
+        } catch (error: any) {
             setLoading(false);
             throw error;
         }

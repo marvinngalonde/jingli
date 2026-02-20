@@ -1,23 +1,27 @@
-import { Drawer, Button, TextInput, Select, Stack, Group, PasswordInput, Text, rem } from '@mantine/core';
+import { Drawer, Button, TextInput, Select, Stack, Group, PasswordInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { adminUsersService } from '../../services/adminUsersService';
 import { notifications } from '@mantine/notifications';
+import { useEffect } from 'react';
 
 interface UserFormProps {
     opened: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    user?: any; // Add user prop for editing
 }
 
-export function UserForm({ opened, onClose, onSuccess }: UserFormProps) {
+export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
+    const isEdit = !!user;
+
     const form = useForm({
         initialValues: {
-            username: '',
-            email: '',
+            username: user?.username || '',
+            email: user?.email || '',
             password: '',
-            firstName: '',
-            lastName: '',
-            role: 'TEACHER',
+            firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || '',
+            lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || '',
+            role: user?.role || 'TEACHER',
         },
         validate: {
             username: (value) => (value.length >= 3 ? null : 'Username must be at least 3 characters'),
@@ -25,36 +29,69 @@ export function UserForm({ opened, onClose, onSuccess }: UserFormProps) {
                 if (!value) return null;
                 return /^\S+@\S+$/.test(value) ? null : 'Invalid email';
             },
-            password: (value) => (value.length >= 6 ? null : 'Password must be at least 6 characters'),
+            password: (value) => {
+                if (isEdit && !value) return null; // Optional on edit
+                return value.length >= 6 ? null : 'Password must be at least 6 characters';
+            },
             firstName: (value) => (value.length > 0 ? null : 'First name is required'),
             lastName: (value) => (value.length > 0 ? null : 'Last name is required'),
         },
     });
 
+    // Reset form when user changes or drawer opens
+    useEffect(() => {
+        if (opened) {
+            form.setValues({
+                username: user?.username || '',
+                email: user?.email || '',
+                password: '',
+                firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || '',
+                lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || '',
+                role: user?.role || 'TEACHER',
+            });
+        }
+    }, [opened, user]);
+
     const handleSubmit = async (values: typeof form.values) => {
         try {
-            await adminUsersService.createUser({
-                username: values.username,
-                email: values.email || undefined,
-                password: values.password,
-                firstName: values.firstName,
-                lastName: values.lastName,
-                role: values.role as any,
-            });
+            if (isEdit) {
+                await adminUsersService.updateUser(user.id, {
+                    username: values.username,
+                    email: values.email || undefined,
+                    password: values.password || undefined,
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    role: values.role as any,
+                });
+                notifications.show({
+                    title: 'Success',
+                    message: `Account updated for ${values.username}!`,
+                    color: 'green',
+                });
+            } else {
+                await adminUsersService.createUser({
+                    username: values.username,
+                    email: values.email || undefined,
+                    password: values.password,
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    role: values.role as any,
+                });
 
-            notifications.show({
-                title: 'Success',
-                message: `Account created for ${values.username}!`,
-                color: 'green',
-                autoClose: 5000,
-            });
+                notifications.show({
+                    title: 'Success',
+                    message: `Account created for ${values.username}!`,
+                    color: 'green',
+                    autoClose: 5000,
+                });
+            }
             form.reset();
             onSuccess();
             onClose();
         } catch (error: any) {
             notifications.show({
                 title: 'Error',
-                message: error.response?.data?.message || 'Failed to create user',
+                message: error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} user`,
                 color: 'red',
             });
         }
@@ -64,7 +101,7 @@ export function UserForm({ opened, onClose, onSuccess }: UserFormProps) {
         <Drawer
             opened={opened}
             onClose={onClose}
-            title="Create New User"
+            title={isEdit ? "Edit User" : "Create New User"}
             position="right"
             size="md"
         >
@@ -85,9 +122,9 @@ export function UserForm({ opened, onClose, onSuccess }: UserFormProps) {
                     />
 
                     <PasswordInput
-                        label="Initial Password"
-                        placeholder="Min 6 characters"
-                        required
+                        label={isEdit ? "Change Password" : "Initial Password"}
+                        placeholder={isEdit ? "Leave blank to keep current" : "Min 6 characters"}
+                        required={!isEdit}
                         {...form.getInputProps('password')}
                     />
 
@@ -119,7 +156,7 @@ export function UserForm({ opened, onClose, onSuccess }: UserFormProps) {
                         {...form.getInputProps('role')}
                     />
                     <Button type="submit" fullWidth mt="md">
-                        Create Account
+                        {isEdit ? "Update Account" : "Create Account"}
                     </Button>
                 </Stack>
             </form>

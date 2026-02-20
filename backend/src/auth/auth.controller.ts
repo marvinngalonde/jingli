@@ -1,10 +1,18 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SupabaseJwtGuard } from './supabase-jwt.guard';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
+
+    @Post('resolve-email')
+    async resolveEmail(@Body() body: { username: string }) {
+        if (!body.username) {
+            throw new BadRequestException('Username is required');
+        }
+        return this.authService.resolveEmail(body.username);
+    }
 
     @Post('sync')
     @UseGuards(SupabaseJwtGuard) // Use JWT-only guard

@@ -66,14 +66,13 @@ export class UsersService {
         });
     }
 
-    async create(schoolId: string, data: { username: string; email?: string; role: string; firstName: string; lastName: string; password?: string }) {
-        const shadowEmail = `${data.username.toLowerCase()}@jingli.local`;
+    async create(schoolId: string, data: { username: string; email: string; role: string; firstName: string; lastName: string; password?: string }) {
         const password = data.password || 'Temporary123!';
 
         // 1. Create User in Supabase Auth via Admin API
         const supabase = this.supabase.getClient();
         const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-            email: shadowEmail,
+            email: data.email,
             password: password,
             email_confirm: true,
             user_metadata: {
@@ -98,7 +97,7 @@ export class UsersService {
                 const user = await tx.user.create({
                     data: {
                         username: data.username,
-                        email: data.email || shadowEmail,
+                        email: data.email,
                         role: data.role as any,
                         schoolId: schoolId,
                         status: 'ACTIVE',
@@ -136,13 +135,74 @@ export class UsersService {
                     });
                 }
 
-                return { ...user, shadowEmail };
+                return user;
             });
         } catch (error) {
             // Cleanup Supabase user if local DB fails
             await supabase.auth.admin.deleteUser(supabaseUid);
             throw error;
         }
+    }
+
+    async update(userId: string, data: { username?: string; email?: string; role?: string; firstName?: string; lastName?: string; password?: string }) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { staffProfile: true, studentProfile: true }
+        });
+
+        if (!user) throw new BadRequestException('User not found');
+
+        // 1. Update Supabase Auth if needed
+        if (user.supabaseUid && (data.email || data.password || data.username || data.firstName || data.lastName)) {
+            const supabase = this.supabase.getClient();
+            const updateData: any = {};
+            if (data.email) updateData.email = data.email;
+            if (data.password) updateData.password = data.password;
+
+            const metadata: any = { ...user.staffProfile, ...user.studentProfile }; // Current metadata
+            if (data.username) metadata.username = data.username;
+            if (data.firstName) metadata.firstName = data.firstName;
+            if (data.lastName) metadata.lastName = data.lastName;
+            if (data.role) metadata.role = data.role;
+
+            updateData.user_metadata = metadata;
+
+            const { error: authError } = await supabase.auth.admin.updateUserById(user.supabaseUid, updateData);
+            if (authError) throw new BadRequestException(`Auth update failed: ${authError.message}`);
+        }
+
+        // 2. Update Local DB
+        return await this.prisma.$transaction(async (tx) => {
+            const updatedUser = await tx.user.update({
+                where: { id: userId },
+                data: {
+                    username: data.username,
+                    email: data.email,
+                    role: data.role as any,
+                }
+            });
+
+            // Update Profile
+            if (user.staffProfile && (data.firstName || data.lastName)) {
+                await tx.staff.update({
+                    where: { id: user.staffProfile.id },
+                    data: {
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                    }
+                });
+            } else if (user.studentProfile && (data.firstName || data.lastName)) {
+                await tx.student.update({
+                    where: { id: user.studentProfile.id },
+                    data: {
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                    }
+                });
+            }
+
+            return updatedUser;
+        });
     }
 
     async remove(userId: string) {

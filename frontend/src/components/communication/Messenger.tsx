@@ -106,7 +106,7 @@ export function Messenger() {
                             partnerName={selectedPartner.staffProfile ? `${selectedPartner.staffProfile.firstName} ${selectedPartner.staffProfile.lastName}` : (selectedPartner.studentProfile ? `${selectedPartner.studentProfile.firstName} ${selectedPartner.studentProfile.lastName}` : selectedPartner.email)}
                         />
                     ) : (
-                        <Paper withBorder radius="md" h="600px">
+                        <Paper withBorder radius="md" h={{ base: '500px', md: 'calc(100vh - 350px)' }} mih="400px">
                             <Center h="100%">
                                 <Stack align="center" gap="xs">
                                     <IconMessagePlus size={48} color="var(--mantine-color-gray-4)" />

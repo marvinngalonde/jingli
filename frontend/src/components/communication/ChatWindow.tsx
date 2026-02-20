@@ -61,7 +61,7 @@ export function ChatWindow({ partnerId, partnerName }: ChatWindowProps) {
     if (loading) return <Center h="100%"><Loader size="sm" /></Center>;
 
     return (
-        <Stack h="600px" gap="xs">
+        <Stack h={{ base: '500px', md: 'calc(100vh - 350px)' }} mih="400px" gap="xs">
             <Paper withBorder p="xs" radius="md">
                 <Group>
                     <Avatar size="sm" color="blue">{partnerName.charAt(0)}</Avatar>

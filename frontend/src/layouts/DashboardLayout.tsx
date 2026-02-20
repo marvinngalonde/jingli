@@ -24,10 +24,13 @@ import {
 
 // Import Logos
 import logoFull from '../assets/logos/logo-trans.png';
+import jaiLogo from '../assets/logos/jai-trans.png';
+import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 
 export function DashboardLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
     const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
+    const [aiOpened, { open: openAi, close: closeAi }] = useDisclosure(false);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -180,6 +183,12 @@ export function DashboardLayout() {
                             </Indicator>
                         </ActionIcon>
 
+                        <Tooltip label="ScholarBot AI Assistant">
+                            <ActionIcon variant="light" color="blue" size="lg" radius="md" onClick={openAi}>
+                                <img src={jaiLogo} alt="AI" style={{ height: 20 }} />
+                            </ActionIcon>
+                        </Tooltip>
+
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <UnstyledButton>
@@ -225,6 +234,8 @@ export function DashboardLayout() {
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
+
+            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
         </AppShell>
     );
 }
