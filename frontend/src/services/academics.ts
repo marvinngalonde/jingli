@@ -56,6 +56,11 @@ export const classesApi = {
     delete: async (id: string): Promise<void> => {
         await api.delete(`/classes/${id}`);
     },
+    // Get students in section
+    getStudents: async (id: string): Promise<any[]> => {
+        const { data } = await api.get(`/classes/sections/${id}/students`);
+        return data;
+    },
 };
 
 // ============================================================================
@@ -195,6 +200,7 @@ export const academicsService = {
     updateClassLevel: classesApi.updateLevel,
     updateClassSection: classesApi.updateSection,
     deleteClass: classesApi.delete,
+    getStudentsInSection: classesApi.getStudents,
 
     getAcademicYears: academicYearsApi.getAll,
     getAcademicYear: academicYearsApi.getOne,

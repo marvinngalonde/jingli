@@ -7,21 +7,21 @@ import { UpdateNoticeDto } from './dto/update-notice.dto';
 export class NoticesService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async create(createDto: CreateNoticeDto) {
+    async create(createDto: CreateNoticeDto, schoolId: string, userId: string) {
         return this.prisma.notice.create({
             data: {
                 title: createDto.title,
                 content: createDto.content,
                 targetAudience: createDto.targetAudience,
-                postedBy: createDto.postedBy,
-                schoolId: createDto.schoolId,
+                postedBy: userId,
+                schoolId: schoolId,
                 expiresAt: createDto.expiresAt ? new Date(createDto.expiresAt) : null,
             },
         });
     }
 
-    async findAll(audience?: string) {
-        const where: any = {};
+    async findAll(schoolId: string, audience?: string) {
+        const where: any = { schoolId };
         if (audience) {
             where.targetAudience = audience;
         }
@@ -31,8 +31,7 @@ export class NoticesService {
             include: {
                 poster: {
                     select: {
-                        email: true, // User doesn't have name directly, maybe join Staff? 
-                        // For now just email or if we link to Staff profile
+                        email: true,
                         staffProfile: {
                             select: { firstName: true, lastName: true }
                         }
@@ -45,9 +44,9 @@ export class NoticesService {
         });
     }
 
-    async findOne(id: string) {
-        return this.prisma.notice.findUnique({
-            where: { id },
+    async findOne(id: string, schoolId: string) {
+        return this.prisma.notice.findFirst({
+            where: { id, schoolId },
             include: {
                 poster: {
                     include: {
@@ -58,9 +57,15 @@ export class NoticesService {
         });
     }
 
-    async update(id: string, updateDto: UpdateNoticeDto) {
+    async update(id: string, updateDto: UpdateNoticeDto, schoolId: string) {
+        await this.findOne(id, schoolId); // Ensure exists and belongs to school
+
         const data: any = { ...updateDto };
         if (updateDto.expiresAt) data.expiresAt = new Date(updateDto.expiresAt);
+
+        // Remove sensitive fields if they leaked in
+        delete data.schoolId;
+        delete data.postedBy;
 
         return this.prisma.notice.update({
             where: { id },
@@ -68,7 +73,8 @@ export class NoticesService {
         });
     }
 
-    async remove(id: string) {
+    async remove(id: string, schoolId: string) {
+        await this.findOne(id, schoolId);
         return this.prisma.notice.delete({
             where: { id },
         });

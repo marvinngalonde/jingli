@@ -38,6 +38,7 @@ model School {
   notices         Notice[]
   exams           Exam[]
   examTerms       ExamTerm[]
+  attendance      Attendance[]
   
   // Implicit many-to-many relation table management handled by Prisma,
   // explicit tables below also link to School for RLS.
@@ -165,6 +166,7 @@ model ClassSection {
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
   assignments        Assignment[]
+  attendance         Attendance[]
 
   @@map("sections")
 }
@@ -348,15 +350,21 @@ enum AttendanceStatus {
 
 model Attendance {
   id         String           @id @default(uuid())
+  schoolId   String           @map("school_id")
   studentId  String           @map("student_id")
-  date       DateTime
+  sectionId  String           @map("section_id")
+  date       DateTime         @db.Date
   status     AttendanceStatus
   remarks    String?
   recordedBy String           @map("recorded_by")
 
-  student    Student @relation(fields: [studentId], references: [id])
-  recorder   User    @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
+  school     School       @relation(fields: [schoolId], references: [id])
+  student    Student      @relation(fields: [studentId], references: [id])
+  section    ClassSection @relation(fields: [sectionId], references: [id])
+  recorder   User         @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
 
+  @@unique([studentId, date])
+  @@index([sectionId, date])
   @@map("attendance")
 }
 

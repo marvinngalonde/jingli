@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardService } from '../services/dashboardService';
-import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Timeline, RingProgress, Center, SimpleGrid } from '@mantine/core';
+import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Timeline, RingProgress, Center, SimpleGrid, Button } from '@mantine/core';
 import {
     IconUsers,
     IconCurrencyDollar,
@@ -14,9 +14,12 @@ import {
     IconClock,
     IconSchool,
     IconUserPlus,
-    IconSearch
+    IconSearch,
+    IconArrowRight
 } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { RecentNotices } from '../components/communication/RecentNotices';
+import { useNavigate } from 'react-router-dom';
 
 export function Dashboard() {
     const { user } = useAuth();
@@ -113,6 +116,7 @@ function TeacherDashboard() {
 }
 
 function StudentDashboard({ role }: { role: string }) {
+    const navigate = useNavigate();
     return (
         <div>
             <Title order={2} mb="lg">{role === 'parent' ? 'Parent Portal' : 'Student Dashboard'}</Title>
@@ -130,16 +134,18 @@ function StudentDashboard({ role }: { role: string }) {
 
             {/* Timetable or Notices for Students */}
             <Paper p="lg" radius="md" shadow="sm" withBorder mt="xl">
-                <Title order={4} mb="md">Notice Board</Title>
-                <Timeline active={0} bulletSize={18} lineWidth={2}>
-                    <Timeline.Item bullet={<IconSpeakerphone size={12} />} title="School Trip to Museum">
-                        <Text c="dimmed" size="xs" mt={4}>Tomorrow, 08:30 AM</Text>
-                        <Text size="sm">Permission slips must be signed by parents.</Text>
-                    </Timeline.Item>
-                    <Timeline.Item bullet={<IconBook size={12} />} title="Mid-Term Exams Schedule Released">
-                        <Text c="dimmed" size="xs" mt={4}>2 days ago</Text>
-                    </Timeline.Item>
-                </Timeline>
+                <Group justify="space-between" mb="md">
+                    <Title order={4}>Notice Board</Title>
+                    <Button
+                        variant="subtle"
+                        size="xs"
+                        rightSection={<IconArrowRight size={14} />}
+                        onClick={() => navigate('/communication')}
+                    >
+                        View All
+                    </Button>
+                </Group>
+                <RecentNotices />
             </Paper>
         </div>
     );
@@ -155,6 +161,7 @@ const data = [
 ];
 
 function AdminDashboard() {
+    const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -242,19 +249,18 @@ function AdminDashboard() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder h={420}>
-                        <Title order={4} mb="lg">Recent Activity</Title>
-
-                        <Timeline active={1} bulletSize={18} lineWidth={2}>
-                            {stats?.recentActivity?.map((activity: any) => (
-                                <Timeline.Item key={activity.id} bullet={<div style={{ width: 10, height: 10, borderRadius: 10, background: '#3b82f6' }}></div>} title={activity.title}>
-                                    <Text c="dimmed" size="xs" mt={4}>{new Date(activity.time).toLocaleDateString()}</Text>
-                                    <Text size="xs" mt={4}>{activity.description}</Text>
-                                </Timeline.Item>
-                            ))}
-                            {!loading && (!stats?.recentActivity || stats.recentActivity.length === 0) && (
-                                <Text size="sm" c="dimmed">No recent activity found.</Text>
-                            )}
-                        </Timeline>
+                        <Group justify="space-between" mb="md">
+                            <Title order={4}>School Notices</Title>
+                            <Button
+                                variant="subtle"
+                                size="xs"
+                                rightSection={<IconArrowRight size={14} />}
+                                onClick={() => navigate('/communication')}
+                            >
+                                View All
+                            </Button>
+                        </Group>
+                        <RecentNotices />
                     </Paper>
                 </Grid.Col>
             </Grid>

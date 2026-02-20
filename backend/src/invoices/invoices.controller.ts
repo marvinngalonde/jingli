@@ -44,6 +44,12 @@ export class InvoicesController {
         return this.invoicesService.findOne(id, req.user.schoolId);
     }
 
+    @Patch(':id')
+    @ApiOperation({ summary: 'Update Invoice' })
+    update(@Req() req: any, @Param('id') id: string, @Body() updateDto: any) {
+        return this.invoicesService.update(id, updateDto, req.user.schoolId);
+    }
+
     @Delete(':id')
     @ApiOperation({ summary: 'Delete Invoice' })
     remove(@Req() req: any, @Param('id') id: string) {

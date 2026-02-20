@@ -1,17 +1,99 @@
 import { useState, useEffect } from 'react';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, ActionIcon, Drawer, Select, Stack, LoadingOverlay } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Select, Stack, LoadingOverlay, ActionIcon, NumberInput } from '@mantine/core'; // Added ActionIcon, NumberInput
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconCurrencyDollar, IconReceipt, IconChartPie, IconPlus, IconEye, IconCategory } from '@tabler/icons-react';
+import { IconCurrencyDollar, IconReceipt, IconChartPie, IconPlus, IconCategory, IconPencil, IconTrash } from '@tabler/icons-react'; // Added Icons
 import { useAuth } from '../context/AuthContext';
 import { financeService } from '../services/financeService';
 import { academicsService } from '../services/academics';
-import { FeeHeadManager, FeeStructureManager } from './Finance/FeeComponents';
+import { FeeHeadManager, FeeStructureManager } from './finance/FeeComponents';
+// import { InvoiceActionMenu } from './finance/InvoiceActions'; // Removed import
 import type { Invoice, FeeStructure } from '../types/finance';
 
-export default function Finance() {
+function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: () => void }) {
+    const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+        try {
+            await financeService.deleteInvoice(invoice.id);
+            notifications.show({ title: 'Deleted', message: 'Invoice deleted', color: 'blue' });
+            onUpdate();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to delete invoice', color: 'red' });
+        }
+    };
+
+    const form = useForm({
+        initialValues: {
+            amount: invoice.amount,
+            dueDate: new Date(invoice.dueDate),
+            status: invoice.status
+        },
+    });
+
+    const handleEdit = async (values: typeof form.values) => {
+        setLoading(true);
+        try {
+            await financeService.updateInvoice(invoice.id, values);
+            notifications.show({ title: 'Updated', message: 'Invoice updated', color: 'green' });
+            closeEdit();
+            onUpdate();
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to update invoice', color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <ActionIcon variant="subtle" color="blue" onClick={openEdit}>
+                <IconPencil size={16} />
+            </ActionIcon>
+            <ActionIcon variant="subtle" color="red" onClick={handleDelete} ml="xs">
+                <IconTrash size={16} />
+            </ActionIcon>
+
+            <Drawer
+                opened={editOpened}
+                onClose={closeEdit}
+                title={`Edit Invoice #${invoice.id.substring(0, 8)}`}
+                position="right"
+                padding="md"
+            >
+                <LoadingOverlay visible={loading} />
+                <form onSubmit={form.onSubmit(handleEdit)}>
+                    <Stack>
+                        <NumberInput
+                            label="Amount"
+                            prefix="$"
+                            {...form.getInputProps('amount')}
+                        />
+                        <DateInput
+                            label="Due Date"
+                            {...form.getInputProps('dueDate')}
+                        />
+                        <Select
+                            label="Status"
+                            data={['PENDING', 'PARTIAL', 'PAID', 'OVERDUE']}
+                            {...form.getInputProps('status')}
+                        />
+                        <Button type="submit" mt="md">Save Changes</Button>
+                    </Stack>
+                </form>
+            </Drawer>
+        </>
+    );
+}
+
+export default function Finance() { // Modified to keep original export
+
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<string | null>('structures');
 
@@ -174,7 +256,9 @@ export default function Finance() {
                                                 </Table.Td>
                                                 <Table.Td>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
                                                 <Table.Td>
-                                                    <ActionIcon variant="light"><IconEye size={16} /></ActionIcon>
+                                                    <Group gap="xs">
+                                                        <InvoiceActionMenu invoice={inv} onUpdate={loadInvoices} />
+                                                    </Group>
                                                 </Table.Td>
                                             </Table.Tr>
                                         ))

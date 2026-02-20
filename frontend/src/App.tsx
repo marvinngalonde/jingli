@@ -16,7 +16,7 @@ import Timetable from './pages/Timetable';
 import { Exams } from './pages/Exams';
 import Marks from './pages/Marks';
 import Library from './pages/Library';
-import Attendance from './pages/Attendance';
+import AttendancePage from './pages/Attendance';
 
 // Finance Pages
 // import Fees from './pages/finance/Fees';
@@ -55,8 +55,8 @@ function App() {
             <Route path="/admissions" element={<Admissions />} />
             <Route path="/staff" element={<Staff />} />
             <Route path="/staff/:id" element={<StaffDetail />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/staff/:id" element={<StaffDetail />} />
+            <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/academics" element={<Academics />} />
             <Route path="/classes" element={<Classes />} />

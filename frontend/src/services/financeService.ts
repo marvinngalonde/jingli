@@ -57,5 +57,20 @@ export const financeService = {
     generateBulkInvoices: async (data: { classLevelId: string; feeStructureId: string; dueDate: Date }) => {
         const response = await api.post('/invoices/bulk', data);
         return response.data;
+    },
+
+    updateInvoice: async (id: string, data: any) => {
+        const response = await api.patch(`/invoices/${id}`, data);
+        return response.data;
+    },
+
+    deleteInvoice: async (id: string) => {
+        await api.delete(`/invoices/${id}`);
+    },
+
+    // --- Transactions ---
+    collectPayment: async (data: { invoiceId: string; amount: number; method: string; referenceNo?: string }) => {
+        const response = await api.post('/invoices/collect', data);
+        return response.data;
     }
 };

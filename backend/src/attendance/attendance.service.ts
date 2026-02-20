@@ -17,6 +17,8 @@ export class AttendanceService {
 
         return this.prisma.attendance.create({
             data: {
+                schoolId,
+                sectionId: student.sectionId,
                 studentId: createDto.studentId,
                 date: new Date(createDto.date),
                 status: createDto.status as AttendanceStatus,
@@ -26,16 +28,26 @@ export class AttendanceService {
         });
     }
 
-    async findAll(schoolId: string, date?: string, classId?: string) {
+    async findAll(schoolId: string, date?: string, classId?: string, studentId?: string, startDate?: string, endDate?: string) {
         const where: any = {
             student: { schoolId }
         };
-        if (date) {
+
+        // Date Filtering Logic
+        if (startDate && endDate) {
+            where.date = {
+                gte: new Date(startDate),
+                lte: new Date(endDate)
+            };
+        } else if (date) {
             where.date = new Date(date);
         }
+
         if (classId) {
-            // Filter by section (classId) within the school scope
             where.student.sectionId = classId;
+        }
+        if (studentId) {
+            where.studentId = studentId;
         }
 
         return this.prisma.attendance.findMany({
@@ -46,13 +58,12 @@ export class AttendanceService {
                         firstName: true,
                         lastName: true,
                         admissionNo: true,
+                        sectionId: true
                     }
                 }
             },
             orderBy: {
-                student: {
-                    lastName: 'asc',
-                }
+                date: 'desc', // Order by date first for reports
             }
         });
     }
@@ -91,20 +102,25 @@ export class AttendanceService {
 
     // Bulk create for a whole class
     async bulkCreate(records: CreateAttendanceDto[], schoolId: string) {
-        // 1. Validate all students belong to school
+        // 1. Validate all students belong to school and get their sections
         const studentIds = records.map(r => r.studentId);
-        const validStudents = await this.prisma.student.count({
+        const students = await this.prisma.student.findMany({
             where: {
                 id: { in: studentIds },
                 schoolId
-            }
+            },
+            select: { id: true, sectionId: true }
         });
 
-        if (validStudents !== new Set(studentIds).size) {
+        if (students.length !== new Set(studentIds).size) {
             throw new Error('One or more students do not belong to this school');
         }
 
+        const studentMap = new Map(students.map(s => [s.id, s.sectionId]));
+
         const data = records.map(r => ({
+            schoolId,
+            sectionId: studentMap.get(r.studentId)!, // We validated existence above
             studentId: r.studentId,
             date: new Date(r.date),
             status: r.status as AttendanceStatus,

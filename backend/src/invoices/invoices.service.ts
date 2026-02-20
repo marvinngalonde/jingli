@@ -34,6 +34,19 @@ export class InvoicesService {
         });
     }
 
+    async update(id: string, updateDto: any, schoolId: string) {
+        // Simple update for now. 
+        // Real systems might restrict editing if payments exist, but user asked for full CRUD.
+        return this.prisma.invoice.update({
+            where: { id, schoolId },
+            data: {
+                amount: updateDto.amount,
+                dueDate: updateDto.dueDate,
+                status: updateDto.status
+            }
+        });
+    }
+
     async generateBulk(dto: BulkGenerateInvoiceDto, schoolId: string) {
         // 1. Get Fee Structure to verify amount
         const structure = await this.prisma.feeStructure.findFirst({
@@ -140,8 +153,12 @@ export class InvoicesService {
     }
 
     async remove(id: string, schoolId: string) {
+        // Delete related transactions first? Or cascading delete?
+        // For safety, let's delete transactions first if any.
+        await this.prisma.transaction.deleteMany({ where: { invoiceId: id } });
+
         return this.prisma.invoice.delete({
-            where: { id }, // Prisma RLS or ensure check before delete
+            where: { id, schoolId },
         });
     }
 }

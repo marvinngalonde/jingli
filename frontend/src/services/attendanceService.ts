@@ -1,85 +1,53 @@
-import { supabase } from '../lib/supabase';
-import type { Database } from '../types/database.types';
-
-type Attendance = Database['public']['Tables']['attendance']['Row'];
-type AttendanceInsert = Database['public']['Tables']['attendance']['Insert'];
+import { api } from './api';
+import type { AttendanceRecord, AttendanceStatus, CreateAttendanceDto } from '../types/attendance';
 
 export const attendanceService = {
-    // Get attendance for a specific date
-    async getByDate(date: string) {
-        const { data, error } = await supabase
-            .from('attendance')
-            .select(`
-                *,
-                student:students(*)
-            `)
-            .eq('date', date)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data;
+    // Get daily attendance for a class section
+    getClassAttendance: async (sectionId: string, date: Date): Promise<AttendanceRecord[]> => {
+        const response = await api.get('/attendance', {
+            params: {
+                classId: sectionId,
+                date: date.toISOString().split('T')[0] // Format YYYY-MM-DD
+            }
+        });
+        return response.data;
     },
 
-    // Get attendance for a student
-    async getByStudent(studentId: string, startDate?: string, endDate?: string) {
-        let query = supabase
-            .from('attendance')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('date', { ascending: false });
-
-        if (startDate) query = query.gte('date', startDate);
-        if (endDate) query = query.lte('date', endDate);
-
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
+    // Get attendance for a date range
+    getAttendanceReport: async (sectionId: string, startDate: Date, endDate: Date): Promise<AttendanceRecord[]> => {
+        const response = await api.get('/attendance', {
+            params: {
+                classId: sectionId,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
+            }
+        });
+        return response.data;
     },
 
-    // Mark attendance
-    async markAttendance(attendance: AttendanceInsert) {
-        const { data, error } = await supabase
-            .from('attendance')
-            .upsert(attendance, { onConflict: 'student_id,date' })
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
+    // Get attendance history for a specific student
+    getStudentAttendance: async (studentId: string): Promise<AttendanceRecord[]> => {
+        const response = await api.get('/attendance', {
+            params: { studentId }
+        });
+        return response.data;
     },
 
-    // Bulk mark attendance
-    async bulkMarkAttendance(attendanceRecords: AttendanceInsert[]) {
-        const { data, error } = await supabase
-            .from('attendance')
-            .upsert(attendanceRecords, { onConflict: 'student_id,date' })
-            .select();
-
-        if (error) throw error;
-        return data;
+    // Mark single attendance
+    create: async (data: CreateAttendanceDto) => {
+        const response = await api.post('/attendance', data);
+        return response.data;
     },
 
-    // Get attendance statistics
-    async getStatistics(classId?: string, startDate?: string, endDate?: string) {
-        let query = supabase
-            .from('attendance')
-            .select('status, student:students(class_id)');
-
-        if (startDate) query = query.gte('date', startDate);
-        if (endDate) query = query.lte('date', endDate);
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        // Calculate statistics
-        const stats = {
-            total: data.length,
-            present: data.filter(a => a.status === 'present').length,
-            absent: data.filter(a => a.status === 'absent').length,
-            late: data.filter(a => a.status === 'late').length,
-            excused: data.filter(a => a.status === 'excused').length,
-        };
-
-        return stats;
+    // Bulk mark attendance for a class
+    bulkCreate: async (data: { records: CreateAttendanceDto[] }) => {
+        const response = await api.post('/attendance/bulk', data.records);
+        return response.data;
     },
+
+    // Update attendance record
+    update: async (id: string, status: AttendanceStatus, remarks?: string) => {
+        const response = await api.patch(`/attendance/${id}`, { status, remarks });
+        return response.data;
+    }
 };

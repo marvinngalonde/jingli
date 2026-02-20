@@ -280,10 +280,10 @@ export default function StudentDetail() {
                             <GradesRecord />
                         </Tabs.Panel>
                         <Tabs.Panel value="attendance">
-                            <AttendanceRecord />
+                            <AttendanceRecord studentId={student.id} />
                         </Tabs.Panel>
                         <Tabs.Panel value="finance">
-                            <FinanceRecord />
+                            <FinanceRecord studentId={student.id} />
                         </Tabs.Panel>
 
                         <Tabs.Panel value="medical">
