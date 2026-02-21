@@ -93,6 +93,7 @@ model User {
   sentMessages       Message[]    @relation("Sender")
   receivedMessages   Message[]    @relation("Receiver")
   postedNotices      Notice[]
+  aiChatSessions      AiChatSession[]
 
   @@unique([schoolId, username]) // Username unique per school
   @@unique([schoolId, email])    // Email unique per school (if provided)
@@ -645,3 +646,32 @@ model ExamResult {
 }
 
 
+
+// -----------------------------------------------------------------------------
+// AI & INTELLIGENT PLATFORM
+// -----------------------------------------------------------------------------
+
+model AiChatSession {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String?  // Auto-generated title from first prompt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User            @relation(fields: [userId], references: [id])
+  messages AiChatMessage[]
+
+  @@map("ai_chat_sessions")
+}
+
+model AiChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  role      String   // 'user' or 'model'
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_messages")
+}

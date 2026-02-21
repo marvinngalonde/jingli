@@ -167,7 +167,7 @@ export function DashboardLayout() {
                                 leftSection={<IconCalendar size={14} />}
                                 styles={{ root: { textTransform: 'none' } }}
                             >
-                                2024 - Term 1
+                                2026 - Term 1
                             </Badge>
 
                             <Tooltip label="Support & Documentation">
@@ -177,15 +177,15 @@ export function DashboardLayout() {
                             </Tooltip>
                         </Group>
 
-                        <ActionIcon variant="light" color="gray" size="lg" radius="md">
+                        <ActionIcon variant="subtle" color="gray" size="lg">
                             <Indicator color="red" size={6} offset={4} processing>
                                 <IconBell size={20} stroke={1.5} />
                             </Indicator>
                         </ActionIcon>
 
-                        <Tooltip label="ScholarBot AI Assistant">
-                            <ActionIcon variant="light" color="blue" size="lg" radius="md" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 20 }} />
+                        <Tooltip label="Jingli 1.0 AI Assistant">
+                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
                             </ActionIcon>
                         </Tooltip>
 

@@ -7,8 +7,16 @@ export interface ChatMessage {
 }
 
 export const aiService = {
-    sendMessage: async (studentId: string, message: string): Promise<{ message: string; timestamp: string }> => {
-        const response = await api.post('/ai/chat', { studentId, message });
+    sendMessage: async (userId: string, sessionId: string | null, message: string): Promise<{ sessionId: string; message: string; timestamp: string }> => {
+        const response = await api.post('/ai/chat', { userId, sessionId, message });
+        return response.data;
+    },
+    getHistory: async (userId: string): Promise<any[]> => {
+        const response = await api.get(`/ai/history/${userId}`);
+        return response.data;
+    },
+    getSessionMessages: async (sessionId: string): Promise<any[]> => {
+        const response = await api.get(`/ai/session/${sessionId}`);
         return response.data;
     }
 };
