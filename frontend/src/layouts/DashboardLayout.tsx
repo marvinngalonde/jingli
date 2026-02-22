@@ -65,6 +65,7 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'student', 'parent', 'reception'],
             links: [
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
+                { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
                 { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
             ]
         },

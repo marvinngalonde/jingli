@@ -17,6 +17,7 @@ import {
     Building,
     PanelLeftClose,
     PanelLeftOpen,
+    Calendar as IconCalendar,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -37,6 +38,7 @@ const navSections: NavSection[] = [
         title: 'Main',
         items: [
             { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+            { icon: IconCalendar, label: 'Calendar', path: '/calendar' },
         ],
     },
     {

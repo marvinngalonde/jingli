@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { BulkGenerateInvoiceDto } from './dto/bulk-generate-invoice.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 enum InvoiceStatus {
     PENDING = 'PENDING',
@@ -13,7 +14,10 @@ enum InvoiceStatus {
 
 @Injectable()
 export class InvoicesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notificationsService: NotificationsService,
+    ) { }
 
     async create(createDto: CreateInvoiceDto, schoolId: string) {
         // Verify student belongs to school
@@ -22,7 +26,7 @@ export class InvoicesService {
         });
         if (!student) throw new Error('Student not found or does not belong to school');
 
-        return this.prisma.invoice.create({
+        const invoice = await this.prisma.invoice.create({
             data: {
                 schoolId,
                 studentId: createDto.studentId,
@@ -32,11 +36,45 @@ export class InvoicesService {
                 status: InvoiceStatus.PENDING,
             },
         });
+
+        // Trigger notification for student/guardian
+        this.triggerInvoiceNotifications(invoice);
+
+        return invoice;
+    }
+
+    private async triggerInvoiceNotifications(invoice: any) {
+        const student = await this.prisma.student.findUnique({
+            where: { id: invoice.studentId },
+            include: { user: true }
+        });
+
+        if (student && student.userId) {
+            await this.notificationsService.createNotification(
+                student.userId,
+                'New Invoice Generated',
+                `A new invoice of ${invoice.amount} has been generated for you/your ward. Due date: ${new Date(invoice.dueDate).toLocaleDateString()}.`,
+                'INFO'
+            ).catch(e => console.error('Failed to send invoice notification', e));
+        }
+
+        // Also notify guardian if exists
+        const guardian = await this.prisma.guardian.findFirst({
+            where: { students: { some: { studentId: student?.id } } },
+            include: { user: true }
+        });
+
+        if (guardian && guardian.userId) {
+            await this.notificationsService.createNotification(
+                guardian.userId,
+                'New Fee Invoice',
+                `A new invoice of ${invoice.amount} has been generated for ${student?.firstName}. Due date: ${new Date(invoice.dueDate).toLocaleDateString()}.`,
+                'INFO'
+            ).catch(e => console.error('Failed to send guardian invoice notification', e));
+        }
     }
 
     async update(id: string, updateDto: any, schoolId: string) {
-        // Simple update for now. 
-        // Real systems might restrict editing if payments exist, but user asked for full CRUD.
         return this.prisma.invoice.update({
             where: { id, schoolId },
             data: {
@@ -48,14 +86,11 @@ export class InvoicesService {
     }
 
     async generateBulk(dto: BulkGenerateInvoiceDto, schoolId: string) {
-        // 1. Get Fee Structure to verify amount
         const structure = await this.prisma.feeStructure.findFirst({
             where: { id: dto.feeStructureId, schoolId }
         });
         if (!structure) throw new Error('Fee Structure not found');
 
-        // 2. Get All Students in the Class Level
-        // We need to find students whose section belongs to this classLevel
         const students = await this.prisma.student.findMany({
             where: {
                 schoolId,
@@ -68,15 +103,10 @@ export class InvoicesService {
             return { count: 0, message: 'No students found in this class' };
         }
 
-        // 3. Create Invoices
-        // Using transaction for safety
         return this.prisma.$transaction(async (tx) => {
             let count = 0;
             for (const student of students) {
-                // Check if invoice already exists for this structure? 
-                // Optional: Skip if duplicate. For now, we allow multiple (e.g. monthly fees).
-
-                await tx.invoice.create({
+                const invoice = await tx.invoice.create({
                     data: {
                         schoolId,
                         studentId: student.id,
@@ -86,6 +116,8 @@ export class InvoicesService {
                         status: InvoiceStatus.PENDING,
                     }
                 });
+
+                this.triggerInvoiceNotifications(invoice);
                 count++;
             }
             return { count, message: `Successfully generated ${count} invoices` };
@@ -120,13 +152,10 @@ export class InvoicesService {
         });
     }
 
-    // --- Transactions ---
     async collectPayment(createDto: CreateTransactionDto, schoolId: string, collectedByUserId: string) {
-        // 1. Get Invoice
         const invoice = await this.findOne(createDto.invoiceId, schoolId);
         if (!invoice) throw new Error('Invoice not found');
 
-        // 2. Record Transaction
         const transaction = await this.prisma.transaction.create({
             data: {
                 schoolId,
@@ -138,7 +167,6 @@ export class InvoicesService {
             }
         });
 
-        // 3. Update Invoice Status
         const totalPaid = invoice.transactions.reduce((sum, t) => sum + Number(t.amount), 0) + createDto.amount;
         let newStatus = InvoiceStatus.PENDING;
         if (totalPaid >= Number(invoice.amount)) newStatus = InvoiceStatus.PAID;
@@ -153,8 +181,6 @@ export class InvoicesService {
     }
 
     async remove(id: string, schoolId: string) {
-        // Delete related transactions first? Or cascading delete?
-        // For safety, let's delete transactions first if any.
         await this.prisma.transaction.deleteMany({ where: { invoiceId: id } });
 
         return this.prisma.invoice.delete({

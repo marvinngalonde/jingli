@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance for the NestJS Backend
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api',
     headers: {
         'Content-Type': 'application/json',
     },

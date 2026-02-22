@@ -17,6 +17,7 @@ import { Exams } from './pages/Exams';
 import Marks from './pages/Marks';
 import Library from './pages/Library';
 import AttendancePage from './pages/Attendance';
+import CalendarPage from './pages/Calendar';
 
 // Finance Pages
 // import Fees from './pages/finance/Fees';
@@ -68,6 +69,7 @@ function App() {
             <Route path="/exams" element={<Exams />} />
             <Route path="/marks" element={<Marks />} />
             <Route path="/library" element={<Library />} />
+            <Route path="/calendar" element={<CalendarPage />} />
 
             {/* Reception Routes */}
             <Route path="/reception/visitors" element={<Visitors />} />

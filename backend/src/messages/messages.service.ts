@@ -1,19 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MessagesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notificationsService: NotificationsService
+    ) { }
 
     async create(createDto: CreateMessageDto) {
-        return this.prisma.message.create({
+        const message = await this.prisma.message.create({
             data: {
                 senderId: createDto.senderId,
                 receiverId: createDto.receiverId,
                 content: createDto.content,
             },
+            include: {
+                sender: {
+                    select: {
+                        email: true,
+                        staffProfile: { select: { firstName: true, lastName: true } },
+                        studentProfile: { select: { firstName: true, lastName: true } },
+                    }
+                }
+            }
         });
+
+        // Trigger notification for receiver
+        const senderName = message.sender.staffProfile
+            ? `${message.sender.staffProfile.firstName} ${message.sender.staffProfile.lastName}`
+            : message.sender.studentProfile
+                ? `${message.sender.studentProfile.firstName} ${message.sender.studentProfile.lastName}`
+                : message.sender.email;
+
+        await this.notificationsService.createNotification(
+            createDto.receiverId,
+            'New Message',
+            `You have a new message from ${senderName}: "${createDto.content.substring(0, 50)}${createDto.content.length > 50 ? '...' : ''}"`,
+            'INFO'
+        );
+
+        return message;
     }
 
     // Get conversation between two users

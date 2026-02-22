@@ -3,10 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 import { AttendanceStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AttendanceService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notificationsService: NotificationsService,
+    ) { }
 
     async create(createDto: CreateAttendanceDto, schoolId: string) {
         // Validate student belongs to school
@@ -15,7 +19,7 @@ export class AttendanceService {
         });
         if (!student) throw new Error('Student not found or does not belong to school');
 
-        return this.prisma.attendance.create({
+        const record = await this.prisma.attendance.create({
             data: {
                 schoolId,
                 sectionId: student.sectionId,
@@ -26,6 +30,50 @@ export class AttendanceService {
                 recordedBy: createDto.recordedBy,
             },
         });
+
+        if (record.status === 'ABSENT') {
+            this.triggerAbsenteeismNotifications(record.studentId, schoolId);
+        }
+
+        return record;
+    }
+
+    private async triggerAbsenteeismNotifications(studentId: string, schoolId: string) {
+        // Check if student has more than 3 absences in the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const absenceCount = await this.prisma.attendance.count({
+            where: {
+                studentId,
+                status: 'ABSENT',
+                date: { gte: thirtyDaysAgo }
+            }
+        });
+
+        if (absenceCount > 3) {
+            const student = await this.prisma.student.findUnique({
+                where: { id: studentId }
+            });
+
+            if (student) {
+                const staffToNotify = await this.prisma.user.findMany({
+                    where: {
+                        schoolId,
+                        role: { in: ['ADMIN', 'TEACHER'] }
+                    }
+                });
+
+                for (const user of staffToNotify) {
+                    this.notificationsService.createNotification(
+                        user.id,
+                        'Attendance Alert: Excessive Absences',
+                        `Student ${student.firstName} ${student.lastName} has been absent ${absenceCount} times in the last 30 days.`,
+                        'WARNING'
+                    ).catch(e => console.error('Failed to send absenteeism notification', e));
+                }
+            }
+        }
     }
 
     async findAll(schoolId: string, date?: string, classId?: string, studentId?: string, startDate?: string, endDate?: string) {
@@ -128,9 +176,18 @@ export class AttendanceService {
             recordedBy: r.recordedBy,
         }));
 
-        return this.prisma.attendance.createMany({
+        const result = await this.prisma.attendance.createMany({
             data,
             skipDuplicates: true
         });
+
+        // Trigger notifications for those marked ABSENT
+        for (const record of data) {
+            if (record.status === 'ABSENT') {
+                this.triggerAbsenteeismNotifications(record.studentId, schoolId);
+            }
+        }
+
+        return result;
     }
 }

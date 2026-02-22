@@ -9,6 +9,8 @@ async function bootstrap() {
     credentials: true,
   });
 
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('Jingli API')
     .setDescription('The Jingli School Management System API')

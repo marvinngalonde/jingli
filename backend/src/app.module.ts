@@ -30,6 +30,7 @@ import { LogisticsModule } from './reception/logistics.module';
 import { LibraryModule } from './library/library.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     LibraryModule,
     ReportsModule,
     NotificationsModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
