@@ -5,20 +5,33 @@ import {
     Avatar,
     Text,
     Select,
-    rem,
     Drawer,
     Box,
-    Badge
+    Tabs,
+    SimpleGrid,
+    Paper,
+    Stack,
+    Modal,
+    TextInput,
+    Loader,
+    Center,
+    ActionIcon
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
     IconPlus,
     IconFilter,
+    IconUsers,
+    IconClock,
+    IconDoorExit,
+    IconPrinter
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StudentForm } from '../components/students/StudentForm';
 import { studentService } from '../services/studentService';
+import { logisticsService } from '../services/logisticsService';
+import type { GatePass, LateArrival } from '../services/logisticsService';
 import type { Student } from '../types/students';
 
 // Common Components
@@ -26,57 +39,82 @@ import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ActionMenu } from '../components/common/ActionMenu';
+import { useForm } from '@mantine/form';
 
 export default function Students() {
     const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState<string | null>('list');
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<Student[]>([]);
     const [filteredData, setFilteredData] = useState<Student[]>([]);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
-
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
+    // Logistics State
+    const [lateArrivals, setLateArrivals] = useState<LateArrival[]>([]);
+    const [gatePasses, setGatePasses] = useState<GatePass[]>([]);
+    const [lateOpened, { open: openLate, close: closeLate }] = useDisclosure(false);
+    const [passOpened, { open: openPass, close: closePass }] = useDisclosure(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    // Forms
+    const lateForm = useForm({
+        initialValues: { studentId: '', reason: 'Traffic', reportedBy: 'Parent' },
+        validate: { studentId: (v) => (!v ? 'Required' : null) }
+    });
+
+    const passForm = useForm({
+        initialValues: { studentId: '', reason: '', guardianName: '' },
+        validate: {
+            studentId: (v) => (!v ? 'Required' : null),
+            reason: (v) => (!v ? 'Required' : null),
+            guardianName: (v) => (!v ? 'Required' : null)
+        }
+    });
+
     useEffect(() => {
-        loadStudents();
+        loadAllData();
     }, []);
 
-    // Filter logic
+    const loadAllData = async () => {
+        setLoading(true);
+        try {
+            const [students, late, passes] = await Promise.all([
+                studentService.getAll(),
+                logisticsService.getLateArrivals(),
+                logisticsService.getGatePasses()
+            ]);
+            setData(students);
+            setFilteredData(students);
+            setLateArrivals(late);
+            setGatePasses(passes);
+        } catch (error) {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to load student data', color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Filter logic for Student List
     useEffect(() => {
         let result = data;
-
         if (search) {
             const lowerSearch = search.toLowerCase();
             result = result.filter(item =>
                 item.firstName.toLowerCase().includes(lowerSearch) ||
                 item.lastName.toLowerCase().includes(lowerSearch) ||
                 item.admissionNo.toLowerCase().includes(lowerSearch) ||
-                item.user?.email.toLowerCase().includes(lowerSearch)
+                item.user?.email?.toLowerCase().includes(lowerSearch)
             );
         }
-
         if (statusFilter) {
             result = result.filter(item => item.status === statusFilter);
         }
-
         setFilteredData(result);
     }, [data, search, statusFilter]);
-
-
-    const loadStudents = async () => {
-        setLoading(true);
-        try {
-            const students = await studentService.getAll();
-            setData(students);
-            setFilteredData(students);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load students', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleCreate = async (values: any) => {
         setLoading(true);
@@ -84,9 +122,8 @@ export default function Students() {
             await studentService.create(values);
             notifications.show({ message: 'Student created successfully', color: 'green' });
             closeDrawer();
-            loadStudents();
+            loadAllData();
         } catch (error) {
-            console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to create student', color: 'red' });
         } finally {
             setLoading(false);
@@ -100,9 +137,8 @@ export default function Students() {
             await studentService.update(selectedStudent.id, values);
             notifications.show({ message: 'Student updated successfully', color: 'green' });
             closeDrawer();
-            loadStudents();
+            loadAllData();
         } catch (error) {
-            console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to update student', color: 'red' });
         } finally {
             setLoading(false);
@@ -111,16 +147,45 @@ export default function Students() {
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this student?')) return;
-
         try {
             await studentService.delete(id);
             notifications.show({ message: 'Student deleted successfully', color: 'green' });
-            loadStudents();
+            loadAllData();
         } catch (error) {
-            console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to delete student', color: 'red' });
         }
-    }
+    };
+
+    const handleLogLate = async (values: typeof lateForm.values) => {
+        setSubmitting(true);
+        try {
+            await logisticsService.logLateArrival(values);
+            notifications.show({ title: 'Success', message: 'Late arrival recorded', color: 'green' });
+            lateForm.reset();
+            closeLate();
+            loadAllData();
+        } catch (error) {
+            notifications.show({ title: 'Error', message: 'Failed to record arrival', color: 'red' });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleIssuePass = async (values: typeof passForm.values) => {
+        setSubmitting(true);
+        try {
+            const pass = await logisticsService.issueGatePass(values);
+            notifications.show({ title: 'Success', message: 'Gate pass issued', color: 'green' });
+            passForm.reset();
+            closePass();
+            loadAllData();
+            alert(`Printing Gate Pass\nStudent: ${pass.student.firstName} ${pass.student.lastName}\nTime Out: ${new Date(pass.issuedAt).toLocaleTimeString()}\nReason: ${pass.reason}`);
+        } catch (error) {
+            notifications.show({ title: 'Error', message: 'Failed to issue pass', color: 'red' });
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const openEditDrawer = (student: Student) => {
         setSelectedStudent(student);
@@ -132,7 +197,15 @@ export default function Students() {
         close();
     };
 
-    const columns: Column<Student>[] = [
+    // Stats calculation
+    const today = new Date().toDateString();
+    const stats = [
+        { title: 'Total Students', value: data.length, icon: IconUsers, color: 'blue' },
+        { title: 'Late Today', value: lateArrivals.filter(l => new Date(l.arrivalTime).toDateString() === today).length, icon: IconClock, color: 'orange' },
+        { title: 'Gate Passes Issued', value: gatePasses.filter(p => new Date(p.issuedAt).toDateString() === today).length, icon: IconDoorExit, color: 'teal' },
+    ];
+
+    const studentColumns: Column<Student>[] = [
         {
             accessor: 'name',
             header: 'Student',
@@ -142,12 +215,8 @@ export default function Students() {
                         {item.firstName[0]}{item.lastName[0]}
                     </Avatar>
                     <div>
-                        <Text size="sm" fw={500}>
-                            {item.firstName} {item.lastName}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                            {item.admissionNo}
-                        </Text>
+                        <Text size="sm" fw={500}>{item.firstName} {item.lastName}</Text>
+                        <Text size="xs" c="dimmed">{item.admissionNo}</Text>
                     </div>
                 </Group>
             )
@@ -156,18 +225,6 @@ export default function Students() {
             accessor: 'class',
             header: 'Class/Grade',
             render: (item) => <Text size="sm">{item.section?.classLevel?.name || ''} - {item.section?.name || 'Unassigned'}</Text>
-        },
-        {
-            accessor: 'feesStatus',
-            header: 'Fees Status',
-            render: (item) => {
-                // Mock fees status based on admission number or random logic for now
-                const statuses = ['PAID', 'PENDING', 'OVERDUE', 'PAID', 'PAID'];
-                const status = statuses[item.admissionNo.length % statuses.length];
-                const color = status === 'PAID' ? 'green' : status === 'PENDING' ? 'yellow' : 'red';
-
-                return <Badge color={color} variant="light">{status}</Badge>;
-            }
         },
         {
             accessor: 'status',
@@ -193,7 +250,7 @@ export default function Students() {
         <>
             <PageHeader
                 title="Students"
-                subtitle="Manage your student directory"
+                subtitle="Manage student directory and daily logistics"
                 actions={
                     <Button leftSection={<IconPlus size={18} />} onClick={open}>
                         Add Student
@@ -201,34 +258,112 @@ export default function Students() {
                 }
             />
 
-            <DataTable
-                data={filteredData}
-                columns={columns}
-                loading={loading}
-                search={search}
-                onSearchChange={setSearch}
-                pagination={{
-                    total: Math.ceil(filteredData.length / 10),
-                    page: 1,
-                    onChange: () => { }
-                }}
-                filterSlot={
-                    <Select
-                        placeholder="Status"
-                        data={['ACTIVE', 'INACTIVE', 'SUSPENDED', 'GRADUATED']}
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        clearable
-                        leftSection={<IconFilter style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
-                        w={150}
-                    />
-                }
-                onExport={() => notifications.show({ message: 'Exporting...' })}
-            />
+            <SimpleGrid cols={{ base: 1, sm: 3 }} mb="xl">
+                {stats.map((stat) => (
+                    <Paper key={stat.title} withBorder p="md" radius="md">
+                        <Group justify="space-between">
+                            <div>
+                                <Text size="xs" c="dimmed" fw={700} tt="uppercase">{stat.title}</Text>
+                                <Text fw={700} size="xl">{stat.value}</Text>
+                            </div>
+                            <stat.icon size={32} stroke={1.5} color={`var(--mantine-color-${stat.color}-6)`} />
+                        </Group>
+                    </Paper>
+                ))}
+            </SimpleGrid>
 
+            {loading ? (
+                <Center p="xl"><Loader /></Center>
+            ) : (
+                <Tabs value={activeTab} onChange={setActiveTab} radius="md">
+                    <Tabs.List mb="md">
+                        <Tabs.Tab value="list" leftSection={<IconUsers size={16} />}>Student Directory</Tabs.Tab>
+                        <Tabs.Tab value="late" leftSection={<IconClock size={16} />}>Late Arrivals</Tabs.Tab>
+                        <Tabs.Tab value="gatepass" leftSection={<IconDoorExit size={16} />}>Gate Passes</Tabs.Tab>
+                    </Tabs.List>
+
+                    <Tabs.Panel value="list">
+                        <DataTable
+                            data={filteredData}
+                            columns={studentColumns}
+                            search={search}
+                            onSearchChange={setSearch}
+                            filterSlot={
+                                <Select
+                                    placeholder="Status"
+                                    data={['ACTIVE', 'INACTIVE', 'SUSPENDED', 'GRADUATED']}
+                                    value={statusFilter}
+                                    onChange={setStatusFilter}
+                                    clearable
+                                    leftSection={<IconFilter size={16} stroke={1.5} />}
+                                    w={150}
+                                />
+                            }
+                        />
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="late">
+                        <Group justify="space-between" mb="md">
+                            <Text size="sm" c="dimmed">Detailed log of student late entry.</Text>
+                            <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openLate}>Log Late</Button>
+                        </Group>
+                        <DataTable
+                            data={lateArrivals}
+                            columns={[
+                                {
+                                    accessor: 'student',
+                                    header: 'Student',
+                                    render: (item) => `${item.student.firstName} ${item.student.lastName} (${item.student.admissionNo})`
+                                },
+                                {
+                                    accessor: 'arrivalTime',
+                                    header: 'Time',
+                                    render: (item) => new Date(item.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                },
+                                { accessor: 'reason', header: 'Reason' },
+                                { accessor: 'reportedBy', header: 'By' },
+                            ]}
+                        />
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="gatepass">
+                        <Group justify="space-between" mb="md">
+                            <Text size="sm" c="dimmed">History of issued early exit passes.</Text>
+                            <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openPass}>Issue Pass</Button>
+                        </Group>
+                        <DataTable
+                            data={gatePasses}
+                            columns={[
+                                {
+                                    accessor: 'student',
+                                    header: 'Student',
+                                    render: (item) => `${item.student.firstName} ${item.student.lastName} (${item.student.admissionNo})`
+                                },
+                                {
+                                    accessor: 'issuedAt',
+                                    header: 'Time Out',
+                                    render: (item) => new Date(item.issuedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                },
+                                { accessor: 'reason', header: 'Reason' },
+                                { accessor: 'guardianName', header: 'Guardian/Escort' },
+                                {
+                                    accessor: 'actions',
+                                    header: '',
+                                    render: () => (
+                                        <ActionIcon variant="subtle" color="blue" onClick={() => alert('Printing Pass...')}>
+                                            <IconPrinter size={16} />
+                                        </ActionIcon>
+                                    )
+                                }
+                            ]}
+                        />
+                    </Tabs.Panel>
+                </Tabs>
+            )}
+
+            {/* Drawers & Modals */}
             <Drawer opened={opened} onClose={closeDrawer} title={selectedStudent ? "Edit Student" : "Add New Student"} position="right" size="md">
                 <Box p={0}>
-                    {/* Re-render form when selectedStudent changes to ensure initialValues update */}
                     <StudentForm
                         key={selectedStudent ? selectedStudent.id : 'new'}
                         initialValues={selectedStudent ? {
@@ -250,6 +385,53 @@ export default function Students() {
                     />
                 </Box>
             </Drawer>
+
+            <Modal opened={lateOpened} onClose={closeLate} title="Log Late Arrival">
+                <form onSubmit={lateForm.onSubmit(handleLogLate)}>
+                    <Stack>
+                        <Select
+                            label="Student"
+                            placeholder="Select student"
+                            data={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                            searchable
+                            required
+                            {...lateForm.getInputProps('studentId')}
+                        />
+                        <Select
+                            label="Reason"
+                            data={['Traffic', 'Bus Delay', 'Overslept', 'Medical', 'Other']}
+                            {...lateForm.getInputProps('reason')}
+                        />
+                        <TextInput label="Reported By" placeholder="e.g. Parent" required {...lateForm.getInputProps('reportedBy')} />
+                        <Group justify="flex-end">
+                            <Button variant="default" onClick={closeLate}>Cancel</Button>
+                            <Button type="submit" loading={submitting}>Log Arrival</Button>
+                        </Group>
+                    </Stack>
+                </form>
+            </Modal>
+
+            <Modal opened={passOpened} onClose={closePass} title="Issue Gate Pass">
+                <form onSubmit={passForm.onSubmit(handleIssuePass)}>
+                    <Stack>
+                        <Select
+                            label="Student"
+                            placeholder="Select student"
+                            data={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                            searchable
+                            required
+                            {...passForm.getInputProps('studentId')}
+                        />
+                        <TextInput label="Reason" placeholder="Reason for early exit" required {...passForm.getInputProps('reason')} />
+                        <TextInput label="Guardian/Escort" placeholder="Name of person picking up" required {...passForm.getInputProps('guardianName')} />
+                        <Group justify="flex-end">
+                            <Button variant="default" onClick={closePass}>Cancel</Button>
+                            <Button type="submit" loading={submitting}>Issue Pass</Button>
+                        </Group>
+                    </Stack>
+                </form>
+            </Modal>
         </>
     );
 }
+

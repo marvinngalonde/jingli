@@ -39,6 +39,8 @@ model School {
   exams           Exam[]
   examTerms       ExamTerm[]
   attendance      Attendance[]
+  books           Book[]
+  bookCirculations BookCirculation[]
   
   // Implicit many-to-many relation table management handled by Prisma,
   // explicit tables below also link to School for RLS.
@@ -235,6 +237,7 @@ model Student {
   gatePasses    GatePass[]
   lateArrivals  LateArrival[]
   examResults   ExamResult[]
+  bookCirculations BookCirculation[]
 
   @@unique([schoolId, admissionNo])
   @@map("students")
@@ -503,6 +506,54 @@ model Visitor {
   school       School   @relation(fields: [schoolId], references: [id])
 
   @@map("visitors")
+}
+
+enum BookStatus {
+  AVAILABLE
+  ISSUED
+  LOST
+  DAMAGED
+}
+
+model Book {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  title        String
+  author       String
+  isbn         String?
+  category     String?
+  accessionNo  String?  @map("accession_no")
+  status       BookStatus @default(AVAILABLE)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  school       School   @relation(fields: [schoolId], references: [id])
+  circulations BookCirculation[]
+
+  @@map("library_books")
+}
+
+enum CirculationStatus {
+  ISSUED
+  RETURNED
+  OVERDUE
+}
+
+model BookCirculation {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  bookId       String   @map("book_id")
+  studentId    String   @map("student_id")
+  issueDate    DateTime @default(now()) @map("issue_date")
+  dueDate      DateTime @map("due_date")
+  returnDate   DateTime? @map("return_date")
+  status       CirculationStatus @default(ISSUED)
+  remarks      String?
+
+  school       School  @relation(fields: [schoolId], references: [id])
+  book         Book    @relation(fields: [bookId], references: [id])
+  student      Student @relation(fields: [studentId], references: [id])
+
+  @@map("book_circulations")
 }
 
 model GatePass {

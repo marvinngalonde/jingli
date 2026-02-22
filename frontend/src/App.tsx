@@ -32,7 +32,6 @@ import Reports from './pages/Reports';
 import { Signup } from './pages/Signup';
 import Admissions from './pages/Admissions';
 import Visitors from './pages/reception/Visitors';
-import StudentLogistics from './pages/reception/StudentLogistics';
 import Communication from './pages/Communication';
 import { Installation } from './pages/Installation';
 
@@ -72,7 +71,6 @@ function App() {
 
             {/* Reception Routes */}
             <Route path="/reception/visitors" element={<Visitors />} />
-            <Route path="/reception/logistics" element={<StudentLogistics />} />
 
             {/* Communication Route */}
             <Route path="/communication" element={<Communication />} />

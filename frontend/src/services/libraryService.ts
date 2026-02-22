@@ -1,99 +1,95 @@
-import { supabase } from '../lib/supabase';
-import type { Database } from '../types/database.types';
+import { api } from './api';
 
-type Book = Database['public']['Tables']['library_books']['Row'];
-type BookInsert = Database['public']['Tables']['library_books']['Insert'];
-type BookUpdate = Database['public']['Tables']['library_books']['Update'];
+export enum BookStatus {
+    AVAILABLE = 'AVAILABLE',
+    ISSUED = 'ISSUED',
+    LOST = 'LOST',
+    DAMAGED = 'DAMAGED'
+}
+
+export enum CirculationStatus {
+    ISSUED = 'ISSUED',
+    RETURNED = 'RETURNED',
+    OVERDUE = 'OVERDUE'
+}
+
+export interface Book {
+    id: string;
+    title: string;
+    author: string;
+    isbn?: string;
+    category?: string;
+    accessionNo?: string;
+    status: BookStatus;
+    createdAt: string;
+}
+
+export interface CirculationRecord {
+    id: string;
+    bookId: string;
+    studentId: string;
+    issueDate: string;
+    dueDate: string;
+    returnDate?: string;
+    status: CirculationStatus;
+    remarks?: string;
+    book: Book;
+    student: {
+        firstName: string;
+        lastName: string;
+        admissionNo: string;
+    };
+}
+
+export interface CreateBookDto {
+    title: string;
+    author: string;
+    isbn?: string;
+    category?: string;
+    accessionNo?: string;
+}
+
+export interface IssueBookDto {
+    bookId: string;
+    studentId: string;
+    dueDate: Date;
+    remarks?: string;
+}
 
 export const libraryService = {
-    // Get all books
-    async getAll() {
-        const { data, error } = await supabase
-            .from('library_books')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data;
+    // --- Books ---
+    getAllBooks: async (): Promise<Book[]> => {
+        const response = await api.get('/library/books');
+        return response.data;
     },
 
-    // Get book by ID
-    async getById(id: string) {
-        const { data, error } = await supabase
-            .from('library_books')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-        return data;
+    createBook: async (dto: CreateBookDto): Promise<Book> => {
+        const response = await api.post('/library/books', dto);
+        return response.data;
     },
 
-    // Search books
-    async search(query: string) {
-        const { data, error } = await supabase
-            .from('library_books')
-            .select('*')
-            .or(`title.ilike.%${query}%,author.ilike.%${query}%,isbn.ilike.%${query}%,accession_number.ilike.%${query}%`);
-
-        if (error) throw error;
-        return data;
+    updateBook: async (id: string, dto: Partial<CreateBookDto> & { status?: BookStatus }): Promise<Book> => {
+        const response = await api.patch(`/library/books/${id}`, dto);
+        return response.data;
     },
 
-    // Get books by category
-    async getByCategory(category: string) {
-        const { data, error } = await supabase
-            .from('library_books')
-            .select('*')
-            .eq('category', category);
-
-        if (error) throw error;
-        return data;
+    deleteBook: async (id: string): Promise<void> => {
+        await api.delete(`/library/books/${id}`);
     },
 
-    // Create book
-    async create(book: BookInsert) {
-        const { data, error } = await supabase
-            .from('library_books')
-            .insert(book)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
+    // --- Circulation ---
+    getCirculation: async (): Promise<CirculationRecord[]> => {
+        const response = await api.get('/library/circulation');
+        return response.data;
     },
 
-    // Update book
-    async update(id: string, updates: BookUpdate) {
-        const { data, error } = await supabase
-            .from('library_books')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
+    issueBook: async (dto: IssueBookDto): Promise<CirculationRecord> => {
+        const response = await api.post('/library/issue', dto);
+        return response.data;
     },
 
-    // Delete book
-    async delete(id: string) {
-        const { error } = await supabase
-            .from('library_books')
-            .delete()
-            .eq('id', id);
-
-        if (error) throw error;
-    },
-
-    // Get available books count
-    async getAvailableCount() {
-        const { count, error } = await supabase
-            .from('library_books')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'available');
-
-        if (error) throw error;
-        return count || 0;
-    },
+    returnBook: async (circulationId: string): Promise<CirculationRecord> => {
+        const response = await api.post(`/library/return/${circulationId}`);
+        return response.data;
+    }
 };

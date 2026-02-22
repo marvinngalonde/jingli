@@ -26,6 +26,8 @@ import { ExamsModule } from './exams/exams.module';
 import { ExamResultsModule } from './exam-results/exam-results.module';
 import { SystemModule } from './system/system.module';
 import { AiModule } from './ai/ai.module';
+import { LogisticsModule } from './reception/logistics.module';
+import { LibraryModule } from './library/library.module';
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { AiModule } from './ai/ai.module';
     ExamResultsModule,
     SystemModule,
     AiModule,
+    LogisticsModule,
+    LibraryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
