@@ -2,6 +2,12 @@ import { api } from './api';
 import type { CreateFeeHeadDto, CreateFeeStructureDto, FeeHead, FeeStructure, Invoice } from '../types/finance';
 
 export const financeService = {
+    // --- Dashboard Stub ---
+    getAll: async (): Promise<any[]> => {
+        // Dashboard stub for aggregating all financials
+        return [];
+    },
+
     // --- Fee Heads ---
     getFeeHeads: async (): Promise<FeeHead[]> => {
         const response = await api.get('/fee-heads');
@@ -47,7 +53,7 @@ export const financeService = {
     },
 
     // --- Invoices ---
-    getInvoices: async (schoolId: string, studentId?: string): Promise<Invoice[]> => {
+    getInvoices: async (_schoolId: string, studentId?: string): Promise<Invoice[]> => {
         const params: any = {};
         if (studentId) params.studentId = studentId;
         const response = await api.get('/invoices', { params });

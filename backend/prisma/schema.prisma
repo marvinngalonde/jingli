@@ -41,6 +41,7 @@ model School {
   attendance      Attendance[]
   books           Book[]
   bookCirculations BookCirculation[]
+  reportLogs      ReportLog[]
   
   // Implicit many-to-many relation table management handled by Prisma,
   // explicit tables below also link to School for RLS.
@@ -96,6 +97,7 @@ model User {
   receivedMessages   Message[]    @relation("Receiver")
   postedNotices      Notice[]
   aiChatSessions      AiChatSession[]
+  notifications      Notification[]
 
   @@unique([schoolId, username]) // Username unique per school
   @@unique([schoolId, email])    // Email unique per school (if provided)
@@ -639,6 +641,20 @@ model Message {
   @@map("messages")
 }
 
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  message     String
+  type        String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  readStatus  Boolean  @default(false) @map("read_status")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
 // -----------------------------------------------------------------------------
 // 8. ASSESSMENT & GRADING
 // -----------------------------------------------------------------------------
@@ -725,4 +741,20 @@ model AiChatMessage {
   session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("ai_chat_messages")
+}
+
+model ReportLog {
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  name        String
+  type        String   // Financial, Academic, HR, etc.
+  status      String   @default("Ready") // Ready, Processing, Failed
+  generatedBy String   @map("generated_by")
+  fileUrl     String?  @map("file_url")
+  parameters  Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  school      School   @relation(fields: [schoolId], references: [id])
+
+  @@map("report_logs")
 }

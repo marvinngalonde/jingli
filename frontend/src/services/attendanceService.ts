@@ -2,6 +2,12 @@ import { api } from './api';
 import type { AttendanceRecord, AttendanceStatus, CreateAttendanceDto } from '../types/attendance';
 
 export const attendanceService = {
+    // --- Dashboard Stub ---
+    getByDate: async (_dateString: string): Promise<AttendanceRecord[]> => {
+        // Stub for aggregating date-based attendance
+        return [];
+    },
+
     // Get daily attendance for a class section
     getClassAttendance: async (sectionId: string, date: Date): Promise<AttendanceRecord[]> => {
         const response = await api.get('/attendance', {

@@ -1,6 +1,6 @@
 import { Button, Group, Badge, Modal, TextInput, Select, Stack, Loader, Center, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconUserPlus, IconLogout, IconPrinter } from '@tabler/icons-react';
+import { IconUserPlus, IconLogout, IconPrinter, IconDownload } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { DataTable } from '../../components/common/DataTable';
 import { useState, useEffect } from 'react';
@@ -8,6 +8,7 @@ import { visitorsService, VisitorStatus } from '../../services/visitorsService';
 import type { Visitor } from '../../services/visitorsService';
 import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
+import { exportToCsv, exportToPdf } from '../../utils/exportUtils';
 
 export default function Visitors() {
     const [visitors, setVisitors] = useState<Visitor[]>([]);
@@ -81,12 +82,49 @@ export default function Visitors() {
         (v.personToMeet && v.personToMeet.toLowerCase().includes(search.toLowerCase()))
     );
 
+    const handleExport = () => {
+        const exportData = filteredVisitors.map(v => ({
+            'Name': v.name,
+            'Phone': v.phone,
+            'Purpose': v.purpose,
+            'Meeting With': v.personToMeet || 'N/A',
+            'ID Proof': v.idProof || 'N/A',
+            'Vehicle No': v.vehicleNo || 'N/A',
+            'Check In': new Date(v.checkIn).toLocaleString(),
+            'Check Out': v.checkOut ? new Date(v.checkOut).toLocaleString() : 'Not checked out',
+            'Status': v.status
+        }));
+        exportToCsv(exportData, 'Jingli_Visitor_Log');
+        notifications.show({ title: 'Success', message: 'Visitor log exported', color: 'green' });
+    };
+
+    const handleExportPdf = async () => {
+        try {
+            await exportToPdf('/visitors/export/pdf', 'Jingli_Visitor_Log');
+            notifications.show({ title: 'Success', message: 'Visitor PDF downloaded', color: 'green' });
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to export PDF', color: 'red' });
+        }
+    };
+
     return (
         <>
             <PageHeader
                 title="Visitor Management"
                 subtitle="Log and track school visitors"
-                actions={<Button leftSection={<IconUserPlus size={16} />} onClick={open}>Check In Visitor</Button>}
+                actions={
+                    <>
+                        <Button variant="light" leftSection={<IconDownload size={18} />} onClick={handleExport}>
+                            Export CSV
+                        </Button>
+                        <Button variant="light" color="red" leftSection={<IconDownload size={18} />} onClick={handleExportPdf}>
+                            Export PDF
+                        </Button>
+                        <Button leftSection={<IconUserPlus size={16} />} onClick={open}>
+                            Check In Visitor
+                        </Button>
+                    </>
+                }
             />
 
             {loading ? (

@@ -7,10 +7,9 @@ import {
     Stack,
     Group,
     Progress,
-    rem,
     Loader,
 } from '@mantine/core';
-import { AlertTriangle, Users, DollarSign, BookOpen, Bus } from 'lucide-react';
+import { AlertTriangle, Users, DollarSign, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { studentService } from '../services/studentService';
 import { staffService } from '../services/staffService';
@@ -48,7 +47,7 @@ export default function DashboardContent() {
             // Calculate stats
             const totalStudents = students?.length || 0;
             const totalStaff = staff?.length || 0;
-            const presentToday = attendance?.filter(a => a.status === 'present').length || 0;
+            const presentToday = attendance?.filter(a => a.status === 'PRESENT').length || 0;
             const attendanceRate = attendance?.length > 0
                 ? Math.round((presentToday / attendance.length) * 100)
                 : 0;
@@ -56,20 +55,20 @@ export default function DashboardContent() {
             // Calculate monthly revenue (current month)
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
-            const monthlyTransactions = transactions?.filter(t => {
+            const monthlyTransactions = transactions?.filter((t: any) => {
                 const transDate = new Date(t.transaction_date);
                 return transDate.getMonth() === currentMonth &&
                     transDate.getFullYear() === currentYear &&
                     t.status === 'paid';
             }) || [];
 
-            const monthlyRevenue = monthlyTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+            const monthlyRevenue = monthlyTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
             // Calculate pending fees
-            const pendingTransactions = transactions?.filter(t =>
+            const pendingTransactions = transactions?.filter((t: any) =>
                 t.status === 'pending' || t.status === 'overdue'
             ) || [];
-            const pendingFees = pendingTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+            const pendingFees = pendingTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
             setStats({
                 totalStudents,

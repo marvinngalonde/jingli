@@ -108,6 +108,30 @@ export class SystemService {
         }
     }
 
+    async getSchoolSettings(schoolId: string) {
+        return this.prisma.school.findUnique({
+            where: { id: schoolId },
+            select: {
+                id: true,
+                name: true,
+                logoUrl: true,
+                config: true,
+            }
+        });
+    }
+
+    async updateSchoolSettings(schoolId: string, data: any) {
+        const { name, logoUrl, config } = data;
+        return this.prisma.school.update({
+            where: { id: schoolId },
+            data: {
+                name,
+                logoUrl,
+                config: config ? config : undefined,
+            }
+        });
+    }
+
     private async seedDefaults(schoolId: string) {
         const academicYear = await this.prisma.academicYear.create({
             data: {

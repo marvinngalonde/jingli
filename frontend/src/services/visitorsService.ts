@@ -1,9 +1,11 @@
 import { api } from './api';
 
-export enum VisitorStatus {
-    IN = 'IN',
-    OUT = 'OUT'
-}
+export const VisitorStatus = {
+    IN: 'IN',
+    OUT: 'OUT'
+} as const;
+
+export type VisitorStatus = typeof VisitorStatus[keyof typeof VisitorStatus];
 
 export interface Visitor {
     id: string;

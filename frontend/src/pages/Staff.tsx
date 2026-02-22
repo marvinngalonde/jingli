@@ -11,11 +11,12 @@ import {
     rem
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconFilter } from '@tabler/icons-react';
+import { IconPlus, IconFilter, IconDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StaffForm } from '../components/staff/StaffForm';
 import { staffService } from '../services/staffService';
+import { exportToCsv, exportToPdf } from '../utils/exportUtils';
 import type { Staff } from '../types/staff'; // Assuming type exists
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
@@ -157,15 +158,46 @@ export default function StaffPage() {
         }
     ];
 
+    const handleExport = () => {
+        const exportData = filteredData.map(s => ({
+            'Employee ID': s.employeeId,
+            'First Name': s.firstName,
+            'Last Name': s.lastName,
+            'Email': s.user?.email || 'N/A',
+            'Department': s.department,
+            'Designation': s.designation,
+            'Joined Date': new Date(s.joinDate).toLocaleDateString()
+        }));
+        exportToCsv(exportData, 'Jingli_Staff_Directory');
+        notifications.show({ title: 'Success', message: 'Staff directory exported', color: 'green' });
+    };
+
+    const handleExportPdf = async () => {
+        try {
+            await exportToPdf('/staff/export/pdf', 'Jingli_Staff_Directory');
+            notifications.show({ title: 'Success', message: 'Staff PDF downloaded', color: 'green' });
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to export PDF', color: 'red' });
+        }
+    };
+
     return (
         <>
             <PageHeader
                 title="Staff Directory"
                 subtitle="Manage teachers and school staff"
                 actions={
-                    <Button leftSection={<IconPlus size={18} />} onClick={open}>
-                        Add Staff
-                    </Button>
+                    <>
+                        <Button variant="light" leftSection={<IconDownload size={18} />} onClick={handleExport}>
+                            Export CSV
+                        </Button>
+                        <Button variant="light" color="red" leftSection={<IconDownload size={18} />} onClick={handleExportPdf}>
+                            Export PDF
+                        </Button>
+                        <Button leftSection={<IconPlus size={18} />} onClick={open}>
+                            Add Staff
+                        </Button>
+                    </>
                 }
             />
 

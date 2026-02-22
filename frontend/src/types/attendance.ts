@@ -1,9 +1,11 @@
-export enum AttendanceStatus {
-    PRESENT = 'PRESENT',
-    ABSENT = 'ABSENT',
-    LATE = 'LATE',
-    EXCUSED = 'EXCUSED'
-}
+export const AttendanceStatus = {
+    PRESENT: 'PRESENT',
+    ABSENT: 'ABSENT',
+    LATE: 'LATE',
+    EXCUSED: 'EXCUSED'
+} as const;
+
+export type AttendanceStatus = typeof AttendanceStatus[keyof typeof AttendanceStatus];
 
 export interface AttendanceRecord {
     id: string;

@@ -24,13 +24,15 @@ import {
     IconUsers,
     IconClock,
     IconDoorExit,
-    IconPrinter
+    IconPrinter,
+    IconDownload
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StudentForm } from '../components/students/StudentForm';
 import { studentService } from '../services/studentService';
 import { logisticsService } from '../services/logisticsService';
+import { exportToCsv, exportToPdf } from '../utils/exportUtils';
 import type { GatePass, LateArrival } from '../services/logisticsService';
 import type { Student } from '../types/students';
 
@@ -246,15 +248,73 @@ export default function Students() {
         }
     ];
 
+    // Export Helpers
+    const handleExportStudents = () => {
+        const exportData = filteredData.map(s => ({
+            'ID': s.admissionNo,
+            'First Name': s.firstName,
+            'Last Name': s.lastName,
+            'Email': s.user?.email || 'N/A',
+            'Gender': s.gender,
+            'DOB': s.dob ? new Date(s.dob).toLocaleDateString() : 'N/A',
+            'Status': s.status,
+            'Class/Grade': `${s.section?.classLevel?.name || ''} - ${s.section?.name || 'Unassigned'}`,
+            'Enrolled': new Date(s.enrollmentDate).toLocaleDateString()
+        }));
+        exportToCsv(exportData, 'Jingli_Student_Directory');
+        notifications.show({ title: 'Success', message: 'Student directory exported', color: 'green' });
+    };
+
+    const handleExportLate = () => {
+        const exportData = lateArrivals.map(l => ({
+            'Student': `${l.student.firstName} ${l.student.lastName}`,
+            'Admission No': l.student.admissionNo,
+            'Date/Time': new Date(l.arrivalTime).toLocaleString(),
+            'Reason': l.reason,
+            'Reported By': l.reportedBy
+        }));
+        exportToCsv(exportData, 'Jingli_Late_Arrivals');
+        notifications.show({ title: 'Success', message: 'Late arrivals exported', color: 'green' });
+    };
+
+    const handleExportPasses = () => {
+        const exportData = gatePasses.map(p => ({
+            'Student': `${p.student.firstName} ${p.student.lastName}`,
+            'Admission No': p.student.admissionNo,
+            'Issued At': new Date(p.issuedAt).toLocaleString(),
+            'Reason': p.reason,
+            'Guardian/Escort': p.guardianName
+        }));
+        exportToCsv(exportData, 'Jingli_Gate_Passes');
+        notifications.show({ title: 'Success', message: 'Gate passes exported', color: 'green' });
+    };
+
+    const handleExportStudentsPdf = async () => {
+        try {
+            await exportToPdf('/students/export/pdf', 'Jingli_Student_Directory');
+            notifications.show({ title: 'Success', message: 'Student PDF downloaded', color: 'green' });
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to export PDF', color: 'red' });
+        }
+    };
+
     return (
         <>
             <PageHeader
                 title="Students"
                 subtitle="Manage student directory and daily logistics"
                 actions={
-                    <Button leftSection={<IconPlus size={18} />} onClick={open}>
-                        Add Student
-                    </Button>
+                    <>
+                        <Button variant="light" leftSection={<IconDownload size={18} />} onClick={handleExportStudents}>
+                            Export CSV
+                        </Button>
+                        <Button variant="light" color="red" leftSection={<IconDownload size={18} />} onClick={handleExportStudentsPdf}>
+                            Export PDF
+                        </Button>
+                        <Button leftSection={<IconPlus size={18} />} onClick={open}>
+                            Add Student
+                        </Button>
+                    </>
                 }
             />
 
@@ -305,7 +365,10 @@ export default function Students() {
                     <Tabs.Panel value="late">
                         <Group justify="space-between" mb="md">
                             <Text size="sm" c="dimmed">Detailed log of student late entry.</Text>
-                            <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openLate}>Log Late</Button>
+                            <Group>
+                                <Button variant="light" size="xs" leftSection={<IconDownload size={14} />} onClick={handleExportLate}>Export</Button>
+                                <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openLate}>Log Late</Button>
+                            </Group>
                         </Group>
                         <DataTable
                             data={lateArrivals}
@@ -329,7 +392,10 @@ export default function Students() {
                     <Tabs.Panel value="gatepass">
                         <Group justify="space-between" mb="md">
                             <Text size="sm" c="dimmed">History of issued early exit passes.</Text>
-                            <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openPass}>Issue Pass</Button>
+                            <Group>
+                                <Button variant="light" size="xs" leftSection={<IconDownload size={14} />} onClick={handleExportPasses}>Export</Button>
+                                <Button size="xs" leftSection={<IconPlus size={14} />} onClick={openPass}>Issue Pass</Button>
+                            </Group>
                         </Group>
                         <DataTable
                             data={gatePasses}
@@ -434,4 +500,3 @@ export default function Students() {
         </>
     );
 }
-

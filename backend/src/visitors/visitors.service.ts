@@ -13,7 +13,10 @@ export class VisitorsService {
                 schoolId, // Use passed schoolId, ignore createDto.schoolId if present
                 name: createDto.name,
                 phone: createDto.phone,
-                purpose: createDto.purpose || 'Visit', // Default if optional
+                purpose: createDto.purpose,
+                personToMeet: createDto.personToMeet,
+                idProof: createDto.idProof,
+                vehicleNo: createDto.vehicleNo,
                 status: VisitorStatus.IN,
                 checkIn: new Date(),
             },

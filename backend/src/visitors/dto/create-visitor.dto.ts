@@ -27,8 +27,18 @@ export class CreateVisitorDto {
     @IsNotEmpty()
     purpose: string;
 
-    @ApiProperty({ example: 'Parent of Student X', required: false })
+    @ApiProperty({ example: 'Mr. Smith', required: false })
     @IsString()
     @IsOptional()
-    relationship?: string;
+    personToMeet?: string;
+
+    @ApiProperty({ example: 'DL-12345', required: false })
+    @IsString()
+    @IsOptional()
+    idProof?: string;
+
+    @ApiProperty({ example: 'ABC-123', required: false })
+    @IsString()
+    @IsOptional()
+    vehicleNo?: string;
 }

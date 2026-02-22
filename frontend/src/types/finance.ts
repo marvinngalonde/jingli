@@ -1,16 +1,20 @@
-export enum FeeFrequency {
-    MONTHLY = 'MONTHLY',
-    TERM = 'TERM',
-    ANNUAL = 'ANNUAL',
-    ONE_TIME = 'ONE_TIME',
-}
+export const FeeFrequency = {
+    MONTHLY: 'MONTHLY',
+    TERM: 'TERM',
+    ANNUAL: 'ANNUAL',
+    ONE_TIME: 'ONE_TIME',
+} as const;
 
-export enum InvoiceStatus {
-    PENDING = 'PENDING',
-    PARTIAL = 'PARTIAL',
-    PAID = 'PAID',
-    OVERDUE = 'OVERDUE',
-}
+export type FeeFrequency = typeof FeeFrequency[keyof typeof FeeFrequency];
+
+export const InvoiceStatus = {
+    PENDING: 'PENDING',
+    PARTIAL: 'PARTIAL',
+    PAID: 'PAID',
+    OVERDUE: 'OVERDUE',
+} as const;
+
+export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
 
 export interface FeeHead {
     id: string;
@@ -86,12 +90,4 @@ export interface CreateFeeStructureDto {
     items?: { feeHeadId: string; amount: number }[];
 }
 
-export interface CreateFeeStructureDto {
-    name: string;
-    academicYearId: string;
-    classLevelId: string;
-    feeHeadId?: string;
-    amount: number;
-    frequency: FeeFrequency;
-    items?: { feeHeadId: string; amount: number }[];
-}
+

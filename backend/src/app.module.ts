@@ -28,6 +28,8 @@ import { SystemModule } from './system/system.module';
 import { AiModule } from './ai/ai.module';
 import { LogisticsModule } from './reception/logistics.module';
 import { LibraryModule } from './library/library.module';
+import { ReportsModule } from './reports/reports.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { LibraryModule } from './library/library.module';
     AiModule,
     LogisticsModule,
     LibraryModule,
+    ReportsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
