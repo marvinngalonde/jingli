@@ -19,20 +19,44 @@ import {
     IconLayoutSidebarLeftCollapse,
     IconLayoutSidebarLeftExpand,
     IconSpeakerphone,
-    IconDoorExit
 } from '@tabler/icons-react';
 
 // Import Logos
 import logoFull from '../assets/logos/logo-trans.png';
 import jaiLogo from '../assets/logos/jai-trans.png';
 import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
+import { notificationsService } from '../services/notificationsService';
+import { useEffect, useState, useCallback } from 'react';
 
 export function DashboardLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
     const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
     const [aiOpened, { open: openAi, close: closeAi }] = useDisclosure(false);
+    const [notifOpened, { open: openNotif, close: closeNotif }] = useDisclosure(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
     const location = useLocation();
+
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const { count } = await notificationsService.getUnreadCount();
+            setUnreadCount(count);
+        } catch { /* ignore */ }
+    }, []);
+
+    useEffect(() => {
+        fetchUnreadCount();
+        // Poll every 60 s so the badge stays fresh
+        const interval = setInterval(fetchUnreadCount, 60_000);
+        return () => clearInterval(interval);
+    }, [fetchUnreadCount]);
+
+    const handleCloseNotif = () => {
+        closeNotif();
+        fetchUnreadCount(); // refresh badge after user has interacted
+    };
+
 
     // Sidebar Groups
     const allLinkGroups = [
@@ -175,11 +199,20 @@ export function DashboardLayout() {
                             </Tooltip>
                         </Group>
 
-                        <ActionIcon variant="subtle" color="gray" size="lg">
-                            <Indicator color="red" size={6} offset={4} processing>
-                                <IconBell size={20} stroke={1.5} />
-                            </Indicator>
-                        </ActionIcon>
+                        <Tooltip label="Notifications">
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
+                                <Indicator
+                                    color="red"
+                                    size={unreadCount > 0 ? 16 : 0}
+                                    offset={4}
+                                    processing={unreadCount > 0}
+                                    label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
+                                    disabled={unreadCount === 0}
+                                >
+                                    <IconBell size={20} stroke={1.5} />
+                                </Indicator>
+                            </ActionIcon>
+                        </Tooltip>
 
                         <Tooltip label="Jingli 1.0 AI Assistant">
                             <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
@@ -191,9 +224,9 @@ export function DashboardLayout() {
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar radius="md" color="brand" size={34}>{user?.avatar}</Avatar>
+                                        <Avatar radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
                                         <div style={{ flex: 1 }}>
-                                            <Text size="sm" fw={600} lh={1} visibleFrom="xs">{user?.name}</Text>
+                                            <Text size="sm" fw={600} lh={1} visibleFrom="xs">{user?.email}</Text>
                                             <Text size="xs" c="dimmed" visibleFrom="xs">{user?.role}</Text>
                                         </div>
                                         <Box visibleFrom="xs">
@@ -234,6 +267,7 @@ export function DashboardLayout() {
             </AppShell.Main>
 
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
         </AppShell>
     );
 }
