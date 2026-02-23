@@ -10,6 +10,9 @@ export interface UserProfile {
     role: 'admin' | 'teacher' | 'student' | 'parent' | 'reception' | 'finance';
     schoolId: string;
     supabaseUid: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
     profile?: any; // The linked domain profile (Staff/Student/Guardian)
 }
 

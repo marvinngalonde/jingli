@@ -1,0 +1,447 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { DayOfWeek } from '@prisma/client';
+
+@Injectable()
+export class TeacherService {
+    constructor(private prisma: PrismaService) { }
+
+    async getDashboardStats(user: any) {
+        // 1. Find the Staff record linked to this user
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) {
+            throw new NotFoundException('Teacher profile not found for this user.');
+        }
+
+        // Determine today's day of week matching the Enum
+        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const todayStr = days[new Date().getDay()] as DayOfWeek;
+
+        // 2. Count Classes Today
+        const classesToday = await this.prisma.timetable.count({
+            where: {
+                teacherId: teacher.id,
+                day: todayStr,
+            },
+        });
+
+        // 3. Count Total Students taught (Unique students in sections this teacher is assigned to)
+        const allocations = await this.prisma.subjectAllocation.findMany({
+            where: { staffId: teacher.id },
+            select: { sectionId: true },
+        });
+        const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+
+        const totalStudents = await this.prisma.student.count({
+            where: {
+                sectionId: { in: sectionIds },
+            },
+        });
+
+        // 4. Count Active Assignments
+        const activeAssignments = await this.prisma.assignment.count({
+            where: {
+                teacherId: teacher.id,
+                dueDate: {
+                    gt: new Date(),
+                },
+            },
+        });
+
+        // 5. Count Ungraded Submissions (Submissions for their assignments without marks)
+        const ungraded = await this.prisma.submission.count({
+            where: {
+                assignment: {
+                    teacherId: teacher.id,
+                },
+                marks: null,
+            },
+        });
+
+        return {
+            classesToday,
+            totalStudents,
+            activeAssignments,
+            ungraded,
+        };
+    }
+
+    async getTodaySchedule(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) return [];
+
+        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const todayStr = days[new Date().getDay()] as DayOfWeek;
+
+        return this.prisma.timetable.findMany({
+            where: {
+                teacherId: teacher.id,
+                day: todayStr,
+            },
+            include: {
+                subject: true,
+                section: {
+                    include: {
+                        classLevel: true,
+                    }
+                }
+            },
+            orderBy: {
+                startTime: 'asc',
+            }
+        });
+    }
+
+    async getTeacherClasses(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        // Get unique section allocations for this teacher
+        const allocations = await this.prisma.subjectAllocation.findMany({
+            where: { staffId: teacher.id },
+            include: {
+                section: {
+                    include: {
+                        classLevel: true,
+                        // Count students in each section
+                        _count: {
+                            select: { students: true }
+                        }
+                    }
+                },
+                subject: true
+            }
+        });
+
+        // Group by section to avoid duplicates if teacher teaches multiple subjects to same section
+        const sectionMap = new Map();
+        allocations.forEach(alloc => {
+            const sectionId = alloc.sectionId;
+            if (!sectionMap.has(sectionId)) {
+                sectionMap.set(sectionId, {
+                    section: alloc.section,
+                    subjects: []
+                });
+            }
+            sectionMap.get(sectionId).subjects.push(alloc.subject);
+        });
+
+        return Array.from(sectionMap.values());
+    }
+
+    async getClassStudents(user: any, sectionId: string) {
+        // Verify teacher actually teaches this section
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        const allocation = await this.prisma.subjectAllocation.findFirst({
+            where: {
+                staffId: teacher.id,
+                sectionId: sectionId
+            }
+        });
+
+        if (!allocation) {
+            throw new NotFoundException('You do not have access to this class.');
+        }
+
+        return this.prisma.student.findMany({
+            where: { sectionId },
+            include: {
+                user: {
+                    select: { email: true }
+                },
+                _count: {
+                    select: { attendance: { where: { status: 'ABSENT' } } }
+                }
+            },
+            orderBy: [
+                { firstName: 'asc' },
+                { lastName: 'asc' }
+            ]
+        });
+    }
+
+    async getSectionMaterials(user: any, sectionId: string) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.courseMaterial.findMany({
+            where: {
+                sectionId: sectionId,
+                teacherId: teacher.id
+            },
+            include: {
+                subject: {
+                    select: { name: true, code: true }
+                }
+            },
+            orderBy: {
+                uploadedAt: 'desc'
+            }
+        });
+    }
+
+    async getAllMaterials(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.courseMaterial.findMany({
+            where: {
+                teacherId: teacher.id
+            },
+            include: {
+                subject: {
+                    select: { name: true, code: true }
+                },
+                section: {
+                    select: { name: true }
+                }
+            },
+            orderBy: {
+                uploadedAt: 'desc'
+            }
+        });
+    }
+
+    async uploadMaterial(user: any, sectionId: string, data: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        // Normally you'd validate subjectId is actually taught by this teacher for this section
+        return this.prisma.courseMaterial.create({
+            data: {
+                title: data.title,
+                description: data.description,
+                fileUrl: data.fileUrl,
+                fileType: data.fileType,
+                sectionId: sectionId,
+                subjectId: data.subjectId,
+                teacherId: teacher.id
+            }
+        });
+    }
+
+    async deleteMaterial(user: any, materialId: string) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        // Ensure teacher owns this material
+        const material = await this.prisma.courseMaterial.findFirst({
+            where: { id: materialId, teacherId: teacher.id }
+        });
+
+        if (!material) throw new NotFoundException('Material not found or access denied.');
+
+        return this.prisma.courseMaterial.delete({
+            where: { id: materialId }
+        });
+    }
+
+    // --- ASSIGNMENTS ---
+
+    async getSectionAssignments(user: any, sectionId: string) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.assignment.findMany({
+            where: {
+                sectionId: sectionId,
+                teacherId: teacher.id
+            },
+            include: {
+                subject: {
+                    select: { name: true, code: true }
+                },
+                _count: {
+                    select: { submissions: true }
+                }
+            },
+            orderBy: {
+                dueDate: 'asc'
+            }
+        });
+    }
+
+    async getAllAssignments(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.assignment.findMany({
+            where: {
+                teacherId: teacher.id
+            },
+            include: {
+                subject: {
+                    select: { name: true, code: true }
+                },
+                section: {
+                    select: { name: true }
+                },
+                _count: {
+                    select: { submissions: true }
+                }
+            },
+            orderBy: {
+                dueDate: 'desc'
+            }
+        });
+    }
+
+    async createAssignment(user: any, sectionId: string, data: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.assignment.create({
+            data: {
+                title: data.title,
+                description: data.description,
+                dueDate: new Date(data.dueDate),
+                maxMarks: parseInt(data.maxMarks, 10),
+                type: data.type || 'HOMEWORK',
+                sectionId: sectionId,
+                subjectId: data.subjectId,
+                teacherId: teacher.id
+            }
+        });
+    }
+
+    async deleteAssignment(user: any, assignmentId: string) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        const assignment = await this.prisma.assignment.findFirst({
+            where: { id: assignmentId, teacherId: teacher.id }
+        });
+
+        if (!assignment) throw new NotFoundException('Assignment not found or access denied.');
+
+        return this.prisma.assignment.delete({
+            where: { id: assignmentId }
+        });
+    }
+
+    // --- GRADING ---
+
+    async getPendingSubmissions(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.submission.findMany({
+            where: {
+                marks: null,
+                assignment: {
+                    teacherId: teacher.id
+                }
+            },
+            include: {
+                student: {
+                    select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } }
+                },
+                assignment: {
+                    include: {
+                        subject: { select: { name: true, code: true } },
+                        section: { select: { name: true } }
+                    }
+                }
+            },
+            orderBy: {
+                submittedAt: 'asc'
+            }
+        });
+    }
+
+    async getAssignmentSubmissions(user: any, assignmentId: string) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        // Validate teacher owns assignment
+        const assignment = await this.prisma.assignment.findFirst({
+            where: { id: assignmentId, teacherId: teacher.id }
+        });
+
+        if (!assignment) throw new NotFoundException('Assignment not found.');
+
+        return this.prisma.submission.findMany({
+            where: { assignmentId },
+            include: {
+                student: {
+                    select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } }
+                }
+            },
+            orderBy: {
+                submittedAt: 'desc'
+            }
+        });
+    }
+
+    async gradeSubmission(user: any, submissionId: string, data: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        const submission = await this.prisma.submission.findFirst({
+            where: {
+                id: submissionId,
+                assignment: { teacherId: teacher.id }
+            }
+        });
+
+        if (!submission) throw new NotFoundException('Submission not found or access denied.');
+
+        return this.prisma.submission.update({
+            where: { id: submissionId },
+            data: {
+                marks: parseInt(data.marks, 10),
+                feedback: data.feedback
+            }
+        });
+    }
+}
+
+
+

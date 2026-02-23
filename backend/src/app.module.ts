@@ -31,6 +31,9 @@ import { LibraryModule } from './library/library.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EventsModule } from './events/events.module';
+import { TeacherModule } from './teacher/teacher.module';
+import { StudentModule } from './student/student.module';
+import { ParentModule } from './parent/parent.module';
 
 @Module({
   imports: [
@@ -64,6 +67,9 @@ import { EventsModule } from './events/events.module';
     ReportsModule,
     NotificationsModule,
     EventsModule,
+    TeacherModule,
+    StudentModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

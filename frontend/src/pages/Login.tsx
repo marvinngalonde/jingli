@@ -20,6 +20,7 @@ import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
 import sideImage from '../assets/images/sideimg.png';
 
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 export function Login() {
     const navigate = useNavigate();
@@ -46,7 +47,16 @@ export function Login() {
                 message: 'Login successful',
                 color: 'green',
             });
-            navigate('/dashboard');
+            const resolveRes = await api.get('/users/me'); // Just to peek role real quick after login, though context handles it too
+            const role = resolveRes.data.role.toLowerCase();
+
+            let targetPath = '/dashboard';
+            if (role === 'teacher') targetPath = '/teacher/dashboard';
+            if (role === 'student') targetPath = '/student/dashboard';
+            if (role === 'parent') targetPath = '/parent/dashboard';
+
+            navigate(targetPath);
+
         } catch (error: any) {
             notifications.show({
                 title: 'Login Failed',

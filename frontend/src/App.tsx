@@ -19,11 +19,33 @@ import Library from './pages/Library';
 import AttendancePage from './pages/Attendance';
 import CalendarPage from './pages/Calendar';
 
-// Finance Pages
+// Teacher Portal
+import { TeacherLayout } from './layouts/TeacherLayout';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherClasses from './pages/teacher/TeacherClasses';
+import TeacherClassStudents from './pages/teacher/TeacherClassStudents';
+import TeacherCourseMaterials from './pages/teacher/TeacherCourseMaterials';
+import TeacherAssignments from './pages/teacher/TeacherAssignments';
+import TeacherGrading from './pages/teacher/TeacherGrading';
+
 // import Fees from './pages/finance/Fees';
 // import { FeeStructures } from './pages/Finance/FeeStructures';
 // import Expenses from './pages/finance/Expenses';
 // import Salaries from './pages/finance/Salaries';
+
+// Student Portal
+import StudentLayout from './layouts/StudentLayout';
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentClasses from './pages/student/StudentClasses';
+import StudentCourseMaterials from './pages/student/StudentCourseMaterials';
+import StudentAssignments from './pages/student/StudentAssignments';
+import StudentGrades from './pages/student/StudentGrades';
+
+// Parent Portal
+import ParentLayout from './layouts/ParentLayout';
+import ParentDashboard from './pages/parent/ParentDashboard';
+import ParentPerformance from './pages/parent/ParentPerformance';
+import ParentFinancials from './pages/parent/ParentFinancials';
 
 // Admin Pages
 import Users from './pages/admin/Users';
@@ -84,6 +106,41 @@ function App() {
 
             {/* Placeholders for routes to be implemented */}
             <Route path="*" element={<div>Page Not Found</div>} />
+          </Route>
+
+          {/* Teacher Portal Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
+            <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+            <Route path="/teacher/classes" element={<TeacherClasses />} />
+            <Route path="/teacher/classes/:sectionId/students" element={<TeacherClassStudents />} />
+            <Route path="/teacher/classes/:sectionId/materials" element={<TeacherCourseMaterials />} />
+            <Route path="/teacher/materials" element={<TeacherCourseMaterials />} />
+            <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+            <Route path="/teacher/grading" element={<TeacherGrading />} />
+            <Route path="/teacher/inbox" element={<Communication />} />
+            <Route path="/teacher/library" element={<Library />} />
+            <Route path="/teacher/calendar" element={<CalendarPage />} />
+          </Route>
+
+          {/* Student Portal Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
+            <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/classes" element={<StudentClasses />} />
+            <Route path="/student/classes/:subjectId/materials" element={<StudentCourseMaterials />} />
+            <Route path="/student/classes/:subjectId/assignments" element={<StudentAssignments />} />
+            <Route path="/student/grades" element={<StudentGrades />} />
+            {/* Additional student routes will go here */}
+          </Route>
+
+          {/* Parent Portal Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['parent']}><ParentLayout /></ProtectedRoute>}>
+            <Route path="/parent" element={<Navigate to="/parent/dashboard" replace />} />
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
+            <Route path="/parent/performance" element={<ParentPerformance />} />
+            <Route path="/parent/financials" element={<ParentFinancials />} />
+            {/* Additional parent routes will go here */}
           </Route>
         </Routes>
       </BrowserRouter >

@@ -170,6 +170,7 @@ model ClassSection {
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
   assignments        Assignment[]
+  courseMaterials    CourseMaterial[]
   attendance         Attendance[]
 
   @@map("sections")
@@ -187,6 +188,7 @@ model Subject {
   allocations SubjectAllocation[]
   timetables  Timetable[]
   assignments Assignment[]
+  courseMaterials CourseMaterial[]
   exams       Exam[]
 
   @@unique([schoolId, code])
@@ -274,6 +276,7 @@ model Staff {
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
   assignments        Assignment[]
+  courseMaterials    CourseMaterial[]
   gradedExams        ExamResult[]
 
   @@unique([schoolId, employeeId])
@@ -344,6 +347,25 @@ model Submission {
   student      Student    @relation(fields: [studentId], references: [id])
 
   @@map("submissions")
+}
+
+model CourseMaterial {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  fileUrl      String   @map("file_url")
+  fileType     String?  @map("file_type") // e.g., pdf, video, doc
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
+
+  teacherId    String   @map("teacher_id")
+  subjectId    String   @map("subject_id")
+  sectionId    String   @map("section_id")
+
+  teacher      Staff        @relation(fields: [teacherId], references: [id])
+  subject      Subject      @relation(fields: [subjectId], references: [id])
+  section      ClassSection @relation(fields: [sectionId], references: [id])
+
+  @@map("course_materials")
 }
 
 enum AttendanceStatus {

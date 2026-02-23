@@ -26,8 +26,13 @@ export const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) 
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // User authorized but role verification failed
-        // Redirect to their default dashboard or a 403 page
-        return <Navigate to="/dashboard" replace />;
+        // Redirect to their default dashboard
+        let defaultPath = '/dashboard';
+        if (user.role === 'teacher') defaultPath = '/teacher/dashboard';
+        if (user.role === 'student') defaultPath = '/student/dashboard';
+        if (user.role === 'parent') defaultPath = '/parent/dashboard';
+
+        return <Navigate to={defaultPath} replace />;
     }
 
     return children ? <>{children}</> : <Outlet />;
