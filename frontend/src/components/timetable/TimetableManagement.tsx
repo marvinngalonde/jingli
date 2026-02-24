@@ -15,10 +15,14 @@ import { notifications } from '@mantine/notifications';
 // Components
 import { TimetableGrid } from './TimetableGrid';
 import { CreateTimetableEntryModal } from './CreateTimetableEntryModal';
+import { EditTimetableEntryModal } from './EditTimetableEntryModal';
 
 // API
 import { classesApi, subjectsApi, timetableApi } from '../../services/academics';
 import { api } from '../../services/api';
+
+// Auth
+import { useAuth } from '../../context/AuthContext';
 
 // Types
 import type { ClassLevel, Subject, TimetableEntry, CreateTimetableDto } from '../../types/academics';
@@ -29,38 +33,57 @@ interface Teacher {
     lastName: string;
 }
 
+interface Allocation {
+    id: string;
+    subjectId: string;
+    sectionId: string;
+    staffId: string;
+    subject?: { name: string; code: string };
+    staff?: { id: string; firstName: string; lastName: string };
+}
+
 interface TimetableManagementProps {
     isStudentOrParent?: boolean;
-    // We could pass classId/sectionId if we want to default view, but let's stick to simple props for now
 }
 
 export function TimetableManagement({ isStudentOrParent = false }: TimetableManagementProps) {
+    const { user } = useAuth();
+    const isTeacher = user?.role === 'teacher';
+
     // State
     const [loading, setLoading] = useState(false);
     const [classes, setClasses] = useState<ClassLevel[]>([]);
     const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
     const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
 
-    // Data for Grid/Modal
+    // Data
     const [entries, setEntries] = useState<TimetableEntry[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
+    const [allocations, setAllocations] = useState<Allocation[]>([]);
 
     // UI State
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Get this teacher's staff ID for permission checks
+    const staffId = user?.profile?.id;
 
     // Initial Load
     useEffect(() => {
         loadInitialData();
     }, []);
 
-    // Load Timetable when Section Changes
+    // Load Timetable + Allocations when Section Changes
     useEffect(() => {
         if (selectedSectionId) {
             loadTimetable(selectedSectionId);
+            loadAllocations(selectedSectionId);
         } else {
             setEntries([]);
+            setAllocations([]);
         }
     }, [selectedSectionId]);
 
@@ -76,7 +99,7 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
 
             try {
                 const staffRes = await api.get('/staff');
-                setTeachers(staffRes.data.filter((s: any) => s.role === 'TEACHER' || true));
+                setTeachers(staffRes.data);
             } catch (e) {
                 console.warn('Failed to load staff list', e);
             }
@@ -102,6 +125,16 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
         }
     };
 
+    const loadAllocations = async (_sectionId: string) => {
+        try {
+            const res = await api.get('/subjects/allocations');
+            setAllocations(res.data);
+        } catch (e) {
+            console.warn('Could not load allocations', e);
+            setAllocations([]);
+        }
+    };
+
     const handleCreateEntry = async (values: CreateTimetableDto) => {
         try {
             setSubmitting(true);
@@ -121,22 +154,58 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
         }
     };
 
+    const handleEditEntry = async (id: string, values: any) => {
+        try {
+            setSubmitting(true);
+            await timetableApi.update(id, values);
+            notifications.show({ title: 'Success', message: 'Timetable entry updated', color: 'green' });
+            setEditModalOpen(false);
+            setEditingEntry(null);
+            if (selectedSectionId) loadTimetable(selectedSectionId);
+            setSubmitting(false);
+        } catch (error: any) {
+            console.error('Failed to update entry', error);
+            notifications.show({
+                title: 'Error',
+                message: error.response?.data?.message || 'Failed to update entry.',
+                color: 'red'
+            });
+            setSubmitting(false);
+        }
+    };
+
     const handleDeleteEntry = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this entry?')) return;
         try {
             await timetableApi.delete(id);
             notifications.show({ title: 'Success', message: 'Entry deleted', color: 'green' });
             if (selectedSectionId) loadTimetable(selectedSectionId);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete entry', error);
-            notifications.show({ title: 'Error', message: 'Failed to delete entry', color: 'red' });
+            notifications.show({
+                title: 'Error',
+                message: error.response?.data?.message || 'Failed to delete entry',
+                color: 'red'
+            });
         }
+    };
+
+    const openEditModal = (entry: TimetableEntry) => {
+        setEditingEntry(entry);
+        setEditModalOpen(true);
+    };
+
+    /**
+     * Teachers can only edit entries where they are the assigned teacher.
+     * Admins (and other roles) can edit any entry.
+     */
+    const canEditEntry = (entry: TimetableEntry): boolean => {
+        if (!isTeacher) return true; // Admin can edit anything
+        return entry.teacherId === staffId;
     };
 
     // Derived State for Selectors
     const levelOptions = classes.map(c => ({ value: c.id, label: `${c.level} - ${c.name}` }));
-
-    // Find selected level to get its sections
     const selectedLevel = classes.find(c => c.id === selectedLevelId);
     const sectionOptions = selectedLevel?.sections?.map(s => ({ value: s.id, label: s.name })) || [];
 
@@ -206,10 +275,13 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
             ) : (
                 <TimetableGrid
                     entries={entries}
+                    onEdit={openEditModal}
                     onDelete={handleDeleteEntry}
+                    canEditEntry={canEditEntry}
                 />
             )}
 
+            {/* Create Modal */}
             {selectedSectionId && (
                 <CreateTimetableEntryModal
                     opened={createModalOpen}
@@ -219,8 +291,20 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                     subjects={subjects}
                     teachers={teachers}
                     sectionId={selectedSectionId}
+                    allocations={allocations}
                 />
             )}
+
+            {/* Edit Modal */}
+            <EditTimetableEntryModal
+                opened={editModalOpen}
+                onClose={() => { setEditModalOpen(false); setEditingEntry(null); }}
+                onSubmit={handleEditEntry}
+                loading={submitting}
+                subjects={subjects}
+                teachers={teachers}
+                entry={editingEntry}
+            />
         </Box>
     );
 }

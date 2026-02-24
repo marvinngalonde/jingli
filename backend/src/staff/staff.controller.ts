@@ -18,8 +18,8 @@ export class StaffController {
 
     @Post()
     @ApiOperation({ summary: 'Create new staff member (and user account)' })
-    create(@Body() createDto: CreateStaffDto) {
-        return this.staffService.create(createDto);
+    create(@Req() req: any, @Body() createDto: CreateStaffDto) {
+        return this.staffService.create(req.user.schoolId, createDto);
     }
 
     @Get()

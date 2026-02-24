@@ -12,6 +12,7 @@ interface TeacherClass {
         _count: { students: number };
     };
     subjects: { id: string; name: string; code: string }[];
+    isClassTeacher?: boolean;
 }
 
 export function TeacherClasses() {
@@ -79,9 +80,13 @@ export function TeacherClasses() {
                                 <Group gap="xs">
                                     <IconBooks size={16} color="var(--mantine-color-gray-6)" />
                                     <Text size="sm" fw={500}>Subjects:</Text>
+                                    {cls.isClassTeacher && <Badge variant="filled" color="blue" size="sm">Class Teacher</Badge>}
                                     {cls.subjects.map(s => (
                                         <Badge key={s.id} variant="dot" size="sm">{s.name}</Badge>
                                     ))}
+                                    {!cls.isClassTeacher && cls.subjects.length === 0 && (
+                                        <Text size="sm" c="dimmed">No subjects assigned</Text>
+                                    )}
                                 </Group>
 
                                 <Group gap="xs">

@@ -8,7 +8,13 @@ export class SubjectsService {
     async create(createSubjectDto: any, schoolId: string) {
         return this.prisma.subject.create({
             data: {
-                ...createSubjectDto,
+                name: createSubjectDto.name,
+                code: createSubjectDto.code,
+                department: createSubjectDto.department,
+                classLevels: {
+                    connect: createSubjectDto.classLevelIds?.map((id: string) => ({ id })) || []
+                },
+                teacherId: createSubjectDto.teacherId,
                 schoolId,
             }
         });
@@ -17,13 +23,23 @@ export class SubjectsService {
     async findAll(schoolId: string) {
         return this.prisma.subject.findMany({
             where: { schoolId },
+            include: {
+                classLevels: true,
+                teacher: { include: { user: true } },
+                allocations: { include: { staff: true } }
+            },
             orderBy: { name: 'asc' }
         });
     }
 
     async findOne(id: string, schoolId: string) {
         const record = await this.prisma.subject.findFirst({
-            where: { id, schoolId }
+            where: { id, schoolId },
+            include: {
+                classLevels: true,
+                teacher: { include: { user: true } },
+                allocations: { include: { staff: true } }
+            }
         });
         if (!record) throw new NotFoundException('Subject not found');
         return record;
@@ -33,7 +49,15 @@ export class SubjectsService {
         await this.findOne(id, schoolId);
         return this.prisma.subject.update({
             where: { id },
-            data: updateSubjectDto
+            data: {
+                name: updateSubjectDto.name,
+                code: updateSubjectDto.code,
+                department: updateSubjectDto.department,
+                classLevels: {
+                    set: updateSubjectDto.classLevelIds?.map((id: string) => ({ id })) || []
+                },
+                teacherId: updateSubjectDto.teacherId,
+            }
         });
     }
 
@@ -66,6 +90,38 @@ export class SubjectsService {
                 sectionId,
                 staffId
             }
+        });
+    }
+
+    async getAllAllocations(schoolId: string) {
+        return this.prisma.subjectAllocation.findMany({
+            where: {
+                subject: { schoolId },
+                section: { schoolId },
+                staff: { schoolId }
+            },
+            include: {
+                subject: true,
+                section: {
+                    include: { classLevel: true }
+                },
+                staff: {
+                    include: { user: true }
+                }
+            }
+        });
+    }
+
+    async removeAllocation(id: string, schoolId: string) {
+        const allocation = await this.prisma.subjectAllocation.findUnique({
+            where: { id },
+            include: { subject: true }
+        });
+        if (!allocation || allocation.subject.schoolId !== schoolId) {
+            throw new NotFoundException('Allocation not found');
+        }
+        return this.prisma.subjectAllocation.delete({
+            where: { id }
         });
     }
 

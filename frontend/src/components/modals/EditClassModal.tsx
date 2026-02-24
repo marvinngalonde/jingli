@@ -1,4 +1,4 @@
-import { Drawer, TextInput, NumberInput, Button, Group, Stack, Box } from '@mantine/core';
+import { Drawer, TextInput, NumberInput, Button, Group, Stack, Box, Select } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useEffect } from 'react';
@@ -11,9 +11,10 @@ interface EditClassModalProps {
     onSuccess: () => void;
     section: ClassSection | null;
     classLevel: ClassLevel | null;
+    teachers: any[];
 }
 
-export function EditClassModal({ opened, onClose, onSuccess, section, classLevel }: EditClassModalProps) {
+export function EditClassModal({ opened, onClose, onSuccess, section, classLevel, teachers }: EditClassModalProps) {
     const form = useForm({
         initialValues: {
             // Level details
@@ -22,6 +23,7 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
             // Section details
             sectionName: '',
             capacity: 30,
+            classTeacherId: '',
         },
         validate: {
             levelName: (val) => !val ? 'Level name is required' : null,
@@ -39,6 +41,7 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
                 levelNumber: classLevel.level,
                 sectionName: section.name,
                 capacity: section.capacity,
+                classTeacherId: section.classTeacherId || '',
             });
         }
     }, [section, classLevel]);
@@ -56,10 +59,11 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
             }
 
             // Update section if changed
-            if (values.sectionName !== section.name || values.capacity !== section.capacity) {
+            if (values.sectionName !== section.name || values.capacity !== section.capacity || values.classTeacherId !== (section.classTeacherId || '')) {
                 await classesApi.updateSection(section.id, {
                     name: values.sectionName,
                     capacity: values.capacity,
+                    classTeacherId: values.classTeacherId || undefined, // undefined removes assignment
                 });
             }
 
@@ -111,6 +115,17 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
                             min={1}
                             {...form.getInputProps('capacity')}
                             required
+                        />
+                        <Select
+                            label="Class Teacher (Optional)"
+                            placeholder="Select a teacher"
+                            data={teachers.map(t => ({
+                                value: t.user?.id || t.id,
+                                label: `${t.firstName} ${t.lastName}`
+                            }))}
+                            {...form.getInputProps('classTeacherId')}
+                            searchable
+                            clearable
                         />
 
                         <Group justify="flex-end" mt="md">

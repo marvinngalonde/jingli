@@ -9,9 +9,10 @@ interface CreateClassModalProps {
     onClose: () => void;
     onSuccess: () => void;
     classLevels: ClassLevel[];
+    teachers: any[];
 }
 
-export function CreateClassModal({ opened, onClose, onSuccess, classLevels }: CreateClassModalProps) {
+export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teachers }: CreateClassModalProps) {
     const form = useForm({
         initialValues: {
             type: 'section', // 'level' or 'section'
@@ -22,6 +23,7 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels }: Cr
             classLevelId: '',
             sectionName: '',
             capacity: 30,
+            classTeacherId: '',
         },
         validate: {
             levelName: (val, values) => values.type === 'level' && !val ? 'Level name is required' : null,
@@ -50,6 +52,7 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels }: Cr
                     classLevelId: values.classLevelId,
                     name: values.sectionName,
                     capacity: values.capacity,
+                    classTeacherId: values.classTeacherId || undefined,
                 };
                 await classesApi.createSection(dto);
                 notifications.show({
@@ -128,6 +131,17 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels }: Cr
                                     min={1}
                                     {...form.getInputProps('capacity')}
                                     required
+                                />
+                                <Select
+                                    label="Class Teacher (Optional)"
+                                    placeholder="Select a teacher"
+                                    data={teachers.map(t => ({
+                                        value: t.user?.id || t.id,
+                                        label: `${t.firstName} ${t.lastName}`
+                                    }))}
+                                    {...form.getInputProps('classTeacherId')}
+                                    searchable
+                                    clearable
                                 />
                             </>
                         )}

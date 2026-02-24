@@ -16,7 +16,7 @@ import type {
 
 export const classesApi = {
     // Get all classes (levels with sections)
-    getAll: async (schoolId?: string): Promise<ClassLevel[]> => {
+    getAll: async (): Promise<ClassLevel[]> => {
         // schoolId is handled by backend token usually, but sometimes passed as param
         const { data } = await api.get('/classes');
         return data;
@@ -69,7 +69,7 @@ export const classesApi = {
 
 export const subjectsApi = {
     // Get all subjects
-    getAll: async (schoolId?: string): Promise<Subject[]> => {
+    getAll: async (): Promise<Subject[]> => {
         const { data } = await api.get('/subjects');
         return data;
     },
@@ -96,6 +96,19 @@ export const subjectsApi = {
     delete: async (id: string): Promise<void> => {
         await api.delete(`/subjects/${id}`);
     },
+
+    // Allocations
+    allocate: async (dto: { subjectId: string; sectionId: string; staffId: string }) => {
+        const { data } = await api.post('/subjects/allocate', dto);
+        return data;
+    },
+    getAllAllocations: async () => {
+        const { data } = await api.get('/subjects/allocations');
+        return data;
+    },
+    removeAllocation: async (id: string) => {
+        await api.delete(`/subjects/allocations/${id}`);
+    }
 };
 
 // ============================================================================

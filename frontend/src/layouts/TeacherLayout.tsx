@@ -55,6 +55,7 @@ export function TeacherLayout() {
     const navLinks = [
         { icon: IconLayoutDashboard, label: 'Dashboard', to: '/teacher/dashboard' },
         { icon: IconChalkboard, label: 'My Classes', to: '/teacher/classes' },
+        { icon: IconCalendar, label: 'My Timetable', to: '/teacher/timetable' },
         { icon: IconMessage, label: 'Inbox', to: '/teacher/inbox' },
         { icon: IconClipboardList, label: 'Assignments', to: '/teacher/assignments' },
         { icon: IconFiles, label: 'Materials', to: '/teacher/materials' },

@@ -122,17 +122,41 @@ export class TeacherService {
             }
         });
 
+        // Get sections where they are the explicit class teacher
+        const classTeacherSections = await this.prisma.classSection.findMany({
+            where: { classTeacherId: teacher.id },
+            include: {
+                classLevel: true,
+                _count: { select: { students: true } }
+            }
+        });
+
         // Group by section to avoid duplicates if teacher teaches multiple subjects to same section
         const sectionMap = new Map();
+
+        // Include sections where they are class teacher
+        classTeacherSections.forEach(section => {
+            sectionMap.set(section.id, {
+                section: section,
+                isClassTeacher: true,
+                subjects: []
+            });
+        });
+
         allocations.forEach(alloc => {
             const sectionId = alloc.sectionId;
             if (!sectionMap.has(sectionId)) {
                 sectionMap.set(sectionId, {
                     section: alloc.section,
+                    isClassTeacher: false,
                     subjects: []
                 });
             }
-            sectionMap.get(sectionId).subjects.push(alloc.subject);
+            // Avoid pushing duplicate subjects if already added by another allocation
+            const existingSubjects = sectionMap.get(sectionId).subjects;
+            if (!existingSubjects.find((s: any) => s.id === alloc.subject.id)) {
+                existingSubjects.push(alloc.subject);
+            }
         });
 
         return Array.from(sectionMap.values());
@@ -153,7 +177,14 @@ export class TeacherService {
             }
         });
 
-        if (!allocation) {
+        const classTeacherSection = await this.prisma.classSection.findFirst({
+            where: {
+                id: sectionId,
+                classTeacherId: teacher.id
+            }
+        });
+
+        if (!allocation && !classTeacherSection) {
             throw new NotFoundException('You do not have access to this class.');
         }
 

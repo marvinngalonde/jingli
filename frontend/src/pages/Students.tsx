@@ -53,6 +53,7 @@ export default function Students() {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
     // Logistics State
     const [lateArrivals, setLateArrivals] = useState<LateArrival[]>([]);
@@ -147,15 +148,21 @@ export default function Students() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this student?')) return;
+    const confirmDelete = async () => {
+        if (!studentToDelete) return;
         try {
-            await studentService.delete(id);
+            await studentService.delete(studentToDelete.id);
             notifications.show({ message: 'Student deleted successfully', color: 'green' });
             loadAllData();
         } catch (error) {
             notifications.show({ title: 'Error', message: 'Failed to delete student', color: 'red' });
+        } finally {
+            setStudentToDelete(null);
         }
+    };
+
+    const handleDeleteClick = (student: Student) => {
+        setStudentToDelete(student);
     };
 
     const handleLogLate = async (values: typeof lateForm.values) => {
@@ -241,7 +248,7 @@ export default function Students() {
                     <ActionMenu
                         onView={() => navigate(`/students/${item.id}`)}
                         onEdit={() => openEditDrawer(item)}
-                        onDelete={() => handleDelete(item.id)}
+                        onDelete={() => handleDeleteClick(item)}
                     />
                 </Group>
             )
@@ -428,7 +435,13 @@ export default function Students() {
             )}
 
             {/* Drawers & Modals */}
-            <Drawer opened={opened} onClose={closeDrawer} title={selectedStudent ? "Edit Student" : "Add New Student"} position="right" size="md">
+            <Drawer
+                opened={opened}
+                onClose={closeDrawer}
+                title={<Text fw={600} size="lg">{selectedStudent ? 'Edit Student' : 'Add New Student'}</Text>}
+                position="right"
+                size="md"
+            >
                 <Box p={0}>
                     <StudentForm
                         key={selectedStudent ? selectedStudent.id : 'new'}
@@ -451,6 +464,21 @@ export default function Students() {
                     />
                 </Box>
             </Drawer>
+
+            <Modal
+                opened={!!studentToDelete}
+                onClose={() => setStudentToDelete(null)}
+                title={<Text fw={600} size="lg">Confirm Deletion</Text>}
+                centered
+            >
+                <Text size="sm" mb="lg">
+                    Are you sure you want to delete <strong>{studentToDelete?.firstName} {studentToDelete?.lastName}</strong>? This action cannot be undone and will remove all their associated data (attendance, grades, etc.).
+                </Text>
+                <Group justify="flex-end">
+                    <Button variant="subtle" color="gray" onClick={() => setStudentToDelete(null)}>Cancel</Button>
+                    <Button color="red" onClick={confirmDelete}>Delete Student</Button>
+                </Group>
+            </Modal>
 
             <Modal opened={lateOpened} onClose={closeLate} title="Log Late Arrival">
                 <form onSubmit={lateForm.onSubmit(handleLogLate)}>

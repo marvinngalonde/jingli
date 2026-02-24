@@ -23,6 +23,7 @@ import { DeleteClassModal } from '../components/modals/DeleteClassModal';
 
 // API
 import { classesApi } from '../services/academics';
+import { staffService } from '../services/staffService';
 import type { ClassLevel, ClassSection } from '../types/academics';
 
 import { useAuth } from '../context/AuthContext';
@@ -41,7 +42,7 @@ interface ClassRow {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function Classes() {
+export default function Classes({ asComponent }: { asComponent?: boolean }) {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const { user } = useAuth();
@@ -50,6 +51,7 @@ export default function Classes() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
+    const [teachers, setTeachers] = useState<any[]>([]);
     const [createModalOpened, setCreateModalOpened] = useState(false);
     const [editModalOpened, setEditModalOpened] = useState(false);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
@@ -66,11 +68,18 @@ export default function Classes() {
         try {
             setLoading(true);
             setError(null);
-            const data = await classesApi.getAll();
+            const [data, staffRes] = await Promise.all([
+                classesApi.getAll(),
+                staffService.getAll()
+            ]);
             setClassLevels(data);
+
+            // Filter staff who are likely teachers
+            const teacherStaff = staffRes.filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER');
+            setTeachers(teacherStaff);
         } catch (err: any) {
-            console.error('Failed to fetch classes:', err);
-            setError(err.response?.data?.message || 'Failed to load classes');
+            console.error('Failed to fetch classes or staff:', err);
+            setError(err.response?.data?.message || 'Failed to load data');
         } finally {
             setLoading(false);
         }
@@ -132,7 +141,12 @@ export default function Classes() {
         {
             accessor: 'classTeacher',
             header: 'Class Teacher',
-            render: (item) => <Text size="sm" c="dimmed">{item.classTeacherId ? 'Assigned' : 'Not Assigned'}</Text>
+            render: (item) => {
+                const teacher = teachers.find(t => t.user?.id === item.classTeacherId || t.id === item.classTeacherId);
+                return <Text size="sm" c={item.classTeacherId ? "dark" : "dimmed"}>
+                    {teacher ? `${teacher.firstName} ${teacher.lastName}` : (item.classTeacherId ? 'Assigned' : 'Not Assigned')}
+                </Text>;
+            }
         },
         {
             accessor: 'studentCount',
@@ -166,20 +180,36 @@ export default function Classes() {
 
     return (
         <>
-            <PageHeader
-                title={isTeacher ? "My Classes" : "Classes & Sections"}
-                subtitle={isTeacher ? "Manage your assigned classes" : "Manage class sections, timetables, and teacher assignments"}
-                actions={
-                    !isTeacher && (
-                        <Button
-                            leftSection={<IconPlus size={18} />}
-                            onClick={() => setCreateModalOpened(true)}
-                        >
-                            Add Class
-                        </Button>
-                    )
-                }
-            />
+            {!asComponent && (
+                <PageHeader
+                    title={isTeacher ? "My Classes" : "Classes & Sections"}
+                    subtitle={isTeacher ? "Manage your assigned classes" : "Manage class sections, timetables, and teacher assignments"}
+                    actions={
+                        !isTeacher && (
+                            <Button
+                                leftSection={<IconPlus size={18} />}
+                                onClick={() => setCreateModalOpened(true)}
+                            >
+                                Add Class
+                            </Button>
+                        )
+                    }
+                />
+            )}
+
+            {asComponent && !isTeacher && (
+                <Group justify="space-between" mb="md">
+                    <Text size="sm" c="dimmed">
+                        Manage class sections, timetables, and teacher assignments
+                    </Text>
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setCreateModalOpened(true)}
+                    >
+                        Add Class
+                    </Button>
+                </Group>
+            )}
 
             {error && (
                 <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mb="md">
@@ -211,6 +241,7 @@ export default function Classes() {
                 onClose={() => setCreateModalOpened(false)}
                 onSuccess={fetchClasses}
                 classLevels={classLevels}
+                teachers={teachers}
             />
 
             <EditClassModal
@@ -223,6 +254,7 @@ export default function Classes() {
                 onSuccess={fetchClasses}
                 section={selectedSection}
                 classLevel={selectedClassLevel}
+                teachers={teachers}
             />
 
             <DeleteClassModal

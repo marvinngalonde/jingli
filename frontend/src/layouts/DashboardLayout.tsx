@@ -74,7 +74,7 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'student', 'parent'],
             links: [
                 { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'teacher', 'reception'] },
-                { icon: IconUsers, label: 'Teachers', to: '/staff', roles: ['admin', 'reception'] },
+                { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'reception'] },
                 { icon: IconChalkboard, label: 'Classes', to: '/classes', roles: ['admin', 'teacher'] },
                 { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] }, // Timetables etc
                 { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'teacher', 'student', 'parent'] },

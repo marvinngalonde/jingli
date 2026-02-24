@@ -1,30 +1,18 @@
-import { Drawer, Select, Button, Group, TextInput, Text, Stack, Box } from '@mantine/core';
+import { Drawer, Select, Button, Group, TextInput, Stack, Box } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { TimeInput } from '@mantine/dates';
 import { IconClock } from '@tabler/icons-react';
-import { useEffect, useMemo } from 'react';
-import type { Subject, CreateTimetableDto, DayOfWeek } from '../../types/academics';
+import { useEffect } from 'react';
+import type { Subject, DayOfWeek, TimetableEntry } from '../../types/academics';
 
-interface Allocation {
-    id: string;
-    subjectId: string;
-    sectionId: string;
-    staffId: string;
-    subject?: any;
-    section?: any;
-    staff?: any;
-}
-
-interface CreateTimetableEntryModalProps {
+interface EditTimetableEntryModalProps {
     opened: boolean;
     onClose: () => void;
-    onSubmit: (values: CreateTimetableDto) => void;
+    onSubmit: (id: string, values: any) => void;
     loading?: boolean;
     subjects: Subject[];
     teachers: any[];
-    sectionId: string;
-    /** All allocations (we'll filter by sectionId internally) */
-    allocations?: Allocation[];
+    entry: TimetableEntry | null;
 }
 
 const DAYS: { value: DayOfWeek; label: string }[] = [
@@ -37,9 +25,7 @@ const DAYS: { value: DayOfWeek; label: string }[] = [
     { value: 'SUN', label: 'Sunday' },
 ];
 
-export function CreateTimetableEntryModal({
-    opened, onClose, onSubmit, loading, subjects, teachers, sectionId, allocations = []
-}: CreateTimetableEntryModalProps) {
+export function EditTimetableEntryModal({ opened, onClose, onSubmit, loading, subjects, teachers, entry }: EditTimetableEntryModalProps) {
     const form = useForm({
         initialValues: {
             subjectId: '',
@@ -57,45 +43,25 @@ export function CreateTimetableEntryModal({
         },
     });
 
-    // Filter allocations for the current section
-    const sectionAllocations = useMemo(
-        () => allocations.filter(a => a.sectionId === sectionId),
-        [allocations, sectionId]
-    );
-
-    // Build a quick lookup: subjectId -> staffId for this section
-    const subjectToStaff = useMemo(() => {
-        const map = new Map<string, string>();
-        sectionAllocations.forEach(a => {
-            if (!map.has(a.subjectId)) {
-                map.set(a.subjectId, a.staffId);
-            }
-        });
-        return map;
-    }, [sectionAllocations]);
-
-    // Set of allocated subject IDs for visual hint
-    const allocatedSubjectIds = useMemo(
-        () => new Set(sectionAllocations.map(a => a.subjectId)),
-        [sectionAllocations]
-    );
-
-    // Smart prefill: when a subject is selected, auto-fill the teacher
-    const selectedSubjectId = form.values.subjectId;
+    // Populate form when entry changes
     useEffect(() => {
-        if (selectedSubjectId && subjectToStaff.has(selectedSubjectId)) {
-            form.setFieldValue('teacherId', subjectToStaff.get(selectedSubjectId)!);
+        if (entry) {
+            const startTime = new Date(entry.startTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            const endTime = new Date(entry.endTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            form.setValues({
+                subjectId: entry.subjectId || '',
+                teacherId: entry.teacherId || '',
+                day: entry.day,
+                startTime,
+                endTime,
+                roomNo: entry.roomNo || '',
+            });
         }
-    }, [selectedSubjectId, subjectToStaff]);
-
-    // Reset form when drawer opens
-    useEffect(() => {
-        if (opened) {
-            form.reset();
-        }
-    }, [opened]);
+    }, [entry]);
 
     const handleSubmit = (values: typeof form.values) => {
+        if (!entry) return;
+
         const now = new Date();
         const [startHour, startMinute] = values.startTime.split(':').map(Number);
         const [endHour, endMinute] = values.endTime.split(':').map(Number);
@@ -106,21 +72,18 @@ export function CreateTimetableEntryModal({
         const endDate = new Date(now);
         endDate.setHours(endHour, endMinute, 0, 0);
 
-        const dto: CreateTimetableDto = {
-            sectionId,
+        onSubmit(entry.id, {
             subjectId: values.subjectId,
             teacherId: values.teacherId,
             day: values.day,
             startTime: startDate.toISOString(),
             endTime: endDate.toISOString(),
             roomNo: values.roomNo,
-        };
-
-        onSubmit(dto);
+        });
     };
 
     return (
-        <Drawer opened={opened} onClose={onClose} title="Add Timetable Entry" position="right" size="md">
+        <Drawer opened={opened} onClose={onClose} title="Edit Timetable Entry" position="right" size="md">
             <Box p={0}>
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
@@ -135,17 +98,11 @@ export function CreateTimetableEntryModal({
                         <Select
                             label="Subject"
                             placeholder="Select subject"
-                            data={subjects.map(s => ({
-                                value: s.id,
-                                label: `${s.name} (${s.code})${allocatedSubjectIds.has(s.id) ? ' ✓' : ''}`
-                            }))}
+                            data={subjects.map(s => ({ value: s.id, label: `${s.name} (${s.code})` }))}
                             searchable
                             {...form.getInputProps('subjectId')}
                             allowDeselect={false}
                         />
-                        {selectedSubjectId && allocatedSubjectIds.has(selectedSubjectId) && (
-                            <Text size="xs" c="teal" mt={-8}>✓ Teacher auto-filled from allocation</Text>
-                        )}
 
                         <Select
                             label="Teacher"
@@ -180,7 +137,7 @@ export function CreateTimetableEntryModal({
 
                         <Group justify="flex-end" mt="md">
                             <Button variant="subtle" onClick={onClose}>Cancel</Button>
-                            <Button type="submit" loading={loading}>Add Entry</Button>
+                            <Button type="submit" loading={loading}>Save Changes</Button>
                         </Group>
                     </Stack>
                 </form>

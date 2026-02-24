@@ -150,6 +150,7 @@ model ClassLevel {
   sections  ClassSection[]
   feeStructures FeeStructure[]
   exams         Exam[]
+  subjects      Subject[]
 
   @@map("classes")
 }
@@ -182,8 +183,11 @@ model Subject {
   name       String
   code       String
   department String?
+  teacherId  String? @map("teacher_id")
 
-  school     School   @relation(fields: [schoolId], references: [id])
+  school      School       @relation(fields: [schoolId], references: [id])
+  classLevels ClassLevel[]
+  teacher     Staff?       @relation(fields: [teacherId], references: [id])
   
   allocations SubjectAllocation[]
   timetables  Timetable[]
@@ -278,6 +282,7 @@ model Staff {
   assignments        Assignment[]
   courseMaterials    CourseMaterial[]
   gradedExams        ExamResult[]
+  subjects           Subject[]
 
   @@unique([schoolId, employeeId])
   @@map("staff")

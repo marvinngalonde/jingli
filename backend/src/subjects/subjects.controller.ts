@@ -20,6 +20,16 @@ export class SubjectsController {
         return this.subjectsService.allocate(allocationDto, req.user.schoolId);
     }
 
+    @Get('allocations')
+    getAllAllocations(@Req() req: any) {
+        return this.subjectsService.getAllAllocations(req.user.schoolId);
+    }
+
+    @Delete('allocations/:id')
+    removeAllocation(@Req() req: any, @Param('id') id: string) {
+        return this.subjectsService.removeAllocation(id, req.user.schoolId);
+    }
+
     @Get()
     findAll(@Req() req: any) {
         return this.subjectsService.findAll(req.user.schoolId);

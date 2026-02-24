@@ -140,8 +140,37 @@ export class StudentsService {
     }
 
     async remove(id: string) {
-        return this.prisma.student.delete({
-            where: { id },
+        // Find the student to get the userId before deletion
+        const student = await this.prisma.student.findUnique({ where: { id } });
+        if (!student) return null;
+
+        return this.prisma.$transaction(async (tx) => {
+            // Delete dependent records
+            await tx.attendance.deleteMany({ where: { studentId: id } });
+            await tx.studentGuardian.deleteMany({ where: { studentId: id } });
+            await tx.submission.deleteMany({ where: { studentId: id } });
+            await tx.gatePass.deleteMany({ where: { studentId: id } });
+            await tx.lateArrival.deleteMany({ where: { studentId: id } });
+            await tx.examResult.deleteMany({ where: { studentId: id } });
+            await tx.bookCirculation.deleteMany({ where: { studentId: id } });
+
+            // Delete Invoices and associated Transactions
+            const invoices = await tx.invoice.findMany({ where: { studentId: id }, select: { id: true } });
+            const invoiceIds = invoices.map((i: any) => i.id);
+            if (invoiceIds.length > 0) {
+                await tx.transaction.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
+                await tx.invoice.deleteMany({ where: { studentId: id } });
+            }
+
+            // Finally, delete the student record
+            const deletedStudent = await tx.student.delete({ where: { id } });
+
+            // Also delete the associated User record to prevent orphans
+            if (student.userId) {
+                await tx.user.delete({ where: { id: student.userId } });
+            }
+
+            return deletedStudent;
         });
     }
 }

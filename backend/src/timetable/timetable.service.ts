@@ -99,7 +99,19 @@ export class TimetableService {
         });
     }
 
-    async update(id: string, updateDto: UpdateTimetableDto) {
+    async update(id: string, updateDto: UpdateTimetableDto, user?: any) {
+        // Permission check: teachers can only edit their own entries
+        const existing = await this.prisma.timetable.findUnique({ where: { id } });
+        if (!existing) throw new Error('Timetable entry not found');
+
+        if (user?.role === 'TEACHER') {
+            // Get teacher's staff record
+            const staff = await this.prisma.staff.findUnique({ where: { userId: user.id } });
+            if (!staff || existing.teacherId !== staff.id) {
+                throw new Error('You can only edit timetable entries for subjects you are assigned to');
+            }
+        }
+
         const data: any = { ...updateDto };
         if (updateDto.startTime) data.startTime = new Date(updateDto.startTime);
         if (updateDto.endTime) data.endTime = new Date(updateDto.endTime);
@@ -110,7 +122,18 @@ export class TimetableService {
         });
     }
 
-    async remove(id: string) {
+    async remove(id: string, user?: any) {
+        // Permission check: teachers can only delete their own entries
+        const existing = await this.prisma.timetable.findUnique({ where: { id } });
+        if (!existing) throw new Error('Timetable entry not found');
+
+        if (user?.role === 'TEACHER') {
+            const staff = await this.prisma.staff.findUnique({ where: { userId: user.id } });
+            if (!staff || existing.teacherId !== staff.id) {
+                throw new Error('You can only delete timetable entries for subjects you are assigned to');
+            }
+        }
+
         return this.prisma.timetable.delete({
             where: { id },
         });

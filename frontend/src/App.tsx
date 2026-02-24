@@ -22,9 +22,10 @@ import CalendarPage from './pages/Calendar';
 // Teacher Portal
 import { TeacherLayout } from './layouts/TeacherLayout';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import TeacherClasses from './pages/teacher/TeacherClasses';
+import { TeacherClasses } from './pages/teacher/TeacherClasses';
 import TeacherClassStudents from './pages/teacher/TeacherClassStudents';
-import TeacherCourseMaterials from './pages/teacher/TeacherCourseMaterials';
+import { TeacherTimetable } from './pages/teacher/TeacherTimetable';
+import { TeacherCourseMaterials } from './pages/teacher/TeacherCourseMaterials';
 import TeacherAssignments from './pages/teacher/TeacherAssignments';
 import TeacherGrading from './pages/teacher/TeacherGrading';
 
@@ -113,6 +114,7 @@ function App() {
             <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
             <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
             <Route path="/teacher/classes" element={<TeacherClasses />} />
+            <Route path="/teacher/timetable" element={<TeacherTimetable />} />
             <Route path="/teacher/classes/:sectionId/students" element={<TeacherClassStudents />} />
             <Route path="/teacher/classes/:sectionId/materials" element={<TeacherCourseMaterials />} />
             <Route path="/teacher/materials" element={<TeacherCourseMaterials />} />

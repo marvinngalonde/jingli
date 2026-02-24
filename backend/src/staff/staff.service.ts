@@ -7,7 +7,7 @@ import { UpdateStaffDto } from './dto/update-staff.dto';
 export class StaffService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async create(createDto: CreateStaffDto) {
+    async create(schoolId: string, createDto: CreateStaffDto) {
         // In a real flow, we would create a User (Auth) first or link to an existing one.
         // Here we assume we might create a placeholder User or just the Staff profile if User creation is separate.
         // For strict relation, we need a userId.
@@ -28,7 +28,7 @@ export class StaffService {
         const user = await this.prisma.user.create({
             data: {
                 username: `${createDto.firstName.toLowerCase()}.${createDto.lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
-                schoolId: createDto.schoolId,
+                schoolId: schoolId,
                 email: createDto.email,
                 passwordHash: 'temp_hash', // In real app, handle this securely
                 role: 'TEACHER', // Defaulting to teacher for staff, or pass in DTO?
@@ -37,7 +37,7 @@ export class StaffService {
 
         return this.prisma.staff.create({
             data: {
-                schoolId: createDto.schoolId,
+                schoolId: schoolId,
                 userId: user.id,
                 employeeId: createDto.employeeId,
                 firstName: createDto.firstName,

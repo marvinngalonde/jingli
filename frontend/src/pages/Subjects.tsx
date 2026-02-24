@@ -29,7 +29,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ITEMS_PER_PAGE = 10;
 
-export default function Subjects() {
+export default function Subjects({ asComponent }: { asComponent?: boolean }) {
     const [search, setSearch] = useState('');
     const { user } = useAuth();
 
@@ -110,12 +110,30 @@ export default function Subjects() {
         {
             accessor: 'level',
             header: 'Level/Grade',
-            render: () => <Text size="sm" c="dimmed">All Grades</Text>
+            render: (item) => {
+                if (!item.classLevels || item.classLevels.length === 0) {
+                    return <Text size="sm" c="dimmed">All Grades</Text>;
+                }
+                return (
+                    <Text size="sm">
+                        {item.classLevels.map(cl => cl.name).join(', ')}
+                    </Text>
+                );
+            }
         },
         {
             accessor: 'teachers',
             header: 'Teachers',
-            render: () => <Text size="sm" c="dimmed">Not assigned</Text>
+            render: (item) => {
+                const coord = item.teacher ? `${item.teacher.firstName} ${item.teacher.lastName}` : null;
+                const allocated = item.allocations?.map((a: any) => `${a.staff?.firstName} ${a.staff?.lastName}`) || [];
+                const allTeachers = Array.from(new Set([coord, ...allocated].filter(Boolean)));
+                return (
+                    <Text size="sm">
+                        {allTeachers.length > 0 ? allTeachers.join(', ') : <Text span c="dimmed">Not assigned</Text>}
+                    </Text>
+                );
+            }
         },
         {
             accessor: 'actions',
@@ -133,20 +151,36 @@ export default function Subjects() {
 
     return (
         <>
-            <PageHeader
-                title="Subjects"
-                subtitle="Manage subjects and assign them to grades/departments"
-                actions={
-                    user?.role !== 'teacher' && (
-                        <Button
-                            leftSection={<IconPlus size={18} />}
-                            onClick={() => setCreateModalOpened(true)}
-                        >
-                            Add Subject
-                        </Button>
-                    )
-                }
-            />
+            {!asComponent && (
+                <PageHeader
+                    title="Subjects"
+                    subtitle="Manage subjects and assign them to grades/departments"
+                    actions={
+                        user?.role !== 'teacher' && (
+                            <Button
+                                leftSection={<IconPlus size={18} />}
+                                onClick={() => setCreateModalOpened(true)}
+                            >
+                                Add Subject
+                            </Button>
+                        )
+                    }
+                />
+            )}
+
+            {asComponent && user?.role !== 'teacher' && (
+                <Group justify="space-between" mb="md">
+                    <Text size="sm" c="dimmed">
+                        Manage subjects and assign them to grades/departments
+                    </Text>
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setCreateModalOpened(true)}
+                    >
+                        Add Subject
+                    </Button>
+                </Group>
+            )}
 
             {error && (
                 <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" mb="md">

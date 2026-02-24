@@ -35,7 +35,8 @@ export class ClassesService {
             include: {
                 sections: {
                     include: {
-                        classTeacher: true
+                        classTeacher: true,
+                        _count: { select: { students: true } }
                     },
                     orderBy: { name: 'asc' }
                 }
@@ -55,7 +56,13 @@ export class ClassesService {
         // Or Find Section?
         const section = await this.prisma.classSection.findFirst({
             where: { id, schoolId },
-            include: { classLevel: true, classTeacher: true }
+            include: {
+                classLevel: true,
+                classTeacher: {
+                    include: { user: true }
+                },
+                _count: { select: { students: true } }
+            }
         });
         if (section) return section;
 
@@ -141,38 +148,60 @@ export class ClassesService {
         });
     }
 
-    // Get all teachers teaching a class section
+    // Get all teachers associated with a class section (from timetable + allocations)
     async getTeachers(sectionId: string, schoolId: string) {
-        // Verify section belongs to school
         const section = await this.prisma.classSection.findFirst({
             where: { id: sectionId, schoolId }
         });
         if (!section) throw new NotFoundException('Section not found');
 
-        // Get unique teachers from timetable
+        // From timetable
         const timetableEntries = await this.prisma.timetable.findMany({
             where: { sectionId },
             include: {
-                teacher: {
-                    include: {
-                        user: true
-                    }
-                },
+                teacher: { include: { user: true } },
                 subject: true
             }
         });
 
-        // Group by teacher and collect subjects
-        const teacherMap = new Map();
+        // From subject allocations
+        const allocations = await this.prisma.subjectAllocation.findMany({
+            where: { sectionId },
+            include: {
+                staff: { include: { user: true } },
+                subject: true
+            }
+        });
+
+        // Merge both sources into a teacher map
+        const teacherMap = new Map<string, any>();
+
         timetableEntries.forEach((entry: any) => {
-            const teacherId = entry.teacherId;
-            if (!teacherMap.has(teacherId)) {
-                teacherMap.set(teacherId, {
+            const tid = entry.teacherId;
+            if (!teacherMap.has(tid)) {
+                teacherMap.set(tid, {
                     ...entry.teacher,
                     subjects: []
                 });
             }
-            teacherMap.get(teacherId).subjects.push(entry.subject);
+            const subjectNames = teacherMap.get(tid).subjects.map((s: any) => s.id);
+            if (!subjectNames.includes(entry.subject.id)) {
+                teacherMap.get(tid).subjects.push(entry.subject);
+            }
+        });
+
+        allocations.forEach((alloc: any) => {
+            const tid = alloc.staffId;
+            if (!teacherMap.has(tid)) {
+                teacherMap.set(tid, {
+                    ...alloc.staff,
+                    subjects: []
+                });
+            }
+            const subjectNames = teacherMap.get(tid).subjects.map((s: any) => s.id);
+            if (!subjectNames.includes(alloc.subject.id)) {
+                teacherMap.get(tid).subjects.push(alloc.subject);
+            }
         });
 
         return Array.from(teacherMap.values());

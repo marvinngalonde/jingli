@@ -35,6 +35,11 @@ export interface Subject {
     name: string;
     code: string;
     department?: string;
+    classLevelIds?: string[];
+    teacherId?: string;
+    classLevels?: ClassLevel[];
+    teacher?: any;
+    allocations?: any[];
 }
 
 // DTOs
@@ -54,6 +59,8 @@ export interface CreateSubjectDto {
     name: string;
     code: string;
     department?: string;
+    classLevelIds?: string[];
+    teacherId?: string;
 }
 
 export interface CreateAcademicYearDto {

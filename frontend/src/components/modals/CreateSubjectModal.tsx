@@ -1,7 +1,9 @@
-import { Drawer, TextInput, Button, Group, Stack, Box } from '@mantine/core';
+import { Drawer, TextInput, Button, Group, Stack, Box, Select, MultiSelect } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { subjectsApi } from '../../services/academics';
+import { useState, useEffect } from 'react';
+import { subjectsApi, classesApi } from '../../services/academics';
+import { staffService } from '../../services/staffService';
 import type { CreateSubjectDto } from '../../types/academics';
 
 interface CreateSubjectModalProps {
@@ -16,6 +18,8 @@ export function CreateSubjectModal({ opened, onClose, onSuccess }: CreateSubject
             name: '',
             code: '',
             department: '',
+            classLevelIds: [] as string[],
+            teacherId: '',
         },
         validate: {
             name: (val) => !val ? 'Subject name is required' : null,
@@ -23,12 +27,29 @@ export function CreateSubjectModal({ opened, onClose, onSuccess }: CreateSubject
         },
     });
 
+    const [classes, setClasses] = useState<{ value: string; label: string }[]>([]);
+    const [teachers, setTeachers] = useState<{ value: string; label: string }[]>([]);
+
+    useEffect(() => {
+        if (opened) {
+            Promise.all([classesApi.getAll(), staffService.getAll()]).then(([clsData, staffData]) => {
+                setClasses(clsData.map(c => ({ value: c.id, label: c.name })));
+                setTeachers(staffData
+                    .filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
+                    .map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))
+                );
+            }).catch(console.error);
+        }
+    }, [opened]);
+
     const handleSubmit = async (values: typeof form.values) => {
         try {
             const dto: CreateSubjectDto = {
                 name: values.name,
                 code: values.code,
                 department: values.department || undefined,
+                classLevelIds: values.classLevelIds.length > 0 ? values.classLevelIds : undefined,
+                teacherId: values.teacherId || undefined,
             };
             await subjectsApi.create(dto);
             notifications.show({
@@ -69,6 +90,22 @@ export function CreateSubjectModal({ opened, onClose, onSuccess }: CreateSubject
                             label="Department"
                             placeholder="e.g., Science (optional)"
                             {...form.getInputProps('department')}
+                        />
+                        <MultiSelect
+                            label="Level/Grade"
+                            placeholder="Select grades (optional)"
+                            data={classes}
+                            clearable
+                            searchable
+                            {...form.getInputProps('classLevelIds')}
+                        />
+                        <Select
+                            label="Coordinator/Teacher"
+                            placeholder="Assign primary teacher (optional)"
+                            data={teachers}
+                            clearable
+                            searchable
+                            {...form.getInputProps('teacherId')}
                         />
 
                         <Group justify="flex-end" mt="md">

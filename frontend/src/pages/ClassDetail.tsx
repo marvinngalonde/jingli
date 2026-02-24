@@ -10,14 +10,18 @@ import {
     ThemeIcon,
     Loader,
     Center,
-    Badge
+    Badge,
+    Avatar,
+    Stack,
+    RingProgress
 } from '@mantine/core';
 import {
     IconArrowLeft,
     IconUsers,
     IconCalendar,
     IconSchool,
-    IconChalkboard
+    IconChalkboard,
+    IconBook
 } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
@@ -25,16 +29,22 @@ import { notifications } from '@mantine/notifications';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { DataTable, type Column } from '../components/common/DataTable';
-import { StatusBadge } from '../components/common/StatusBadge';
+import { TimetableGrid } from '../components/timetable/TimetableGrid';
 
 // API
 import { api } from '../services/api';
 
 interface Student {
     id: string;
+    admissionNo: string;
     rollNo: string;
+    firstName: string;
+    lastName: string;
+    gender?: string;
+    dob?: string;
     user: {
         email: string;
+        username?: string;
     };
 }
 
@@ -49,6 +59,8 @@ interface TimetableEntry {
         code: string;
     };
     teacher: {
+        firstName: string;
+        lastName: string;
         user: {
             email: string;
         };
@@ -58,7 +70,10 @@ interface TimetableEntry {
 interface Teacher {
     id: string;
     employeeId: string;
+    firstName: string;
+    lastName: string;
     designation: string;
+    phone?: string;
     user: {
         email: string;
     };
@@ -67,6 +82,8 @@ interface Teacher {
         code: string;
     }>;
 }
+
+const DAY_ORDER: Record<string, number> = { MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 7 };
 
 export default function ClassDetail() {
     const navigate = useNavigate();
@@ -78,6 +95,9 @@ export default function ClassDetail() {
     const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [activeTab, setActiveTab] = useState<string | null>('students');
+    const [studentSearch, setStudentSearch] = useState('');
+    const [timetableSearch, setTimetableSearch] = useState('');
+    const [teacherSearch, setTeacherSearch] = useState('');
 
     useEffect(() => {
         loadClassData();
@@ -127,64 +147,163 @@ export default function ClassDetail() {
         return (
             <Box p="md">
                 <Text>Class not found</Text>
-                <Button onClick={() => navigate('/classes')} mt="md">Back to Classes</Button>
+                <Button onClick={() => navigate('/academics')} mt="md">Back to Academics</Button>
             </Box>
         );
     }
 
+    // Compute stats
+    const capacity = classData.capacity || 30;
+    const occupancyPercent = capacity > 0 ? Math.round((students.length / capacity) * 100) : 0;
+    const uniqueSubjects = new Set(timetable.map(t => t.subject?.code)).size;
+    const classTeacherName = classData.classTeacher
+        ? `${classData.classTeacher.firstName} ${classData.classTeacher.lastName}`
+        : 'Not assigned';
+
+    // ═══════════════════ Students Tab ═══════════════════
+    const filteredStudents = students.filter(s =>
+        `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        s.admissionNo?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        s.rollNo?.toLowerCase().includes(studentSearch.toLowerCase())
+    );
+
     const studentColumns: Column<Student>[] = [
-        { accessor: 'rollNo', header: 'Roll No.' },
-        { accessor: 'user.email', header: 'Email', render: (item) => item.user?.email || 'N/A' },
         {
-            accessor: 'id',
-            header: 'Status',
-            render: () => <StatusBadge status="active" />
+            accessor: 'rollNo',
+            header: 'Roll No.',
+            width: 90,
+            render: (item) => <Badge variant="light" size="sm">{item.rollNo || '—'}</Badge>
+        },
+        {
+            accessor: 'name',
+            header: 'Student Name',
+            render: (item) => (
+                <Group gap="sm">
+                    <Avatar size="sm" radius="xl" color="blue">
+                        {item.firstName?.[0]}{item.lastName?.[0]}
+                    </Avatar>
+                    <div>
+                        <Text fw={500} size="sm">{item.firstName} {item.lastName}</Text>
+                        <Text size="xs" c="dimmed">{item.admissionNo}</Text>
+                    </div>
+                </Group>
+            )
+        },
+        {
+            accessor: 'gender',
+            header: 'Gender',
+            width: 100,
+            render: (item) => <Text size="sm" tt="capitalize">{item.gender || '—'}</Text>
+        },
+        {
+            accessor: 'email',
+            header: 'Email',
+            render: (item) => <Text size="sm">{item.user?.email || '—'}</Text>
         }
     ];
 
+    // ═══════════════════ Timetable Tab ═══════════════════
+    const filteredTimetable = timetable
+        .filter(t =>
+            t.subject?.name.toLowerCase().includes(timetableSearch.toLowerCase()) ||
+            t.day?.toLowerCase().includes(timetableSearch.toLowerCase()) ||
+            `${t.teacher?.firstName} ${t.teacher?.lastName}`.toLowerCase().includes(timetableSearch.toLowerCase())
+        )
+        .sort((a, b) => (DAY_ORDER[a.day] || 99) - (DAY_ORDER[b.day] || 99));
+
     const timetableColumns: Column<TimetableEntry>[] = [
-        { accessor: 'day', header: 'Day' },
+        {
+            accessor: 'day',
+            header: 'Day',
+            width: 80,
+            render: (item) => <Badge variant="outline" size="sm">{item.day}</Badge>
+        },
         {
             accessor: 'startTime',
             header: 'Time',
             render: (item) => {
                 const start = new Date(item.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 const end = new Date(item.endTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                return `${start} - ${end}`;
+                return <Text size="sm">{start} – {end}</Text>;
             }
         },
         {
             accessor: 'subject.name',
             header: 'Subject',
             render: (item) => (
-                <div>
-                    <Text fw={500}>{item.subject.name}</Text>
-                    <Text size="xs" c="dimmed">{item.subject.code}</Text>
-                </div>
+                <Group gap="xs">
+                    <IconBook size={14} />
+                    <div>
+                        <Text fw={500} size="sm">{item.subject?.name}</Text>
+                        <Text size="xs" c="dimmed">{item.subject?.code}</Text>
+                    </div>
+                </Group>
             )
         },
         {
-            accessor: 'teacher.user.email',
+            accessor: 'teacher',
             header: 'Teacher',
-            render: (item) => item.teacher?.user?.email || 'N/A'
+            render: (item) => (
+                <Text size="sm">{item.teacher?.firstName} {item.teacher?.lastName}</Text>
+            )
         },
-        { accessor: 'roomNo', header: 'Room', render: (item) => item.roomNo || '-' }
+        {
+            accessor: 'roomNo',
+            header: 'Room',
+            width: 80,
+            render: (item) => <Text size="sm">{item.roomNo || '—'}</Text>
+        }
     ];
 
+    // ═══════════════════ Teachers Tab ═══════════════════
+    const filteredTeachers = teachers.filter(t =>
+        `${t.firstName} ${t.lastName}`.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+        t.employeeId?.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+        t.subjects?.some(s => s.name.toLowerCase().includes(teacherSearch.toLowerCase()))
+    );
+
     const teacherColumns: Column<Teacher>[] = [
-        { accessor: 'employeeId', header: 'Employee ID' },
-        { accessor: 'user.email', header: 'Email', render: (item) => item.user?.email || 'N/A' },
-        { accessor: 'designation', header: 'Designation' },
+        {
+            accessor: 'name',
+            header: 'Teacher Name',
+            render: (item) => (
+                <Group gap="sm">
+                    <Avatar size="sm" radius="xl" color="teal">
+                        {item.firstName?.[0]}{item.lastName?.[0]}
+                    </Avatar>
+                    <div>
+                        <Text fw={500} size="sm">{item.firstName} {item.lastName}</Text>
+                        <Text size="xs" c="dimmed">{item.employeeId}</Text>
+                    </div>
+                </Group>
+            )
+        },
+        {
+            accessor: 'designation',
+            header: 'Designation',
+            render: (item) => <Text size="sm">{item.designation}</Text>
+        },
+        {
+            accessor: 'contact',
+            header: 'Contact',
+            render: (item) => (
+                <Stack gap={2}>
+                    <Text size="sm">{item.user?.email || '—'}</Text>
+                    {item.phone && <Text size="xs" c="dimmed">{item.phone}</Text>}
+                </Stack>
+            )
+        },
         {
             accessor: 'subjects',
             header: 'Subjects',
             render: (item: any) => (
-                <Group gap="xs">
-                    {item.subjects?.map((subject: any, idx: number) => (
-                        <Badge key={idx} variant="light" size="sm">
-                            {subject.name}
-                        </Badge>
-                    ))}
+                <Group gap={4} wrap="wrap">
+                    {item.subjects?.length > 0
+                        ? item.subjects.map((subject: any, idx: number) => (
+                            <Badge key={idx} variant="light" size="sm" color="violet">{subject.name}</Badge>
+                        ))
+                        : <Text size="sm" c="dimmed">—</Text>
+                    }
                 </Group>
             )
         }
@@ -197,32 +316,40 @@ export default function ClassDetail() {
                 color="gray"
                 leftSection={<IconArrowLeft size={16} />}
                 mb="md"
-                onClick={() => navigate('/classes')}
+                onClick={() => navigate('/academics')}
             >
-                Back to Classes
+                Back to Academics
             </Button>
 
             <PageHeader
-                title={`${classData.classLevel?.name} - Section ${classData.name}`}
-                subtitle={`Class Teacher: ${classData.classTeacher?.user?.email || 'Not assigned'}`}
-                actions={<Button variant="light">Edit Class</Button>}
+                title={`${classData.classLevel?.name || 'Class'} — Section ${classData.name}`}
+                subtitle={`Class Teacher: ${classTeacherName}`}
             />
 
+            {/* ═══════════ Stats Cards ═══════════ */}
             <Grid mb="lg">
-                <Grid.Col span={4}>
+                <Grid.Col span={{ base: 6, md: 3 }}>
                     <Paper withBorder p="md" radius="md">
                         <Group>
-                            <ThemeIcon size="lg" radius="md" variant="light" color="blue">
-                                <IconUsers size={20} />
-                            </ThemeIcon>
+                            <RingProgress
+                                size={56}
+                                thickness={5}
+                                roundCaps
+                                sections={[{ value: occupancyPercent, color: occupancyPercent > 90 ? 'red' : 'blue' }]}
+                                label={
+                                    <Center>
+                                        <IconUsers size={18} />
+                                    </Center>
+                                }
+                            />
                             <div>
                                 <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Students</Text>
-                                <Text fw={700} size="xl">{students.length}</Text>
+                                <Text fw={700} size="xl">{students.length} <Text span size="sm" c="dimmed">/ {capacity}</Text></Text>
                             </div>
                         </Group>
                     </Paper>
                 </Grid.Col>
-                <Grid.Col span={4}>
+                <Grid.Col span={{ base: 6, md: 3 }}>
                     <Paper withBorder p="md" radius="md">
                         <Group>
                             <ThemeIcon size="lg" radius="md" variant="light" color="orange">
@@ -230,12 +357,12 @@ export default function ClassDetail() {
                             </ThemeIcon>
                             <div>
                                 <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Capacity</Text>
-                                <Text fw={700} size="xl">{classData.capacity}</Text>
+                                <Text fw={700} size="xl">{capacity}</Text>
                             </div>
                         </Group>
                     </Paper>
                 </Grid.Col>
-                <Grid.Col span={4}>
+                <Grid.Col span={{ base: 6, md: 3 }}>
                     <Paper withBorder p="md" radius="md">
                         <Group>
                             <ThemeIcon size="lg" radius="md" variant="light" color="green">
@@ -248,8 +375,22 @@ export default function ClassDetail() {
                         </Group>
                     </Paper>
                 </Grid.Col>
+                <Grid.Col span={{ base: 6, md: 3 }}>
+                    <Paper withBorder p="md" radius="md">
+                        <Group>
+                            <ThemeIcon size="lg" radius="md" variant="light" color="violet">
+                                <IconBook size={20} />
+                            </ThemeIcon>
+                            <div>
+                                <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Subjects</Text>
+                                <Text fw={700} size="xl">{uniqueSubjects}</Text>
+                            </div>
+                        </Group>
+                    </Paper>
+                </Grid.Col>
             </Grid>
 
+            {/* ═══════════ Tabs ═══════════ */}
             <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md">
                 <Tabs.List mb="md">
                     <Tabs.Tab value="students" leftSection={<IconUsers size={16} />}>
@@ -265,8 +406,10 @@ export default function ClassDetail() {
 
                 <Tabs.Panel value="students">
                     <DataTable
-                        data={students}
+                        data={filteredStudents}
                         columns={studentColumns}
+                        search={studentSearch}
+                        onSearchChange={setStudentSearch}
                         loading={loading}
                     />
                 </Tabs.Panel>
@@ -279,17 +422,19 @@ export default function ClassDetail() {
                                     <IconCalendar size={48} stroke={1.5} style={{ opacity: 0.3 }} />
                                     <Text size="lg" fw={500} mt="md">No timetable entries</Text>
                                     <Text size="sm" c="dimmed">
-                                        Timetable entries will appear here once they are created.
+                                        Timetable entries will appear here once created in the Academics Hub.
                                     </Text>
                                 </Box>
                             </Center>
                         </Paper>
                     ) : (
-                        <DataTable
-                            data={timetable}
-                            columns={timetableColumns}
-                            loading={loading}
-                        />
+                        <Box mt="md">
+                            <TimetableGrid
+                                entries={timetable}
+                            // No onEdit or onDelete passed here since this is a read-only view
+                            // editing happens in Academics Hub or Teacher Portal
+                            />
+                        </Box>
                     )}
                 </Tabs.Panel>
 
@@ -301,15 +446,17 @@ export default function ClassDetail() {
                                     <IconSchool size={48} stroke={1.5} style={{ opacity: 0.3 }} />
                                     <Text size="lg" fw={500} mt="md">No teachers assigned</Text>
                                     <Text size="sm" c="dimmed">
-                                        Teachers will appear here once timetable entries are created.
+                                        Teachers will appear here once timetable entries or subject allocations are created.
                                     </Text>
                                 </Box>
                             </Center>
                         </Paper>
                     ) : (
                         <DataTable
-                            data={teachers}
+                            data={filteredTeachers}
                             columns={teacherColumns}
+                            search={teacherSearch}
+                            onSearchChange={setTeacherSearch}
                             loading={loading}
                         />
                     )}

@@ -47,13 +47,13 @@ export class TimetableController {
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update timetable entry' })
-    update(@Param('id') id: string, @Body() updateDto: UpdateTimetableDto) {
-        return this.timetableService.update(id, updateDto);
+    update(@Req() req: any, @Param('id') id: string, @Body() updateDto: UpdateTimetableDto) {
+        return this.timetableService.update(id, updateDto, req.user);
     }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete timetable entry' })
-    remove(@Param('id') id: string) {
-        return this.timetableService.remove(id);
+    remove(@Req() req: any, @Param('id') id: string) {
+        return this.timetableService.remove(id, req.user);
     }
 }

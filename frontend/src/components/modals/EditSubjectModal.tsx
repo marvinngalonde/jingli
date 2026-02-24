@@ -1,8 +1,9 @@
-import { Drawer, TextInput, Button, Group, Stack, Box } from '@mantine/core';
+import { Drawer, TextInput, Button, Group, Stack, Box, Select, MultiSelect } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { useEffect } from 'react';
-import { subjectsApi } from '../../services/academics';
+import { useEffect, useState } from 'react';
+import { subjectsApi, classesApi } from '../../services/academics';
+import { staffService } from '../../services/staffService';
 import type { Subject } from '../../types/academics';
 
 interface EditSubjectModalProps {
@@ -18,12 +19,29 @@ export function EditSubjectModal({ opened, onClose, onSuccess, subject }: EditSu
             name: '',
             code: '',
             department: '',
+            classLevelIds: [] as string[],
+            teacherId: '',
         },
         validate: {
             name: (val) => !val ? 'Subject name is required' : null,
             code: (val) => !val ? 'Subject code is required' : null,
         },
     });
+
+    const [classes, setClasses] = useState<{ value: string; label: string }[]>([]);
+    const [teachers, setTeachers] = useState<{ value: string; label: string }[]>([]);
+
+    useEffect(() => {
+        if (opened) {
+            Promise.all([classesApi.getAll(), staffService.getAll()]).then(([clsData, staffData]) => {
+                setClasses(clsData.map(c => ({ value: c.id, label: c.name })));
+                setTeachers(staffData
+                    .filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
+                    .map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))
+                );
+            }).catch(console.error);
+        }
+    }, [opened]);
 
     // Populate form when subject changes
     useEffect(() => {
@@ -32,6 +50,8 @@ export function EditSubjectModal({ opened, onClose, onSuccess, subject }: EditSu
                 name: subject.name,
                 code: subject.code,
                 department: subject.department || '',
+                classLevelIds: subject.classLevels?.map(c => c.id) || [],
+                teacherId: subject.teacherId || '',
             });
         }
     }, [subject]);
@@ -44,6 +64,8 @@ export function EditSubjectModal({ opened, onClose, onSuccess, subject }: EditSu
                 name: values.name,
                 code: values.code,
                 department: values.department || undefined,
+                classLevelIds: values.classLevelIds.length > 0 ? values.classLevelIds : undefined,
+                teacherId: values.teacherId || undefined,
             });
             notifications.show({
                 title: 'Success',
@@ -83,6 +105,22 @@ export function EditSubjectModal({ opened, onClose, onSuccess, subject }: EditSu
                             label="Department"
                             placeholder="e.g., Science (optional)"
                             {...form.getInputProps('department')}
+                        />
+                        <MultiSelect
+                            label="Level/Grade"
+                            placeholder="Select grades (optional)"
+                            data={classes}
+                            clearable
+                            searchable
+                            {...form.getInputProps('classLevelIds')}
+                        />
+                        <Select
+                            label="Coordinator/Teacher"
+                            placeholder="Assign primary teacher (optional)"
+                            data={teachers}
+                            clearable
+                            searchable
+                            {...form.getInputProps('teacherId')}
                         />
 
                         <Group justify="flex-end" mt="md">
