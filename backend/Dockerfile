@@ -45,5 +45,5 @@ ENV PORT=3000
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "run", "start:prod"]
+# Start the application directly from the compiled output
+CMD ["node", "dist/src/main.js"]
