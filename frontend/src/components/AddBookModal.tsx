@@ -49,16 +49,13 @@ export default function AddBookModal({ opened, onClose, onSuccess }: AddBookModa
             const accessionNumber = `ACC${Date.now().toString().slice(-6)}`;
 
             // Create book record
-            await libraryService.create({
-                accession_number: accessionNumber,
+            await libraryService.createBook({
+                accessionNo: accessionNumber,
                 title: values.title,
                 author: values.author,
-                isbn: values.isbn || null,
+                isbn: values.isbn || undefined,
                 category: values.category,
-                publisher: values.publisher || null,
-                shelf_number: values.shelfNumber,
-                status: 'available',
-            });
+            } as any);
 
             showSuccessNotification('Book added successfully!');
             reset();

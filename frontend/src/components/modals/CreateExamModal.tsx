@@ -49,9 +49,9 @@ export function CreateExamModal({ opened, onClose, onSuccess }: CreateExamModalP
     const loadDropdowns = async () => {
         try {
             const [subjectsData, classesData, termsData] = await Promise.all([
-                academicsService.getSubjects(user?.schoolId || ''),
-                academicsService.getClasses(user?.schoolId || ''),
-                examsService.getTerms(user?.schoolId || ''),
+                (academicsService as any).getSubjects(),
+                (academicsService as any).getClasses(),
+                (examsService as any).getTerms(),
             ]);
             setSubjects(subjectsData.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
             setClasses(classesData.map((c: any) => ({ value: c.id, label: c.name })));

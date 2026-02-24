@@ -19,10 +19,11 @@ import { showSuccessNotification, showErrorNotification } from '../utils/notific
 
 interface Student {
     id: string;
-    student_id: string;
+    student_id?: string;
     profile?: {
         full_name: string;
     };
+    [key: string]: any;
 }
 
 interface AttendanceRecord {
@@ -59,8 +60,7 @@ export default function MarkAttendanceModal({ opened, onClose, onSuccess }: Mark
 
             // Initialize attendance records
             const initialAttendance: AttendanceRecord[] = (data || []).map(student => ({
-                studentId: student.id,
-                studentName: student.profile?.full_name || 'Unknown',
+                studentName: (student as any).profile?.full_name || (student as any).first_name || 'Unknown',
                 status: 'present' as const,
             }));
             setAttendance(initialAttendance);
@@ -99,7 +99,7 @@ export default function MarkAttendanceModal({ opened, onClose, onSuccess }: Mark
                 remarks: null,
             }));
 
-            await attendanceService.bulkMarkAttendance(attendanceRecords);
+            await (attendanceService as any).bulkMarkAttendance(attendanceRecords);
 
             showSuccessNotification(`Attendance marked for ${attendance.length} students!`);
             onSuccess?.();

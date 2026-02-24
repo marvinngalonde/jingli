@@ -10,8 +10,7 @@ export function StudentLayout() {
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
     const navigate = useNavigate();
-    const location = useLocation();
-    const { user, signOut } = useAuth();
+    const { user, logout } = useAuth();
 
     const navLinks = [
         { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student/dashboard' },
@@ -26,7 +25,7 @@ export function StudentLayout() {
     };
 
     const handleSignOut = async () => {
-        await signOut();
+        await logout();
         navigate('/login');
     };
 

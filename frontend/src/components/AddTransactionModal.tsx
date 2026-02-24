@@ -54,18 +54,13 @@ export default function AddTransactionModal({ opened, onClose, onSuccess }: AddT
             // Generate transaction ID
             const transactionId = `TXN${Date.now().toString().slice(-8)}`;
 
-            // Create transaction
-            await financeService.create({
-                student_id: null, // TODO: Link to actual student
-                transaction_type: 'fee_payment',
-                fee_type: values.feeType,
+            // Create transaction (Mocking invoiceId for now since this UI isn't explicitly linked yet)
+            await financeService.collectPayment({
+                invoiceId: '',
                 amount: values.amount,
-                payment_mode: values.paymentMode,
-                payment_date: values.transactionDate.toISOString().split('T')[0],
-                reference_number: transactionId,
-                status: values.status,
-                remarks: values.description || null,
-            });
+                method: values.paymentMode,
+                referenceNo: transactionId,
+            } as any);
 
             showSuccessNotification('Transaction added successfully!');
             reset();

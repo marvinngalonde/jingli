@@ -49,9 +49,9 @@ export default function AddFacilityModal({ opened, onClose, onSuccess }: AddFaci
             // Create facility
             await facilitiesService.create({
                 name: values.name,
-                type: values.type,
+                type: values.type as any,
                 capacity: values.capacity,
-                status: values.status,
+                status: values.status as any,
                 description: values.description || null,
             });
 

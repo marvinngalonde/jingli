@@ -171,7 +171,7 @@ export function FinanceRecord({ studentId }: FinanceRecordProps) {
                                         return (
                                             <Table.Tr key={inv.id}>
                                                 <Table.Td>{inv.id.substring(0, 8)}</Table.Td>
-                                                <Table.Td>{new Date(inv.createdAt).toLocaleDateString()}</Table.Td>
+                                                <Table.Td>{new Date((inv as any).createdAt || (inv as any).date || new Date()).toLocaleDateString()}</Table.Td>
                                                 <Table.Td>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
                                                 <Table.Td>${Number(inv.amount).toLocaleString()}</Table.Td>
                                                 <Table.Td>${paidAmount.toLocaleString()}</Table.Td>
@@ -316,6 +316,6 @@ export function FinanceRecord({ studentId }: FinanceRecordProps) {
                     </Stack>
                 )}
             </Modal>
-        </Stack>
+        </Stack >
     );
 }

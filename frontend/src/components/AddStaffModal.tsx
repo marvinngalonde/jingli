@@ -55,10 +55,10 @@ export default function AddStaffModal({ opened, onClose, onSuccess }: AddStaffMo
             await staffService.create({
                 employee_id: employeeId,
                 role: values.role,
-                department: values.department || null,
+                department: (values.department || '') as string,
                 date_of_joining: values.dateOfJoining.toISOString().split('T')[0],
                 salary: values.salary,
-                qualification: values.qualification || null,
+                qualification: (values.qualification || '') as string,
                 profile: {
                     full_name: values.fullName,
                     email: values.email,
