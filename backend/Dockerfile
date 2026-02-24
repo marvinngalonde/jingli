@@ -13,7 +13,7 @@ RUN npm ci
 # Copy Prisma schema and generate client
 # We do this before copying all source code to leverage Docker cache
 COPY prisma ./prisma/
-RUN npx prisma generate
+RUN npx prisma@5.22.0 generate
 
 # Copy source code
 COPY src ./src/
@@ -33,7 +33,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy Prisma schema and generate client for production
 COPY prisma ./prisma/
 # Need to regenerate the client in the production image so it works with the current OS/architecture
-RUN npx prisma generate
+RUN npx prisma@5.22.0 generate
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist
