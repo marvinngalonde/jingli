@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { IconPlus, IconRefresh } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { isTeacherRole } from '../../utils/roles';
 
 // Components
 import { TimetableGrid } from './TimetableGrid';
@@ -48,7 +49,7 @@ interface TimetableManagementProps {
 
 export function TimetableManagement({ isStudentOrParent = false }: TimetableManagementProps) {
     const { user } = useAuth();
-    const isTeacher = user?.role === 'teacher';
+    const isTeacher = isTeacherRole(user?.role || '');
 
     // State
     const [loading, setLoading] = useState(false);

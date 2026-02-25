@@ -12,6 +12,13 @@ import { FeeHeadManager, FeeStructureManager } from './finance/FeeComponents';
 // import { InvoiceActionMenu } from './finance/InvoiceActions'; // Removed import
 import type { Invoice, FeeStructure } from '../types/finance';
 
+// Currency helper
+const CURRENCY_OPTIONS = [
+    { value: 'USD', label: 'USD ($)' },
+    { value: 'ZiG', label: 'ZiG (ZiG)' },
+];
+const currencySymbol = (c: string) => c === 'ZiG' ? 'ZiG ' : '$';
+
 function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: () => void }) {
     const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
     const [loading, setLoading] = useState(false);
@@ -72,7 +79,7 @@ function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: 
                     <Stack>
                         <NumberInput
                             label="Amount"
-                            prefix="$"
+                            prefix={currencySymbol(invoice.currency || 'USD')}
                             {...form.getInputProps('amount')}
                         />
                         <DateInput
@@ -236,6 +243,7 @@ export default function Finance() { // Modified to keep original export
                                     <Table.Th>Invoice #</Table.Th>
                                     <Table.Th>Student</Table.Th>
                                     <Table.Th>Amount</Table.Th>
+                                    <Table.Th>Currency</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th>Due Date</Table.Th>
                                     <Table.Th>Actions</Table.Th>
@@ -248,7 +256,8 @@ export default function Finance() { // Modified to keep original export
                                             <Table.Tr key={inv.id}>
                                                 <Table.Td>{inv.id.substring(0, 8)}</Table.Td>
                                                 <Table.Td>{inv.student?.firstName} {inv.student?.lastName}</Table.Td>
-                                                <Table.Td>${Number(inv.amount).toLocaleString()}</Table.Td>
+                                                <Table.Td>{currencySymbol(inv.currency || 'USD')}{Number(inv.amount).toLocaleString()}</Table.Td>
+                                                <Table.Td><Badge variant="light" color="gray">{inv.currency || 'USD'}</Badge></Table.Td>
                                                 <Table.Td>
                                                     <Badge color={inv.status === 'PAID' ? 'green' : inv.status === 'OVERDUE' ? 'red' : 'yellow'}>
                                                         {inv.status}
@@ -293,8 +302,15 @@ export default function Finance() { // Modified to keep original export
                         <Select
                             label="Fee Structure"
                             placeholder="Select Fee Structure"
-                            data={structures.map(s => ({ value: s.id, label: `${s.name} ($${s.amount})` }))}
+                            data={structures.map(s => ({ value: s.id, label: `${s.name} (${currencySymbol(s.currency || 'USD')}${s.amount})` }))}
                             {...genForm.getInputProps('feeStructureId')}
+                        />
+                        <Select
+                            label="Currency"
+                            placeholder="Select Currency"
+                            data={CURRENCY_OPTIONS}
+                            defaultValue="USD"
+                            {...genForm.getInputProps('currency')}
                         />
                         <DateInput
                             label="Due Date"

@@ -7,7 +7,7 @@ import { notifications } from '@mantine/notifications';
 export interface UserProfile {
     id: string; // Internal User ID (UUID)
     email: string;
-    role: 'admin' | 'teacher' | 'student' | 'parent' | 'reception' | 'finance';
+    role: string; // Expanded to support all Zimbabwean roles
     schoolId: string;
     supabaseUid: string;
     username?: string;

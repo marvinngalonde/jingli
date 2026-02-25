@@ -2,20 +2,25 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } fro
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SubjectsService } from './subjects.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('academics')
 @ApiBearerAuth()
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('subjects')
 export class SubjectsController {
     constructor(private readonly subjectsService: SubjectsService) { }
 
     @Post()
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     create(@Req() req: any, @Body() createSubjectDto: any) {
         return this.subjectsService.create(createSubjectDto, req.user.schoolId);
     }
 
     @Post('allocate')
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     allocate(@Req() req: any, @Body() allocationDto: any) {
         return this.subjectsService.allocate(allocationDto, req.user.schoolId);
     }
@@ -26,6 +31,7 @@ export class SubjectsController {
     }
 
     @Delete('allocations/:id')
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     removeAllocation(@Req() req: any, @Param('id') id: string) {
         return this.subjectsService.removeAllocation(id, req.user.schoolId);
     }
@@ -41,11 +47,13 @@ export class SubjectsController {
     }
 
     @Patch(':id')
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     update(@Req() req: any, @Param('id') id: string, @Body() updateSubjectDto: any) {
         return this.subjectsService.update(id, updateSubjectDto, req.user.schoolId);
     }
 
     @Delete(':id')
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     remove(@Req() req: any, @Param('id') id: string) {
         return this.subjectsService.remove(id, req.user.schoolId);
     }

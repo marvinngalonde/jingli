@@ -20,14 +20,15 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RecentNotices } from '../components/communication/RecentNotices';
 import { useNavigate } from 'react-router-dom';
+import { isTeacherRole } from '../utils/roles';
 
 export function Dashboard() {
     const { user } = useAuth();
-    const role = user?.role || 'admin';
+    const role = (user?.role || 'admin').toUpperCase();
 
-    if (role === 'teacher') return <TeacherDashboard />;
-    if (role === 'student' || role === 'parent') return <StudentDashboard role={role} />;
-    if (role === 'reception') return <ReceptionDashboard />;
+    if (isTeacherRole(role)) return <TeacherDashboard />;
+    if (role === 'STUDENT' || role === 'PARENT') return <StudentDashboard role={role.toLowerCase()} />;
+    if (role === 'RECEPTION' || role === 'SENIOR_CLERK' || role === 'SECURITY_GUARD') return <ReceptionDashboard />;
 
     return <AdminDashboard />;
 }

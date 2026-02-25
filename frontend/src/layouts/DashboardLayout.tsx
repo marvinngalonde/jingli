@@ -27,6 +27,7 @@ import jaiLogo from '../assets/logos/jai-trans.png';
 import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
+import { isAdminRole, isTeacherRole } from '../utils/roles';
 import { useEffect, useState, useCallback } from 'react';
 
 export function DashboardLayout() {
@@ -58,13 +59,44 @@ export function DashboardLayout() {
     };
 
 
-    // Sidebar Groups
+
+    const { user, logout } = useAuth();
+    const userRole = user?.role || 'admin'; // Default to admin if no user (dev fallback)
+
+    // Role-matching helper
+    const r = userRole;
+    const isAdmin = isAdminRole(r);
+    const isTeacher = isTeacherRole(r);
+    const isFinance = ['BURSAR', 'FINANCE'].includes(r.toUpperCase());
+    const isLibrarian = r.toUpperCase() === 'LIBRARIAN';
+    const isSecurity = r.toUpperCase() === 'SECURITY_GUARD';
+    const isSeniorClerk = r.toUpperCase() === 'SENIOR_CLERK';
+    const isHR = r.toUpperCase() === 'HR_MANAGER';
+    const isStudent = r.toLowerCase() === 'student';
+    const isParent = r.toLowerCase() === 'parent';
+    const isReception = r.toLowerCase() === 'reception' || isSeniorClerk;
+
+    const hasRole = (check: string) => {
+        // Allow access if the user's map matches
+        const lcCheck = check.toLowerCase();
+        if (lcCheck === 'admin') return isAdmin;
+        if (lcCheck === 'teacher') return isTeacher;
+        if (lcCheck === 'student') return isStudent;
+        if (lcCheck === 'parent') return isParent;
+        if (lcCheck === 'reception') return isReception;
+        if (lcCheck === 'finance') return isFinance;
+        if (lcCheck === 'librarian') return isLibrarian;
+        if (lcCheck === 'security') return isSecurity;
+        if (lcCheck === 'hr') return isHR;
+        return r.toLowerCase() === lcCheck;
+    };
+
     const allLinkGroups = [
         {
             title: 'Overview',
-            roles: ['admin', 'teacher', 'student', 'parent', 'reception'],
+            roles: ['admin', 'teacher', 'student', 'parent', 'reception', 'finance', 'librarian', 'security', 'hr'],
             links: [
-                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception', 'finance', 'librarian', 'security', 'hr'] },
                 { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
                 { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
             ]
@@ -74,25 +106,25 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'student', 'parent'],
             links: [
                 { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'teacher', 'reception'] },
-                { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'reception'] },
+                { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'hr'] },
                 { icon: IconChalkboard, label: 'Classes', to: '/classes', roles: ['admin', 'teacher'] },
-                { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] }, // Timetables etc
+                { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] },
                 { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'teacher', 'student', 'parent'] },
             ]
         },
         {
             title: 'Logistics',
-            roles: ['admin', 'teacher', 'reception', 'student'],
+            roles: ['admin', 'teacher', 'reception', 'student', 'librarian', 'security'],
             links: [
-                { icon: IconUsers, label: 'Visitors', to: '/reception/visitors', roles: ['admin', 'reception'] },
-                { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'teacher', 'student'] },
+                { icon: IconUsers, label: 'Visitors', to: '/reception/visitors', roles: ['admin', 'reception', 'security'] },
+                { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'teacher', 'student', 'librarian'] },
             ]
         },
         {
             title: 'Finance & Admin',
-            roles: ['admin', 'finance', 'reception'], // Reception needs cash desk maybe
+            roles: ['admin', 'finance'],
             links: [
-                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'reception'] },
+                { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'finance'] },
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
                 { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
                 { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
@@ -100,13 +132,10 @@ export function DashboardLayout() {
         }
     ];
 
-    const { user, logout } = useAuth();
-    const userRole = user?.role || 'admin'; // Default to admin if no user (dev fallback)
-
     const linkGroups = allLinkGroups.map(group => ({
         ...group,
-        links: group.links.filter(link => link.roles.includes(userRole))
-    })).filter(group => group.links.length > 0 && group.roles.includes(userRole));
+        links: group.links.filter(link => link.roles.some(r => hasRole(r)))
+    })).filter(group => group.links.length > 0 && group.roles.some(r => hasRole(r)));
 
     const renderLinks = (group: { title: string, links: any[] }, index: number) => (
         <Box key={index} mb="md">

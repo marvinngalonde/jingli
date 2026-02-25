@@ -35,7 +35,7 @@ export function CreateSubjectModal({ opened, onClose, onSuccess }: CreateSubject
             Promise.all([classesApi.getAll(), staffService.getAll()]).then(([clsData, staffData]) => {
                 setClasses(clsData.map(c => ({ value: c.id, label: c.name })));
                 setTeachers(staffData
-                    .filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
+                    .filter(s => s.designation?.toLowerCase().includes('teacher') || ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'].includes(s.user?.role || ''))
                     .map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))
                 );
             }).catch(console.error);

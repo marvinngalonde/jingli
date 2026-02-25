@@ -4,12 +4,15 @@ import { VisitorsService } from './visitors.service';
 import { CreateVisitorDto, VisitorStatus } from './dto/create-visitor.dto';
 import { UpdateVisitorDto } from './dto/update-visitor.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { PdfService } from '../reports/pdf.service';
 import type { Response } from 'express';
 
 @ApiTags('visitors')
 @ApiBearerAuth()
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('visitors')
 export class VisitorsController {
     constructor(
@@ -19,6 +22,7 @@ export class VisitorsController {
 
     @Post()
     @ApiOperation({ summary: 'Register a visitor' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     create(@Req() req: any, @Body() createDto: CreateVisitorDto) {
         return this.visitorsService.create(createDto, req.user.schoolId);
     }
@@ -26,12 +30,14 @@ export class VisitorsController {
     @Get()
     @ApiOperation({ summary: 'Get all visitors' })
     @ApiQuery({ name: 'status', required: false, enum: VisitorStatus })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     findAll(@Req() req: any, @Query('status') status?: VisitorStatus) {
         return this.visitorsService.findAll(req.user.schoolId, status);
     }
 
     @Get('export/pdf')
     @ApiOperation({ summary: 'Export visitor log as PDF' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     async exportPdf(@Req() req: any, @Res() res: Response) {
         const visitors = await this.visitorsService.findAll(req.user.schoolId);
         const rows = (visitors as any[]).map(v => ({
@@ -61,23 +67,27 @@ export class VisitorsController {
 
     @Get(':id')
     @ApiOperation({ summary: 'Get specific visitor' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     findOne(@Req() req: any, @Param('id') id: string) {
         return this.visitorsService.findOne(id, req.user.schoolId);
     }
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update visitor details' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     update(@Req() req: any, @Param('id') id: string, @Body() updateDto: UpdateVisitorDto) {
         return this.visitorsService.update(id, updateDto, req.user.schoolId);
     }
 
     @Patch(':id/checkout')
     @ApiOperation({ summary: 'Checkout a visitor' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN)
     checkout(@Req() req: any, @Param('id') id: string) {
         return this.visitorsService.checkout(id, req.user.schoolId);
     }
 
     @Delete(':id')
+    @Roles(UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     remove(@Req() req: any, @Param('id') id: string) {
         return this.visitorsService.remove(id, req.user.schoolId);
     }

@@ -1,20 +1,25 @@
 import { Controller, Get, UseGuards, Req, Post, Body, Param, Res, NotFoundException, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { ReportsDataService } from './reports-data.service';
 import { PdfService } from './pdf.service';
+import { ZimsecExportService } from './zimsec-export.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import type { Response } from 'express';
 
 @ApiTags('reports')
 @ApiBearerAuth()
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('reports')
 export class ReportsController {
     constructor(
         private readonly reportsService: ReportsService,
         private readonly reportsDataService: ReportsDataService,
-        private readonly pdfService: PdfService
+        private readonly pdfService: PdfService,
+        private readonly zimsecExportService: ZimsecExportService,
     ) { }
 
     @Get('history')
@@ -80,7 +85,36 @@ export class ReportsController {
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete a generated report log' })
+    @Roles(UserRole.SUPER_ADMIN)
     async remove(@Req() req: any, @Param('id') id: string) {
         return this.reportsService.deleteReport(id, req.user.schoolId);
+    }
+
+    // ─── ZIMSEC Integration ───────────────────────────────────────────────────
+
+    @Get('zimsec/export/:examId')
+    @ApiOperation({ summary: 'Download ZIMSEC-compatible CSV for an exam' })
+    @Roles(UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
+    async zimsecExport(
+        @Req() req: any,
+        @Param('examId') examId: string,
+        @Res() res: Response
+    ) {
+        const csv = await this.zimsecExportService.exportResultsCsv(req.user.schoolId, examId);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=zimsec_${examId}.csv`);
+        res.send(csv);
+    }
+
+    // ─── Report Cards ─────────────────────────────────────────────────────────
+
+    @Get('report-card/:studentId/:examId')
+    @ApiOperation({ summary: 'Get report card data (JSON)' })
+    @Roles(UserRole.CLASS_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
+    async getReportCard(
+        @Param('studentId') studentId: string,
+        @Param('examId') examId: string
+    ) {
+        return this.zimsecExportService.getReportCardData(studentId, examId);
     }
 }

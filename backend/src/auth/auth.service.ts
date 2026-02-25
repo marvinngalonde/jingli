@@ -59,8 +59,23 @@ export class AuthService {
         // Determine Role from metadata or default
         const role = metadata?.role ? metadata.role.toUpperCase() : 'STUDENT';
 
-        // Validate Role enum
-        const validRoles = ['ADMIN', 'TEACHER', 'STUDENT', 'PARENT', 'RECEPTION', 'FINANCE'];
+        // Validate Role enum — all Zimbabwean roles
+        const validRoles = [
+            // Executive & Governance
+            'SUPER_ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD', 'SDC_MEMBER',
+            // Financial & Administrative
+            'BURSAR', 'HR_MANAGER', 'SENIOR_CLERK',
+            // Academic Leadership & Teaching
+            'HOD', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'SEN_COORDINATOR',
+            // Specialist & Support
+            'LIBRARIAN', 'LAB_TECHNICIAN', 'ICT_COORDINATOR', 'SCHOOL_NURSE', 'SPORTS_DIRECTOR',
+            // Operations & Security
+            'HOSTEL_WARDEN', 'TRANSPORT_MANAGER', 'SECURITY_GUARD',
+            // External Stakeholders
+            'PARENT', 'STUDENT',
+            // Legacy aliases (backward-compatible)
+            'ADMIN', 'TEACHER', 'RECEPTION', 'FINANCE',
+        ];
         if (!validRoles.includes(role)) {
             throw new BadRequestException('Invalid role');
         }
@@ -81,11 +96,20 @@ export class AuthService {
         });
 
         // Create Linked Profile based on Role
-        // This is simplified. In real app, we need more data.
-        if (role === 'STUDENT') {
+        const STUDENT_ROLES = ['STUDENT'];
+        const STAFF_ROLES = [
+            'SUPER_ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD',
+            'BURSAR', 'HR_MANAGER', 'SENIOR_CLERK',
+            'HOD', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SUBJECT_TEACHER', 'SEN_COORDINATOR',
+            'LIBRARIAN', 'LAB_TECHNICIAN', 'ICT_COORDINATOR', 'SCHOOL_NURSE', 'SPORTS_DIRECTOR',
+            'HOSTEL_WARDEN', 'TRANSPORT_MANAGER', 'SECURITY_GUARD',
+            // Legacy
+            'ADMIN', 'TEACHER', 'RECEPTION', 'FINANCE',
+        ];
+
+        if (STUDENT_ROLES.includes(role)) {
             const section = await this.prisma.classSection.findFirst();
             if (section) {
-                // Create student profile linked to a section
                 await this.prisma.student.create({
                     data: {
                         userId: newUser.id,
@@ -98,8 +122,7 @@ export class AuthService {
                     }
                 });
             }
-            // If no sections exist, skip student profile — it can be created later by admin
-        } else if (role === 'TEACHER' || role === 'ADMIN') {
+        } else if (STAFF_ROLES.includes(role)) {
             await this.prisma.staff.create({
                 data: {
                     userId: newUser.id,
@@ -107,7 +130,7 @@ export class AuthService {
                     firstName: metadata?.firstName || 'New',
                     lastName: metadata?.lastName || 'Staff',
                     employeeId: `EMP-${Date.now()}`,
-                    designation: 'Staff',
+                    designation: role.replace(/_/g, ' ').toLowerCase(),
                     department: 'General',
                     joinDate: new Date(),
                 }

@@ -4,12 +4,15 @@ import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { PdfService } from '../reports/pdf.service';
 import type { Response } from 'express';
 
 @ApiTags('students')
 @ApiBearerAuth()
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('students')
 export class StudentsController {
     constructor(
@@ -19,6 +22,7 @@ export class StudentsController {
 
     @Post()
     @ApiOperation({ summary: 'Create new student' })
+    @Roles(UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     create(@Req() req: any, @Body() createDto: CreateStudentDto) {
         createDto.schoolId = req.user.schoolId;
         return this.studentsService.create(createDto);
@@ -27,6 +31,7 @@ export class StudentsController {
     @Get()
     @ApiOperation({ summary: 'Get all students' })
     @ApiQuery({ name: 'sectionId', required: false })
+    @Roles(UserRole.SENIOR_CLERK, UserRole.CLASS_TEACHER, UserRole.SUBJECT_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN, UserRole.SEN_COORDINATOR)
     findAll(@Req() req: any, @Query('sectionId') sectionId?: string) {
         return this.studentsService.findAll(req.user.schoolId, sectionId);
     }
@@ -63,11 +68,13 @@ export class StudentsController {
     }
 
     @Patch(':id')
+    @Roles(UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN, UserRole.SEN_COORDINATOR)
     update(@Param('id') id: string, @Body() updateDto: UpdateStudentDto) {
         return this.studentsService.update(id, updateDto);
     }
 
     @Delete(':id')
+    @Roles(UserRole.SUPER_ADMIN)
     remove(@Param('id') id: string) {
         return this.studentsService.remove(id);
     }

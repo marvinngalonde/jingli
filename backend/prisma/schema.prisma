@@ -52,12 +52,45 @@ model School {
 // -----------------------------------------------------------------------------
 
 enum UserRole {
-  ADMIN
-  TEACHER
-  STUDENT
+  // Executive & Governance
+  SUPER_ADMIN
+  SCHOOL_HEAD
+  DEPUTY_HEAD
+  SDC_MEMBER
+
+  // Financial & Administrative
+  BURSAR
+  HR_MANAGER
+  SENIOR_CLERK
+
+  // Academic Leadership & Teaching
+  HOD
+  SENIOR_TEACHER
+  CLASS_TEACHER
+  SUBJECT_TEACHER
+  SEN_COORDINATOR
+
+  // Specialist & Support
+  LIBRARIAN
+  LAB_TECHNICIAN
+  ICT_COORDINATOR
+  SCHOOL_NURSE
+  SPORTS_DIRECTOR
+
+  // Operations & Security
+  HOSTEL_WARDEN
+  TRANSPORT_MANAGER
+  SECURITY_GUARD
+
+  // External Stakeholders
   PARENT
-  RECEPTION
-  FINANCE
+  STUDENT
+
+  // Legacy (backward-compatible aliases)
+  ADMIN      // → SUPER_ADMIN
+  TEACHER    // → SUBJECT_TEACHER
+  RECEPTION  // → SENIOR_CLERK
+  FINANCE    // → BURSAR
 }
 
 enum UserStatus {
@@ -100,6 +133,33 @@ model User {
   @@unique([schoolId, username])
   @@unique([schoolId, email])
   @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// 1b. PERMISSIONS & RBAC
+// -----------------------------------------------------------------------------
+
+model Permission {
+  id          String @id @default(uuid())
+  module      String   // e.g. "finance", "academics", "library"
+  action      String   // e.g. "read", "write", "approve", "delete"
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@unique([module, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         UserRole
+  permissionId String     @map("permission_id")
+
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
 }
 
 model Guardian {
@@ -432,6 +492,7 @@ model FeeStructure {
   feeHeadId      String? @map("fee_head_id")
   name           String
   amount         Decimal
+  currency       String  @default("USD") // USD, ZiG, etc.
   frequency      FeeFrequency
 
   school         School       @relation(fields: [schoolId], references: [id])
@@ -472,6 +533,7 @@ model Invoice {
   amount         Decimal
   dueDate        DateTime @map("due_date")
   status         InvoiceStatus @default(PENDING)
+  currency       String   @default("USD") // USD, ZiG, etc.
   issueDate      DateTime @default(now()) @map("issue_date")
 
   school         School       @relation(fields: [schoolId], references: [id])
@@ -488,6 +550,7 @@ enum PaymentMethod {
   CARD
   ONLINE
   CHEQUE
+  MOBILE_MONEY  // EcoCash, InnBucks, etc.
 }
 
 model Transaction {
@@ -495,6 +558,7 @@ model Transaction {
   schoolId    String   @map("school_id")
   invoiceId   String   @map("invoice_id")
   amount      Decimal
+  currency    String  @default("USD") // USD, ZiG, etc.
   method      PaymentMethod
   date        DateTime @default(now())
   referenceNo String?  @map("reference_no")

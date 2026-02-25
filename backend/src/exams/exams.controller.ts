@@ -1,11 +1,14 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Logger } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { ApiTags, ApiQuery, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('exams')
 @Controller('exams')
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 export class ExamsController {
     private readonly logger = new Logger(ExamsController.name);
 
@@ -15,6 +18,7 @@ export class ExamsController {
 
     @Post()
     @ApiOperation({ summary: 'Create a new exam' })
+    @Roles(UserRole.HOD, UserRole.SENIOR_TEACHER, UserRole.SUPER_ADMIN)
     create(@Body() createExamDto: any) {
         return this.examsService.create(createExamDto);
     }
@@ -34,6 +38,7 @@ export class ExamsController {
 
     @Post('terms')
     @ApiOperation({ summary: 'Create a new exam term' })
+    @Roles(UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     createTerm(@Body() createTermDto: any) {
         return this.examsService.createTerm(createTermDto);
     }
@@ -60,6 +65,7 @@ export class ExamsController {
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete exam' })
+    @Roles(UserRole.HOD, UserRole.SUPER_ADMIN)
     remove(@Param('id') id: string) {
         return this.examsService.remove(id);
     }

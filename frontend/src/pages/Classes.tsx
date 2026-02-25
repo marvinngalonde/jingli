@@ -4,14 +4,18 @@ import {
     Group,
     Text,
     LoadingOverlay,
-    Alert
+    Alert,
+    Tabs
 } from '@mantine/core';
 import {
     IconPlus,
     IconUsers,
-    IconAlertCircle
+    IconAlertCircle,
+    IconSchool,
+    IconDoor
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { isTeacherRole } from '../utils/roles';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
@@ -46,7 +50,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const { user } = useAuth();
-    const isTeacher = user?.role === 'teacher';
+    const isTeacher = isTeacherRole(user?.role || '');
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     const [selectedSection, setSelectedSection] = useState<ClassSection | null>(null);
     const [selectedClassLevel, setSelectedClassLevel] = useState<ClassLevel | null>(null);
     const [page, setPage] = useState(1);
+    const [activeTab, setActiveTab] = useState<string | null>('classes');
 
     // Fetch classes on mount
     useEffect(() => {
@@ -75,7 +80,8 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
             setClassLevels(data);
 
             // Filter staff who are likely teachers
-            const teacherStaff = staffRes.filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER');
+            const teachingRoles = ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'];
+            const teacherStaff = staffRes.filter(s => s.designation?.toLowerCase().includes('teacher') || teachingRoles.includes(s.user?.role || ''));
             setTeachers(teacherStaff);
         } catch (err: any) {
             console.error('Failed to fetch classes or staff:', err);
@@ -99,7 +105,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         }))
     );
 
-    const filteredData = rows.filter(item => {
+    const filteredSectionData = rows.filter(item => {
         const matchesSearch = item.fullName.toLowerCase().includes(search.toLowerCase());
 
         if (isTeacher) {
@@ -110,9 +116,15 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         return matchesSearch;
     });
 
+    const filteredClassData = classLevels.filter(item => {
+        return item.name.toLowerCase().includes(search.toLowerCase());
+    });
+
+    const currentTabFilteredData = activeTab === 'classes' ? filteredClassData : filteredSectionData;
+
     // Pagination
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-    const paginatedData = filteredData.slice(
+    const totalPages = Math.ceil(currentTabFilteredData.length / ITEMS_PER_PAGE);
+    const paginatedData = currentTabFilteredData.slice(
         (page - 1) * ITEMS_PER_PAGE,
         page * ITEMS_PER_PAGE
     );
@@ -130,10 +142,10 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         setDeleteModalOpened(true);
     };
 
-    const columns: Column<ClassRow>[] = [
+    const sectionColumns: Column<ClassRow>[] = [
         {
             accessor: 'name',
-            header: 'Class Name',
+            header: 'Section Name',
             render: (item) => (
                 <Text fw={600} size="sm">{item.fullName}</Text>
             )
@@ -178,6 +190,39 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         }
     ];
 
+    const classColumns: Column<ClassLevel>[] = [
+        {
+            accessor: 'name',
+            header: 'Class Name',
+            render: (item) => (
+                <Text fw={600} size="sm">{item.name}</Text>
+            )
+        },
+        {
+            accessor: 'level',
+            header: 'Level',
+            render: (item) => <Text size="sm">{item.level}</Text>
+        },
+        {
+            accessor: 'sections',
+            header: 'Sections Count',
+            render: (item) => <Text size="sm">{item.sections?.length || 0}</Text>
+        },
+        {
+            accessor: 'students',
+            header: 'Total Students',
+            render: (item) => {
+                const totalStudents = item.sections?.reduce((sum, sec) => sum + (sec._count?.students || 0), 0) || 0;
+                return (
+                    <Group gap={4}>
+                        <IconUsers size={14} color="gray" />
+                        <Text size="sm">{totalStudents}</Text>
+                    </Group>
+                );
+            }
+        },
+    ];
+
     return (
         <>
             {!asComponent && (
@@ -190,7 +235,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
                                 leftSection={<IconPlus size={18} />}
                                 onClick={() => setCreateModalOpened(true)}
                             >
-                                Add Class
+                                {activeTab === 'classes' ? 'Add Class' : 'Add Section'}
                             </Button>
                         )
                     }
@@ -206,7 +251,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
                         leftSection={<IconPlus size={16} />}
                         onClick={() => setCreateModalOpened(true)}
                     >
-                        Add Class
+                        {activeTab === 'classes' ? 'Add Class' : 'Add Section'}
                     </Button>
                 </Group>
             )}
@@ -220,20 +265,46 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
             <LoadingOverlay visible={loading} />
 
             {!loading && !error && (
-                <DataTable
-                    data={paginatedData}
-                    columns={columns}
-                    search={search}
-                    onSearchChange={(val) => {
-                        setSearch(val);
-                        setPage(1); // Reset to first page on search
-                    }}
-                    pagination={{
-                        total: totalPages,
-                        page: page,
-                        onChange: setPage
-                    }}
-                />
+                <Tabs value={activeTab} onChange={setActiveTab} mb="lg">
+                    <Tabs.List mb="md">
+                        <Tabs.Tab value="classes" leftSection={<IconSchool size={16} />}>Classes</Tabs.Tab>
+                        <Tabs.Tab value="sections" leftSection={<IconDoor size={16} />}>Sections</Tabs.Tab>
+                    </Tabs.List>
+
+                    <Tabs.Panel value="classes">
+                        <DataTable
+                            data={activeTab === 'classes' ? paginatedData as any[] : []}
+                            columns={classColumns as any[]}
+                            search={search}
+                            onSearchChange={(val) => {
+                                setSearch(val);
+                                setPage(1);
+                            }}
+                            pagination={{
+                                total: totalPages,
+                                page: page,
+                                onChange: setPage
+                            }}
+                        />
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="sections">
+                        <DataTable
+                            data={activeTab === 'sections' ? paginatedData as any[] : []}
+                            columns={sectionColumns as any[]}
+                            search={search}
+                            onSearchChange={(val) => {
+                                setSearch(val);
+                                setPage(1);
+                            }}
+                            pagination={{
+                                total: totalPages,
+                                page: page,
+                                onChange: setPage
+                            }}
+                        />
+                    </Tabs.Panel>
+                </Tabs>
             )}
 
             <CreateClassModal
@@ -242,6 +313,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
                 onSuccess={fetchClasses}
                 classLevels={classLevels}
                 teachers={teachers}
+                initialType={activeTab === 'classes' ? 'level' : 'section'}
             />
 
             <EditClassModal

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getDashboardPath } from '../utils/roles';
 import {
     TextInput,
     PasswordInput,
@@ -47,13 +48,10 @@ export function Login() {
                 message: 'Login successful',
                 color: 'green',
             });
-            const resolveRes = await api.get('/users/me'); // Just to peek role real quick after login, though context handles it too
-            const role = resolveRes.data.role.toLowerCase();
+            const resolveRes = await api.get('/users/me');
+            const role = resolveRes.data.role;
 
-            let targetPath = '/dashboard';
-            if (role === 'teacher') targetPath = '/teacher/dashboard';
-            if (role === 'student') targetPath = '/student/dashboard';
-            if (role === 'parent') targetPath = '/parent/dashboard';
+            const targetPath = getDashboardPath(role);
 
             navigate(targetPath);
 

@@ -5,10 +5,13 @@ import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { PdfService } from '../reports/pdf.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import type { Response } from 'express';
 
 @ApiTags('staff')
-@UseGuards(SupabaseGuard)
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('staff')
 export class StaffController {
     constructor(
@@ -18,6 +21,7 @@ export class StaffController {
 
     @Post()
     @ApiOperation({ summary: 'Create new staff member (and user account)' })
+    @Roles(UserRole.HR_MANAGER, UserRole.SUPER_ADMIN)
     create(@Req() req: any, @Body() createDto: CreateStaffDto) {
         return this.staffService.create(req.user.schoolId, createDto);
     }
@@ -25,6 +29,7 @@ export class StaffController {
     @Get()
     @ApiOperation({ summary: 'Get all staff for a school' })
     @ApiQuery({ name: 'schoolId' })
+    @Roles(UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.HOD, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN)
     findAll(@Query('schoolId') schoolId: string) {
         return this.staffService.findAll(schoolId);
     }
@@ -58,11 +63,13 @@ export class StaffController {
     }
 
     @Patch(':id')
+    @Roles(UserRole.HR_MANAGER, UserRole.SUPER_ADMIN)
     update(@Param('id') id: string, @Body() updateDto: UpdateStaffDto) {
         return this.staffService.update(id, updateDto);
     }
 
     @Delete(':id')
+    @Roles(UserRole.HR_MANAGER, UserRole.SUPER_ADMIN)
     remove(@Param('id') id: string) {
         return this.staffService.remove(id);
     }

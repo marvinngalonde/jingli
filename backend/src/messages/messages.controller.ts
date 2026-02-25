@@ -1,15 +1,19 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
 
 @ApiTags('messages')
 @Controller('messages')
+@UseGuards(SupabaseGuard, RolesGuard)
 export class MessagesController {
     constructor(private readonly messagesService: MessagesService) { }
 
     @Post()
     @ApiOperation({ summary: 'Send a message' })
+    // All authenticated users can send messages — no @Roles restriction
     create(@Body() createDto: CreateMessageDto) {
         return this.messagesService.create(createDto);
     }

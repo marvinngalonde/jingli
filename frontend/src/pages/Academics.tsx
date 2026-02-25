@@ -10,7 +10,8 @@ import Subjects from './Subjects';
 
 export default function Academics() {
     const { user } = useAuth();
-    const isStudentOrParent = user?.role === 'student' || user?.role === 'parent';
+    const upperRole = (user?.role || '').toUpperCase();
+    const isStudentOrParent = upperRole === 'STUDENT' || upperRole === 'PARENT';
 
     const [activeTab, setActiveTab] = useState<string | null>(isStudentOrParent ? 'timetable' : 'classes');
 

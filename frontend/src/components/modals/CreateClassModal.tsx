@@ -1,4 +1,5 @@
 import { Drawer, TextInput, NumberInput, Button, Group, Stack, Select, Box } from '@mantine/core';
+import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { classesApi } from '../../services/academics';
@@ -10,12 +11,13 @@ interface CreateClassModalProps {
     onSuccess: () => void;
     classLevels: ClassLevel[];
     teachers: any[];
+    initialType?: 'level' | 'section';
 }
 
-export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teachers }: CreateClassModalProps) {
+export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teachers, initialType = 'section' }: CreateClassModalProps) {
     const form = useForm({
         initialValues: {
-            type: 'section', // 'level' or 'section'
+            type: initialType, // 'level' or 'section'
             // For level
             levelName: '',
             levelNumber: 1,
@@ -33,6 +35,12 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teac
             capacity: (val, values) => values.type === 'section' && (!val || val < 1) ? 'Capacity must be at least 1' : null,
         },
     });
+
+    useEffect(() => {
+        if (opened) {
+            form.setValues({ type: initialType });
+        }
+    }, [opened, initialType]);
 
     const handleSubmit = async (values: typeof form.values) => {
         try {
@@ -61,7 +69,15 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teac
                     color: 'green',
                 });
             }
-            form.reset();
+            form.setValues({
+                type: initialType,
+                levelName: '',
+                levelNumber: 1,
+                classLevelId: '',
+                sectionName: '',
+                capacity: 30,
+                classTeacherId: '',
+            });
             onSuccess();
             onClose();
         } catch (error: any) {
@@ -78,16 +94,20 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teac
             <Box p={0}>
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
-                        <Select
-                            label="Type"
-                            placeholder="Select type"
-                            data={[
-                                { value: 'section', label: 'Class Section (e.g., Grade 1-A)' },
-                                { value: 'level', label: 'Class Level (e.g., Grade 1)' },
-                            ]}
-                            {...form.getInputProps('type')}
-                            required
-                        />
+                        {/* Remove the Select and just show the relevant form fields based on initialType.
+                            Actually the user wants them strictly separated. 
+                            If initialType is passed, we disable changing it or hide it.
+                            Here we just hide it by keeping it out of the UI if they passed it to us. 
+                            Let's just hide the element if we rely on initialType to be the driving force. */}
+                        <Box display="none">
+                            <Select
+                                data={[
+                                    { value: 'section', label: 'Class Section (e.g., Grade 1-A)' },
+                                    { value: 'level', label: 'Class Level (e.g., Grade 1)' },
+                                ]}
+                                {...form.getInputProps('type')}
+                            />
+                        </Box>
 
                         {form.values.type === 'level' ? (
                             <>

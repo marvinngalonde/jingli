@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LoadingOverlay, Box } from '@mantine/core';
+import { getDashboardPath } from '../utils/roles';
 
 interface ProtectedRouteProps {
     allowedRoles?: string[];
@@ -26,11 +27,7 @@ export const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) 
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // User authorized but role verification failed
-        // Redirect to their default dashboard
-        let defaultPath = '/dashboard';
-        if (user.role === 'teacher') defaultPath = '/teacher/dashboard';
-        if (user.role === 'student') defaultPath = '/student/dashboard';
-        if (user.role === 'parent') defaultPath = '/parent/dashboard';
+        const defaultPath = getDashboardPath(user.role);
 
         return <Navigate to={defaultPath} replace />;
     }
