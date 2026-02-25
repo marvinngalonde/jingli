@@ -129,7 +129,7 @@ export function TeacherGrading() {
                 <Stack gap="xl">
                     {Object.values(groupedPending).map((group, idx) => (
                         <Card key={idx} withBorder radius="md" p={0}>
-                            <Group p="md" style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                            <Group p="md" style={{ borderBottom: '1px solid var(--app-border-light)', backgroundColor: 'var(--app-surface-dim)' }}>
                                 <IconFileDescription size={20} color="var(--mantine-color-brand-6)" />
                                 <Title order={5}>{group.assignmentHeader}</Title>
                                 <Badge ml="auto" color="orange">{group.submissions.length} Pending</Badge>

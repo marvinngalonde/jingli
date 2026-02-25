@@ -93,7 +93,7 @@ export function Installation() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'white'
+                background: 'var(--app-surface)'
             }}>
                 <Box maw={500} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
@@ -180,7 +180,7 @@ export function Installation() {
             {/* RIGHT SIDE: IMAGE */}
             <div style={{
                 flex: '1',
-                background: '#f1f5f9',
+                background: 'var(--app-surface-dim)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

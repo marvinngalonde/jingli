@@ -107,7 +107,7 @@ export default function StudentDetail() {
             <Paper p="xl" radius="md" mb="lg" withBorder style={{ position: 'relative', overflow: 'hidden' }}>
                 <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, height: 120,
-                    background: 'linear-gradient(135deg, #228be6 0%, #15aabf 100%)',
+                    background: 'linear-gradient(135deg, var(--mantine-color-brand-6) 0%, var(--mantine-color-cyan-6) 100%)',
                     zIndex: 0
                 }} />
 

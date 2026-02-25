@@ -115,7 +115,7 @@ export function Signup() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'white'
+                background: 'var(--app-surface)'
             }} className="signup-form-container">
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={40} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(28) }}>
@@ -133,7 +133,7 @@ export function Signup() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('name')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
 
                             <TextInput
@@ -143,7 +143,7 @@ export function Signup() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('email')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -160,7 +160,7 @@ export function Signup() {
                                     )
                                 }
                                 {...form.getInputProps('password')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -177,7 +177,7 @@ export function Signup() {
                                     )
                                 }
                                 {...form.getInputProps('confirmPassword')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
                         </Stack>
 
@@ -198,7 +198,7 @@ export function Signup() {
             {/* RIGHT SIDE: IMAGE */}
             <div style={{
                 flex: '1',
-                background: '#f1f5f9',
+                background: 'var(--app-surface-dim)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

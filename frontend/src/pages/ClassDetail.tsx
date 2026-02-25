@@ -28,6 +28,7 @@ import { notifications } from '@mantine/notifications';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
+import { ClassOverviewStats } from '../components/classes/ClassOverviewStats';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { TimetableGrid } from '../components/timetable/TimetableGrid';
 
@@ -326,69 +327,12 @@ export default function ClassDetail() {
                 subtitle={`Class Teacher: ${classTeacherName}`}
             />
 
-            {/* ═══════════ Stats Cards ═══════════ */}
-            <Grid mb="lg">
-                <Grid.Col span={{ base: 6, md: 3 }}>
-                    <Paper withBorder p="md" radius="md">
-                        <Group>
-                            <RingProgress
-                                size={56}
-                                thickness={5}
-                                roundCaps
-                                sections={[{ value: occupancyPercent, color: occupancyPercent > 90 ? 'red' : 'blue' }]}
-                                label={
-                                    <Center>
-                                        <IconUsers size={18} />
-                                    </Center>
-                                }
-                            />
-                            <div>
-                                <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Students</Text>
-                                <Text fw={700} size="xl">{students.length} <Text span size="sm" c="dimmed">/ {capacity}</Text></Text>
-                            </div>
-                        </Group>
-                    </Paper>
-                </Grid.Col>
-                <Grid.Col span={{ base: 6, md: 3 }}>
-                    <Paper withBorder p="md" radius="md">
-                        <Group>
-                            <ThemeIcon size="lg" radius="md" variant="light" color="orange">
-                                <IconChalkboard size={20} />
-                            </ThemeIcon>
-                            <div>
-                                <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Capacity</Text>
-                                <Text fw={700} size="xl">{capacity}</Text>
-                            </div>
-                        </Group>
-                    </Paper>
-                </Grid.Col>
-                <Grid.Col span={{ base: 6, md: 3 }}>
-                    <Paper withBorder p="md" radius="md">
-                        <Group>
-                            <ThemeIcon size="lg" radius="md" variant="light" color="green">
-                                <IconSchool size={20} />
-                            </ThemeIcon>
-                            <div>
-                                <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Teachers</Text>
-                                <Text fw={700} size="xl">{teachers.length}</Text>
-                            </div>
-                        </Group>
-                    </Paper>
-                </Grid.Col>
-                <Grid.Col span={{ base: 6, md: 3 }}>
-                    <Paper withBorder p="md" radius="md">
-                        <Group>
-                            <ThemeIcon size="lg" radius="md" variant="light" color="violet">
-                                <IconBook size={20} />
-                            </ThemeIcon>
-                            <div>
-                                <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Subjects</Text>
-                                <Text fw={700} size="xl">{uniqueSubjects}</Text>
-                            </div>
-                        </Group>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
+            <ClassOverviewStats
+                studentCount={students.length}
+                capacity={capacity}
+                teacherCount={teachers.length}
+                subjectCount={uniqueSubjects}
+            />
 
             {/* ═══════════ Tabs ═══════════ */}
             <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md">

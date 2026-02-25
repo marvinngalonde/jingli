@@ -60,7 +60,7 @@ export default function VisitorLog() {
                         <Box style={{ overflowX: 'auto' }}>
                             <Table highlightOnHover>
                                 <Table.Thead>
-                                    <Table.Tr style={{ backgroundColor: '#f8f9fa' }}>
+                                    <Table.Tr style={{ backgroundColor: 'var(--app-surface-dim)' }}>
                                         <Table.Th>Visitor Photo</Table.Th>
                                         <Table.Th>Name</Table.Th>
                                         <Table.Th>Purpose</Table.Th>

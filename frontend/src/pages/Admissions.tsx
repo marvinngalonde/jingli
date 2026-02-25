@@ -126,7 +126,7 @@ export default function Admissions() {
                     </Paper>
                 ))}
                 {items.length === 0 && (
-                    <Box h={100} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #ced4da', borderRadius: 4 }}>
+                    <Box h={100} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--app-border)', borderRadius: 4 }}>
                         <Text size="xs" c="dimmed">No {title.toLowerCase()}</Text>
                     </Box>
                 )}

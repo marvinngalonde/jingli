@@ -146,7 +146,7 @@ export default function Fees() {
                         />
 
                         <Text size="xs" c="dimmed" mb={4}>Remarks (Optional)</Text>
-                        <Box mb="lg" style={{ border: '1px solid #ced4da', borderRadius: 4, padding: 8, minHeight: 60 }} contentEditable />
+                        <Box mb="lg" style={{ border: '1px solid var(--app-border)', borderRadius: 4, padding: 8, minHeight: 60 }} contentEditable />
 
                         <Group justify="flex-end">
                             <Button variant="default" onClick={closePaymentModal}>Cancel</Button>

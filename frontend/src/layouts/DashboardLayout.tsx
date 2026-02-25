@@ -187,10 +187,10 @@ export function DashboardLayout() {
             }}
             padding="md"
             style={{
-                background: '#f1f5f9',
+                background: 'var(--app-surface-dim)',
             }}
         >
-            <AppShell.Header style={{ borderBottom: '1px solid #e2e8f0', background: 'rgba(255,255,255,0.95)' }}>
+            <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
                 <Group h="100%" px="lg" justify="space-between">
                     <Group>
                         {/* Mobile Burger */}
@@ -283,7 +283,7 @@ export function DashboardLayout() {
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar style={{ backgroundColor: 'white', borderRight: '1px solid #e2e8f0' }}>
+            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
                 {/* Sidebar content starts directly since Logo is moved to Header */}
                 <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
                     <Box p="md">

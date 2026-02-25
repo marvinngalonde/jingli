@@ -75,10 +75,10 @@ export function TeacherLayout() {
             header={{ height: 60 }}
             padding="md"
             style={{
-                background: '#f8fafc', // Slightly lighter than standard dash
+                background: 'var(--app-surface-dim)',
             }}
         >
-            <AppShell.Header style={{ borderBottom: '1px solid #e2e8f0', background: 'rgba(255,255,255,0.98)' }}>
+            <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
                 <Container size="xl" h="100%">
                     <Group h="100%" justify="space-between">
                         <Group gap="xl">
@@ -248,8 +248,8 @@ export function TeacherLayout() {
                 right={0}
                 p="xs"
                 style={{
-                    backgroundColor: 'rgba(255,255,255,0.98)',
-                    borderTop: '1px solid #e2e8f0',
+                    backgroundColor: 'var(--app-header-bg)',
+                    borderTop: '1px solid var(--app-border-light)',
                     zIndex: 100,
                     display: 'flex',
                     justifyContent: 'space-around',

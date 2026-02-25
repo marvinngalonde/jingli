@@ -150,7 +150,7 @@ export default function Facilities() {
                         <Box style={{ overflowX: 'auto' }}>
                             <Table highlightOnHover>
                                 <Table.Thead>
-                                    <Table.Tr style={{ backgroundColor: '#f8f9fa' }}>
+                                    <Table.Tr style={{ backgroundColor: 'var(--app-surface-dim)' }}>
                                         <Table.Th>ID</Table.Th>
                                         <Table.Th>Facility Name</Table.Th>
                                         <Table.Th>Type</Table.Th>

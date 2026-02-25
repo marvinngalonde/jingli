@@ -38,6 +38,8 @@ import type { Student } from '../types/students';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
+import { LateArrivalModal } from '../components/students/LateArrivalModal';
+import { GatePassModal } from '../components/students/GatePassModal';
 import { DataTable, type Column } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ActionMenu } from '../components/common/ActionMenu';
@@ -480,51 +482,23 @@ export default function Students() {
                 </Group>
             </Modal>
 
-            <Modal opened={lateOpened} onClose={closeLate} title="Log Late Arrival">
-                <form onSubmit={lateForm.onSubmit(handleLogLate)}>
-                    <Stack>
-                        <Select
-                            label="Student"
-                            placeholder="Select student"
-                            data={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
-                            searchable
-                            required
-                            {...lateForm.getInputProps('studentId')}
-                        />
-                        <Select
-                            label="Reason"
-                            data={['Traffic', 'Bus Delay', 'Overslept', 'Medical', 'Other']}
-                            {...lateForm.getInputProps('reason')}
-                        />
-                        <TextInput label="Reported By" placeholder="e.g. Parent" required {...lateForm.getInputProps('reportedBy')} />
-                        <Group justify="flex-end">
-                            <Button variant="default" onClick={closeLate}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Log Arrival</Button>
-                        </Group>
-                    </Stack>
-                </form>
-            </Modal>
+            <LateArrivalModal
+                opened={lateOpened}
+                onClose={closeLate}
+                form={lateForm}
+                onSubmit={handleLogLate}
+                studentOptions={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                submitting={submitting}
+            />
 
-            <Modal opened={passOpened} onClose={closePass} title="Issue Gate Pass">
-                <form onSubmit={passForm.onSubmit(handleIssuePass)}>
-                    <Stack>
-                        <Select
-                            label="Student"
-                            placeholder="Select student"
-                            data={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
-                            searchable
-                            required
-                            {...passForm.getInputProps('studentId')}
-                        />
-                        <TextInput label="Reason" placeholder="Reason for early exit" required {...passForm.getInputProps('reason')} />
-                        <TextInput label="Guardian/Escort" placeholder="Name of person picking up" required {...passForm.getInputProps('guardianName')} />
-                        <Group justify="flex-end">
-                            <Button variant="default" onClick={closePass}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Issue Pass</Button>
-                        </Group>
-                    </Stack>
-                </form>
-            </Modal>
+            <GatePassModal
+                opened={passOpened}
+                onClose={closePass}
+                form={passForm}
+                onSubmit={handleIssuePass}
+                studentOptions={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                submitting={submitting}
+            />
         </>
     );
 }

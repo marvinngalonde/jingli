@@ -13,7 +13,7 @@ import {
 import { Bus, MapPin, Plus } from 'lucide-react';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect } from 'react';
-import AddRouteModal from '../components/AddRouteModal';
+import AddRouteModal from '../components/modals/AddRouteModal';
 import { transportService } from '../services/transportService';
 import { showErrorNotification } from '../utils/notifications';
 

@@ -75,7 +75,7 @@ export function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'white'
+                background: 'var(--app-surface)'
             }} className="login-form-container">
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
@@ -96,7 +96,7 @@ export function Login() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('username')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -113,7 +113,7 @@ export function Login() {
                                     )
                                 }
                                 {...form.getInputProps('password')}
-                                styles={{ input: { backgroundColor: '#f8fafc' } }}
+                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
                             />
                         </Stack>
 
@@ -140,7 +140,7 @@ export function Login() {
             {/* RIGHT SIDE: IMAGE */}
             <div style={{
                 flex: '1',
-                background: '#f1f5f9',
+                background: 'var(--app-surface-dim)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

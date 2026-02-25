@@ -54,7 +54,7 @@ export default function ParentPortal() {
         <Box
             style={{
                 minHeight: '100vh',
-                backgroundColor: '#f0f2f5',
+                backgroundColor: 'var(--app-surface-dim)',
                 padding: rem(20),
             }}
         >
@@ -180,7 +180,7 @@ export default function ParentPortal() {
                             <Box style={{ overflowX: 'auto' }}>
                                 <Table>
                                     <Table.Thead>
-                                        <Table.Tr style={{ backgroundColor: '#f8f9fa' }}>
+                                        <Table.Tr style={{ backgroundColor: 'var(--app-surface-dim)' }}>
                                             <Table.Th>Subject</Table.Th>
                                             <Table.Th>Teacher</Table.Th>
                                             <Table.Th>Midterm</Table.Th>
@@ -232,7 +232,7 @@ export default function ParentPortal() {
                                         key={idx}
                                         p="sm"
                                         style={{
-                                            backgroundColor: '#f9fafb',
+                                            backgroundColor: 'var(--app-surface-dim)',
                                             borderRadius: rem(4),
                                         }}
                                     >
