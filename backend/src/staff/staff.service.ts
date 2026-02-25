@@ -55,7 +55,10 @@ export class StaffService {
 
     async findAll(schoolId: string) {
         return this.prisma.staff.findMany({
-            where: { schoolId },
+            where: {
+                schoolId,
+                user: { status: 'ACTIVE' }
+            },
             include: {
                 user: {
                     select: {

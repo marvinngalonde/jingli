@@ -12,6 +12,8 @@ import {
     Paper,
     ThemeIcon,
     Tabs,
+    Switch,
+    Badge,
 } from '@mantine/core';
 import {
     IconPlus,
@@ -23,6 +25,7 @@ import {
     IconSchool,
     IconBriefcase,
     IconMail,
+    IconRefresh,
 } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { DataTable, type Column } from '../../components/common/DataTable';
@@ -42,11 +45,12 @@ export default function Users() {
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [drawerUser, setDrawerUser] = useState<AdminUser | null>(null);
+    const [showInactive, setShowInactive] = useState(false);
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const data = await adminUsersService.getAllUsers();
+            const data = await adminUsersService.getAllUsers(showInactive);
             setUsers(data);
         } catch (error) {
             console.error('Failed to load users', error);
@@ -57,7 +61,7 @@ export default function Users() {
 
     useEffect(() => {
         loadUsers();
-    }, []);
+    }, [showInactive]);
 
     // Statistics Calculation
     const stats = useMemo(() => {
@@ -66,20 +70,31 @@ export default function Users() {
         const teachers = users.filter(u => u.role === 'TEACHER').length;
         const students = users.filter(u => u.role === 'STUDENT').length;
         const active = users.filter(u => u.status === 'ACTIVE').length;
+        const inactive = users.filter(u => u.status === 'INACTIVE').length;
 
-        return { total, admins, teachers, students, active };
+        return { total, admins, teachers, students, active, inactive };
     }, [users]);
 
     const handleDelete = async () => {
         if (!selectedUser) return;
         try {
             await adminUsersService.deleteUser(selectedUser.id);
-            notifications.show({ title: 'Success', message: 'User deleted', color: 'green' });
+            notifications.show({ title: 'Deactivated', message: 'User has been deactivated and can be restored later', color: 'green' });
             setDeleteModalOpened(false);
             setSelectedUser(null);
             loadUsers();
         } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to delete user', color: 'red' });
+            notifications.show({ title: 'Error', message: 'Failed to deactivate user', color: 'red' });
+        }
+    };
+
+    const handleRestore = async (user: AdminUser) => {
+        try {
+            await adminUsersService.restoreUser(user.id);
+            notifications.show({ title: 'Restored', message: `${user.staffProfile?.firstName || user.email} has been reactivated`, color: 'green' });
+            loadUsers();
+        } catch (error) {
+            notifications.show({ title: 'Error', message: 'Failed to restore user', color: 'red' });
         }
     };
 
@@ -154,13 +169,23 @@ export default function Users() {
                             >
                                 Invite User
                             </Menu.Item>
-                            <Menu.Item
-                                color="red"
-                                leftSection={<IconTrash style={{ width: rem(14), height: rem(14) }} />}
-                                onClick={() => confirmDelete(item)}
-                            >
-                                Delete User
-                            </Menu.Item>
+                            {item.status === 'INACTIVE' ? (
+                                <Menu.Item
+                                    color="green"
+                                    leftSection={<IconRefresh style={{ width: rem(14), height: rem(14) }} />}
+                                    onClick={() => handleRestore(item)}
+                                >
+                                    Restore User
+                                </Menu.Item>
+                            ) : (
+                                <Menu.Item
+                                    color="red"
+                                    leftSection={<IconTrash style={{ width: rem(14), height: rem(14) }} />}
+                                    onClick={() => confirmDelete(item)}
+                                >
+                                    Deactivate User
+                                </Menu.Item>
+                            )}
                         </Menu.Dropdown>
                     </Menu>
                 );
@@ -193,10 +218,20 @@ export default function Users() {
             <PageHeader
                 title="User Management"
                 subtitle="Manage system access and roles"
-                actions={<Button leftSection={<IconPlus size={16} />} onClick={() => {
-                    setDrawerUser(null);
-                    setDrawerOpened(true);
-                }}>Add User</Button>}
+                actions={
+                    <Group>
+                        <Switch
+                            label="Show Inactive"
+                            checked={showInactive}
+                            onChange={(e) => setShowInactive(e.currentTarget.checked)}
+                            size="sm"
+                        />
+                        <Button leftSection={<IconPlus size={16} />} onClick={() => {
+                            setDrawerUser(null);
+                            setDrawerOpened(true);
+                        }}>Add User</Button>
+                    </Group>
+                }
             />
 
             <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb="xl">
@@ -237,15 +272,15 @@ export default function Users() {
                 onSuccess={loadUsers}
             />
 
-            <Modal opened={deleteModalOpened} onClose={() => setDeleteModalOpened(false)} title="Delete User">
+            <Modal opened={deleteModalOpened} onClose={() => setDeleteModalOpened(false)} title="Deactivate User">
                 <Stack gap="md">
                     <Text size="sm">
-                        Are you sure you want to delete <b>{selectedUser?.staffProfile?.firstName || selectedUser?.studentProfile?.firstName || selectedUser?.email}</b>?
-                        This action is permanent and will remove all associated profile data.
+                        Are you sure you want to deactivate <b>{selectedUser?.staffProfile?.firstName || selectedUser?.studentProfile?.firstName || selectedUser?.email}</b>?
+                        They will no longer be able to log in, but their records will be kept for future reference. You can restore them later.
                     </Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="subtle" onClick={() => setDeleteModalOpened(false)}>Cancel</Button>
-                        <Button color="red" onClick={handleDelete}>Delete User</Button>
+                        <Button color="red" onClick={handleDelete}>Deactivate</Button>
                     </Group>
                 </Stack>
             </Modal>

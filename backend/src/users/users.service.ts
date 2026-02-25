@@ -27,26 +27,30 @@ export class UsersService {
         // 2. Fetch associated profile based on Role
         let profile = null;
 
-        switch (user.role) {
-            case 'STUDENT':
-                profile = await this.prisma.student.findFirst({
-                    where: { userId: user.id },
-                    include: { section: { include: { classLevel: true } } },
-                });
-                break;
-            case 'TEACHER':
-            case 'ADMIN': // Admin might also be Staff? For now assume Staff table.
-            case 'RECEPTION':
-                profile = await this.prisma.staff.findFirst({
-                    where: { userId: user.id },
-                });
-                break;
-            case 'PARENT':
-                profile = await this.prisma.guardian.findUnique({
-                    where: { userId: user.id },
-                    include: { students: { include: { student: true } } }
-                });
-                break;
+        const STAFF_ROLES = [
+            'SUPER_ADMIN', 'ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD',
+            'TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER',
+            'HOD', 'SEN_COORDINATOR',
+            'BURSAR', 'FINANCE', 'HR_MANAGER', 'SENIOR_CLERK', 'RECEPTION',
+            'ICT_COORDINATOR', 'SDC_MEMBER',
+            'LIBRARIAN', 'LAB_TECHNICIAN', 'SCHOOL_NURSE', 'SPORTS_DIRECTOR',
+            'HOSTEL_WARDEN', 'TRANSPORT_MANAGER', 'SECURITY_GUARD',
+        ];
+
+        if (user.role === 'STUDENT') {
+            profile = await this.prisma.student.findFirst({
+                where: { userId: user.id },
+                include: { section: { include: { classLevel: true } } },
+            });
+        } else if (user.role === 'PARENT') {
+            profile = await this.prisma.guardian.findUnique({
+                where: { userId: user.id },
+                include: { students: { include: { student: true } } }
+            });
+        } else if (STAFF_ROLES.includes(user.role)) {
+            profile = await this.prisma.staff.findFirst({
+                where: { userId: user.id },
+            });
         }
 
         return {
@@ -55,9 +59,12 @@ export class UsersService {
         };
     }
 
-    async findAll(schoolId: string) {
+    async findAll(schoolId: string, includeInactive = false) {
         return this.prisma.user.findMany({
-            where: { schoolId },
+            where: {
+                schoolId,
+                ...(!includeInactive ? { status: 'ACTIVE' } : {}),
+            },
             include: {
                 staffProfile: { select: { firstName: true, lastName: true, employeeId: true } },
                 studentProfile: { select: { firstName: true, lastName: true, admissionNo: true } },
@@ -106,8 +113,18 @@ export class UsersService {
                     }
                 });
 
+                const STAFF_ROLES_FOR_PROFILE = [
+                    'SUPER_ADMIN', 'ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD',
+                    'TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER',
+                    'HOD', 'SEN_COORDINATOR',
+                    'BURSAR', 'FINANCE', 'HR_MANAGER', 'SENIOR_CLERK', 'RECEPTION',
+                    'ICT_COORDINATOR', 'SDC_MEMBER',
+                    'LIBRARIAN', 'LAB_TECHNICIAN', 'SCHOOL_NURSE', 'SPORTS_DIRECTOR',
+                    'HOSTEL_WARDEN', 'TRANSPORT_MANAGER', 'SECURITY_GUARD',
+                ];
+
                 // Create Profile
-                if (['ADMIN', 'TEACHER', 'RECEPTION', 'FINANCE'].includes(data.role)) {
+                if (STAFF_ROLES_FOR_PROFILE.includes(data.role)) {
                     await tx.staff.create({
                         data: {
                             userId: user.id,
@@ -206,10 +223,58 @@ export class UsersService {
     }
 
     async remove(userId: string) {
-        // Profiles are deleted via Cascade in many setups, but let's be safe or check schema
-        // According to schema.prisma, profiles have fields: userId String @unique.
-        return this.prisma.user.delete({
-            where: { id: userId }
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
         });
+
+        if (!user) throw new BadRequestException('User not found');
+
+        // Soft delete — mark as INACTIVE
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { status: 'INACTIVE' },
+        });
+
+        // Disable Supabase Auth (ban the user so they can't log in)
+        if (user.supabaseUid) {
+            try {
+                const supabase = this.supabase.getClient();
+                await supabase.auth.admin.updateUserById(user.supabaseUid, {
+                    ban_duration: '876000h', // ~100 years = effectively permanent
+                });
+            } catch (err) {
+                console.warn(`Could not disable Supabase auth for ${user.supabaseUid}:`, err);
+            }
+        }
+
+        return { success: true, message: 'User deactivated (soft delete)' };
+    }
+
+    async restore(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) throw new BadRequestException('User not found');
+
+        // Reactivate
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { status: 'ACTIVE' },
+        });
+
+        // Re-enable Supabase Auth
+        if (user.supabaseUid) {
+            try {
+                const supabase = this.supabase.getClient();
+                await supabase.auth.admin.updateUserById(user.supabaseUid, {
+                    ban_duration: 'none',
+                });
+            } catch (err) {
+                console.warn(`Could not re-enable Supabase auth for ${user.supabaseUid}:`, err);
+            }
+        }
+
+        return { success: true, message: 'User reactivated' };
     }
 }

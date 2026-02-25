@@ -127,13 +127,12 @@ export function DashboardLayout() {
             ]
         },
         {
-            title: 'Finance & Admin',
+            title: 'Finance',
             roles: ['admin', 'finance'],
             links: [
                 { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'finance'] },
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
-                { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
-                { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
+               
             ]
         },
         {
@@ -151,6 +150,15 @@ export function DashboardLayout() {
                 { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception'] },
                 { icon: IconShield, label: 'Discipline', to: '/discipline', roles: ['admin', 'teacher'] },
                 { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception'] },
+            ]
+        },
+        {
+            title: 'Admin',
+            roles: ['admin', 'finance'],
+            links: [
+                
+                { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
+                { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
             ]
         }
     ];

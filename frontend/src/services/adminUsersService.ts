@@ -11,8 +11,8 @@ export interface AdminUser {
 }
 
 export const adminUsersService = {
-    getAllUsers: async (): Promise<AdminUser[]> => {
-        const response = await api.get<AdminUser[]>('/users');
+    getAllUsers: async (includeInactive = false): Promise<AdminUser[]> => {
+        const response = await api.get<AdminUser[]>(`/users${includeInactive ? '?includeInactive=true' : ''}`);
         return response.data;
     },
 
@@ -29,5 +29,10 @@ export const adminUsersService = {
     deleteUser: async (id: string) => {
         const response = await api.delete(`/users/${id}`);
         return response.data;
-    }
+    },
+
+    restoreUser: async (id: string) => {
+        const response = await api.patch(`/users/${id}/restore`);
+        return response.data;
+    },
 };

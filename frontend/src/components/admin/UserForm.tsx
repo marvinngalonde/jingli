@@ -86,8 +86,8 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                 });
             }
             form.reset();
-            onSuccess();
-            onClose();
+            onClose();       // Close drawer FIRST to remove backdrop
+            onSuccess();     // Then reload data (may trigger LoadingOverlay)
         } catch (error: any) {
             notifications.show({
                 title: 'Error',
@@ -146,11 +146,52 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                         label="System Role"
                         placeholder="Pick one"
                         data={[
-                            { value: 'ADMIN', label: 'Administrator' },
-                            { value: 'TEACHER', label: 'Teacher' },
-                            { value: 'STUDENT', label: 'Student' },
-                            { value: 'RECEPTION', label: 'Receptionist' },
-                            { value: 'FINANCE', label: 'Finance Officer' },
+                            {
+                                group: 'Administration',
+                                items: [
+                                    { value: 'SUPER_ADMIN', label: 'Super Admin' },
+                                    { value: 'ADMIN', label: 'Administrator' },
+                                    { value: 'SCHOOL_HEAD', label: 'School Head / Principal' },
+                                    { value: 'DEPUTY_HEAD', label: 'Deputy Head' },
+                                    { value: 'BURSAR', label: 'Bursar' },
+                                    { value: 'FINANCE', label: 'Finance Officer' },
+                                    { value: 'HR_MANAGER', label: 'HR Manager' },
+                                    { value: 'SENIOR_CLERK', label: 'Senior Clerk' },
+                                    { value: 'RECEPTION', label: 'Receptionist' },
+                                    { value: 'ICT_COORDINATOR', label: 'ICT Coordinator' },
+                                    { value: 'SDC_MEMBER', label: 'SDC Member' },
+                                ]
+                            },
+                            {
+                                group: 'Teaching Staff',
+                                items: [
+                                    { value: 'HOD', label: 'Head of Department' },
+                                    { value: 'SENIOR_TEACHER', label: 'Senior Teacher' },
+                                    { value: 'CLASS_TEACHER', label: 'Class Teacher' },
+                                    { value: 'SUBJECT_TEACHER', label: 'Subject Teacher' },
+                                    { value: 'TEACHER', label: 'Teacher' },
+                                    { value: 'SEN_COORDINATOR', label: 'Special Needs Coordinator' },
+                                ]
+                            },
+                            {
+                                group: 'Specialist Staff',
+                                items: [
+                                    { value: 'LIBRARIAN', label: 'Librarian' },
+                                    { value: 'LAB_TECHNICIAN', label: 'Lab Technician' },
+                                    { value: 'SCHOOL_NURSE', label: 'School Nurse' },
+                                    { value: 'SPORTS_DIRECTOR', label: 'Sports Director' },
+                                    { value: 'HOSTEL_WARDEN', label: 'Hostel Warden' },
+                                    { value: 'TRANSPORT_MANAGER', label: 'Transport Manager' },
+                                    { value: 'SECURITY_GUARD', label: 'Security Guard' },
+                                ]
+                            },
+                            {
+                                group: 'Other',
+                                items: [
+                                    { value: 'STUDENT', label: 'Student' },
+                                    { value: 'PARENT', label: 'Parent / Guardian' },
+                                ]
+                            }
                         ]}
                         required
                         {...form.getInputProps('role')}

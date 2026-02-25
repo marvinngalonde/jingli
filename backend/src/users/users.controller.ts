@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Delete, Param, UseGuards, Request, ForbiddenException, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
+
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'SCHOOL_HEAD'];
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -12,17 +14,17 @@ export class UsersController {
 
     @Get()
     @ApiOperation({ summary: 'Get all users in school' })
-    async getAll(@Request() req: any) {
+    async getAll(@Request() req: any, @Query('includeInactive') includeInactive?: string) {
         const me = await this.usersService.findMe(req.user.id);
         if (!me) return [];
-        return this.usersService.findAll(me.schoolId);
+        return this.usersService.findAll(me.schoolId, includeInactive === 'true');
     }
 
     @Post()
     @ApiOperation({ summary: 'Create a new user' })
     async create(@Request() req: any, @Body() body: any) {
         const me = await this.usersService.findMe(req.user.id);
-        if (!me || me.role !== 'ADMIN') throw new Error('Unauthorized');
+        if (!me || !ADMIN_ROLES.includes(me.role)) throw new ForbiddenException('Admin access required');
         return this.usersService.create(me.schoolId, body);
     }
 
@@ -30,7 +32,7 @@ export class UsersController {
     @ApiOperation({ summary: 'Update a user' })
     async update(@Request() req: any, @Param('id') id: string, @Body() body: any) {
         const me = await this.usersService.findMe(req.user.id);
-        if (!me || me.role !== 'ADMIN') throw new Error('Unauthorized');
+        if (!me || !ADMIN_ROLES.includes(me.role)) throw new ForbiddenException('Admin access required');
         return this.usersService.update(id, body);
     }
 
@@ -38,8 +40,16 @@ export class UsersController {
     @ApiOperation({ summary: 'Delete a user' })
     async remove(@Request() req: any, @Param('id') id: string) {
         const me = await this.usersService.findMe(req.user.id);
-        if (!me || me.role !== 'ADMIN') throw new Error('Unauthorized');
+        if (!me || !ADMIN_ROLES.includes(me.role)) throw new ForbiddenException('Admin access required');
         return this.usersService.remove(id);
+    }
+
+    @Patch(':id/restore')
+    @ApiOperation({ summary: 'Restore a soft-deleted user' })
+    async restore(@Request() req: any, @Param('id') id: string) {
+        const me = await this.usersService.findMe(req.user.id);
+        if (!me || !ADMIN_ROLES.includes(me.role)) throw new ForbiddenException('Admin access required');
+        return this.usersService.restore(id);
     }
 
     @Get('me')

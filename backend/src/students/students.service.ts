@@ -91,7 +91,10 @@ export class StudentsService {
     }
 
     async findAll(schoolId: string, sectionId?: string) {
-        const where: any = { schoolId };
+        const where: any = {
+            schoolId,
+            user: { status: 'ACTIVE' }
+        };
         if (sectionId) where.sectionId = sectionId;
 
         return this.prisma.student.findMany({
