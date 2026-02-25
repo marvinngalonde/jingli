@@ -60,6 +60,7 @@ export default function MarkAttendanceModal({ opened, onClose, onSuccess }: Mark
 
             // Initialize attendance records
             const initialAttendance: AttendanceRecord[] = (data || []).map(student => ({
+                studentId: student.id,
                 studentName: (student as any).profile?.full_name || (student as any).first_name || 'Unknown',
                 status: 'present' as const,
             }));

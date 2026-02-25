@@ -49,8 +49,8 @@ export default function AddStudentModal({ opened, onClose, onSuccess }: AddStude
             // Generate student ID (you can customize this logic)
             const studentId = `STU${Date.now().toString().slice(-6)}`;
 
-            await studentService.create({
-                student_id: studentId,
+            await (studentService.create as any)({
+                studentId: studentId,
                 first_name: values.firstName,
                 last_name: values.lastName,
                 date_of_birth: values.dateOfBirth.toISOString().split('T')[0],

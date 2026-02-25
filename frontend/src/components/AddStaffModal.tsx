@@ -52,8 +52,8 @@ export default function AddStaffModal({ opened, onClose, onSuccess }: AddStaffMo
             const employeeId = `EMP${Date.now().toString().slice(-6)}`;
 
             // Create staff member
-            await staffService.create({
-                employee_id: employeeId,
+            await (staffService.create as any)({
+                employeeId: employeeId,
                 role: values.role,
                 department: (values.department || '') as string,
                 date_of_joining: values.dateOfJoining.toISOString().split('T')[0],

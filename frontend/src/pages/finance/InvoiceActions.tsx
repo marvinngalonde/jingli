@@ -5,8 +5,8 @@ import { useDisclosure } from '@mantine/hooks'; // Add this import if missing in
 import { notifications } from '@mantine/notifications';
 import { IconPencil, IconTrash } from '@tabler/icons-react'; // Add imports
 import { useState, useEffect } from 'react'; // Add imports
-import { financeService } from '../services/financeService';
-import type { Invoice } from '../types/finance';
+import { financeService } from '../../services/financeService';
+import type { Invoice } from '../../types/finance';
 
 // This is a sub-component to be used inside Finance.tsx or kept in the same file
 export function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: () => void }) {

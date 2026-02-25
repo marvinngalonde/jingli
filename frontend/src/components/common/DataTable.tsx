@@ -11,6 +11,7 @@ import {
     Pagination,
     Select
 } from '@mantine/core';
+import { IconSearch, IconFilter, IconDownload } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 
 export interface Column<T> {

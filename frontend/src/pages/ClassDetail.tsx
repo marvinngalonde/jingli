@@ -430,7 +430,7 @@ export default function ClassDetail() {
                     ) : (
                         <Box mt="md">
                             <TimetableGrid
-                                entries={timetable}
+                                entries={timetable as any}
                             // No onEdit or onDelete passed here since this is a read-only view
                             // editing happens in Academics Hub or Teacher Portal
                             />

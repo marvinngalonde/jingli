@@ -47,11 +47,11 @@ export default function AddFacilityModal({ opened, onClose, onSuccess }: AddFaci
     const onSubmit = async (values: FacilityFormValues) => {
         try {
             // Create facility
-            await facilitiesService.create({
+            await (facilitiesService.create as any)({
                 name: values.name,
-                type: values.type as any,
+                type: values.type,
                 capacity: values.capacity,
-                status: values.status as any,
+                status: values.status,
                 description: values.description || null,
             });
 

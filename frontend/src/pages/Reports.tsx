@@ -107,7 +107,7 @@ const REPORT_TYPES = [
     },
 ] as const;
 
-const ALL_REPORT_ITEMS = REPORT_TYPES.flatMap(g => g.items);
+const ALL_REPORT_ITEMS: any[] = REPORT_TYPES.flatMap(g => g.items as any);
 
 export default function Reports() {
     const [activeTab, setActiveTab] = useState<string | null>('live');
@@ -248,8 +248,8 @@ export default function Reports() {
         setLiveFilters(prev => ({ ...prev, [key]: val }));
 
     // Derive active filters list from selected report type
-    const liveReportMeta = ALL_REPORT_ITEMS.find(r => r.value === selectedType);
-    const liveActiveFilters: string[] = (liveReportMeta?.filters as unknown as string[]) ?? [];
+    const liveReportMeta = ALL_REPORT_ITEMS.find((r: any) => r.value === selectedType);
+    const liveActiveFilters: string[] = (liveReportMeta?.filters as string[]) ?? [];
 
     const ReportStats = () => (
         <SimpleGrid cols={{ base: 1, sm: 4 }} mb="lg">
