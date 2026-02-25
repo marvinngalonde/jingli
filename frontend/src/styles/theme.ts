@@ -126,14 +126,10 @@ export const theme = createTheme({
         shadow: 'sm',
         withBorder: true,
       },
-      styles: (_theme: any, _params: any, { colorScheme }: any) => ({
+      styles: () => ({
         root: {
-          backgroundColor: colorScheme === 'dark'
-            ? 'var(--app-surface)'
-            : 'var(--app-surface)',
-          borderColor: colorScheme === 'dark'
-            ? 'var(--app-border)'
-            : 'var(--app-border)',
+          backgroundColor: 'var(--app-surface)',
+          borderColor: 'var(--app-border)',
         },
       }),
     },

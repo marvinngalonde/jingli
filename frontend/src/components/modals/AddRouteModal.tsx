@@ -10,8 +10,8 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { transportService } from '../services/transportService';
-import { showSuccessNotification, showErrorNotification } from '../utils/notifications';
+import { transportService } from '../../services/transportService';
+import { showSuccessNotification, showErrorNotification } from '../../utils/notifications';
 
 const routeSchema = z.object({
     routeId: z.string().min(2, 'Route ID is required'),
@@ -53,16 +53,12 @@ export default function AddRouteModal({ opened, onClose, onSuccess }: AddRouteMo
 
             // Create route (Note: driver_name is stored temporarily, ideally should link to staff table)
             await transportService.create({
-                route_id: values.routeId,
-                route_name: values.routeName,
-                driver_id: null, // TODO: Link to actual staff member
-                vehicle_number: values.vehicleNumber,
-                capacity: values.capacity,
+                name: values.routeName,
+                driverName: values.driverName,
+                startTime: values.startTime,
+                endTime: values.endTime,
                 stops: stopsArray,
-                start_time: values.startTime,
-                end_time: values.endTime,
-                status: 'active',
-            });
+            } as any);
 
             showSuccessNotification('Route added successfully!');
             reset();

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardService } from '../services/dashboardService';
+import { api } from '../services/api';
 import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Timeline, RingProgress, Center, SimpleGrid, Button } from '@mantine/core';
 import {
     IconUsers,
@@ -15,7 +16,11 @@ import {
     IconSchool,
     IconUserPlus,
     IconSearch,
-    IconArrowRight
+    IconArrowRight,
+    IconHeartbeat,
+    IconBus,
+    IconBuildingBank,
+    IconHome,
 } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RecentNotices } from '../components/communication/RecentNotices';
@@ -164,6 +169,7 @@ const data = [
 function AdminDashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
+    const [moduleStats, setModuleStats] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -174,6 +180,20 @@ function AdminDashboard() {
         try {
             const data = await dashboardService.getStats();
             setStats(data);
+
+            // Load module stats in parallel
+            const [expenseRes, transportRes, healthRes, hostelRes] = await Promise.allSettled([
+                api.get('/expenses/stats'),
+                api.get('/transport/stats'),
+                api.get('/health/stats'),
+                api.get('/hostel/stats'),
+            ]);
+            setModuleStats({
+                expenses: expenseRes.status === 'fulfilled' ? expenseRes.value.data : null,
+                transport: transportRes.status === 'fulfilled' ? transportRes.value.data : null,
+                health: healthRes.status === 'fulfilled' ? healthRes.value.data : null,
+                hostel: hostelRes.status === 'fulfilled' ? hostelRes.value.data : null,
+            });
         } catch (error) {
             console.error(error);
         } finally {
@@ -218,6 +238,54 @@ function AdminDashboard() {
                         icon={IconSchool}
                         color="orange"
                         iconBg="orange.1"
+                    />
+                </Grid.Col>
+            </Grid>
+
+            {/* Module Stats Row */}
+            <Grid gutter="lg" mt="md">
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                    <StatsCard
+                        title="Expenses This Month"
+                        value={loading ? '...' : `$${(moduleStats.expenses?.thisMonth || 0).toLocaleString()}`}
+                        subtext={`${moduleStats.expenses?.pending || 0} pending`}
+                        subtextColor="orange"
+                        icon={IconBuildingBank}
+                        color="red"
+                        iconBg="red.1"
+                    />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                    <StatsCard
+                        title="Active Routes"
+                        value={loading ? '...' : String(moduleStats.transport?.activeRoutes || 0)}
+                        subtext={`${moduleStats.transport?.studentsOnRoutes || 0} students`}
+                        subtextColor="teal"
+                        icon={IconBus}
+                        color="indigo"
+                        iconBg="indigo.1"
+                    />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                    <StatsCard
+                        title="Clinic Visits Today"
+                        value={loading ? '...' : String(moduleStats.health?.todayVisits || 0)}
+                        subtext={`${moduleStats.health?.totalVisits || 0} total`}
+                        subtextColor="c"
+                        icon={IconHeartbeat}
+                        color="pink"
+                        iconBg="pink.1"
+                    />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                    <StatsCard
+                        title="Pending Exeats"
+                        value={loading ? '...' : String(moduleStats.hostel?.pendingExeats || 0)}
+                        subtext={`${moduleStats.hostel?.occupiedBeds || 0} beds occupied`}
+                        subtextColor="teal"
+                        icon={IconHome}
+                        color="cyan"
+                        iconBg="cyan.1"
                     />
                 </Grid.Col>
             </Grid>

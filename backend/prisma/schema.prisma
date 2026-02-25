@@ -43,6 +43,24 @@ model School {
   bookCirculations BookCirculation[]
   reportLogs      ReportLog[]
   events          Event[]
+  expenses        Expense[]
+  salaryPayments  SalaryPayment[]
+  exchangeRates   ExchangeRate[]
+  routes          Route[]
+  vehicles        Vehicle[]
+  studentRoutes   StudentRoute[]
+  assetCategories AssetCategory[]
+  assets          Asset[]
+  calaRecords     CalaRecord[]
+  gradeScales     GradeScale[]
+  clinicVisits    ClinicVisit[]
+  disciplineRecords DisciplineRecord[]
+  hostels         Hostel[]
+  rooms           Room[]
+  bedAllocations  BedAllocation[]
+  exeats          Exeat[]
+  alertTemplates  AlertTemplate[]
+  alertLogs       AlertLog[]
   
   @@map("schools")
 }
@@ -129,6 +147,8 @@ model User {
   postedNotices      Notice[]
   aiChatSessions      AiChatSession[]
   notifications      Notification[]
+  approvedExpenses   Expense[]       @relation("ExpenseApprover")
+  processedSalaries  SalaryPayment[] @relation("SalaryProcessor")
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
@@ -254,6 +274,7 @@ model Subject {
   assignments Assignment[]
   courseMaterials CourseMaterial[]
   exams       Exam[]
+  calaRecords CalaRecord[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -303,6 +324,13 @@ model Student {
   lateArrivals  LateArrival[]
   examResults   ExamResult[]
   bookCirculations BookCirculation[]
+  transportRoutes StudentRoute[]
+  calaRecords     CalaRecord[]
+  clinicVisits    ClinicVisit[]
+  disciplineRecords DisciplineRecord[]
+  bedAllocations  BedAllocation[]
+  exeats          Exeat[]
+  medicalProfile  MedicalProfile?
 
   @@unique([schoolId, admissionNo])
   @@map("students")
@@ -343,6 +371,9 @@ model Staff {
   courseMaterials    CourseMaterial[]
   gradedExams        ExamResult[]
   subjects           Subject[]
+  salaryPayments     SalaryPayment[]
+  calaRecords        CalaRecord[]
+  disciplineRecords  DisciplineRecord[]
 
   @@unique([schoolId, employeeId])
   @@map("staff")
@@ -758,6 +789,7 @@ model ExamTerm {
   school       School       @relation(fields: [schoolId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   exams        Exam[]
+  calaRecords  CalaRecord[]
 
   @@map("exam_terms")
 }
@@ -860,4 +892,489 @@ model Event {
   school      School   @relation(fields: [schoolId], references: [id])
 
   @@map("events")
+}
+
+// -----------------------------------------------------------------------------
+// 9. FINANCIAL OPERATIONS (Expenses, Payroll, Exchange Rates)
+// -----------------------------------------------------------------------------
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model Expense {
+  id           String        @id @default(uuid())
+  schoolId     String        @map("school_id")
+  description  String
+  category     String        // Operations, Maintenance, Equipment, Utilities, Supplies, Other
+  amount       Decimal
+  currency     String        @default("USD")
+  date         DateTime      @db.Date
+  status       ExpenseStatus @default(PENDING)
+  approvedBy   String?       @map("approved_by")
+  receiptUrl   String?       @map("receipt_url")
+  notes        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  school       School  @relation(fields: [schoolId], references: [id])
+  approver     User?   @relation("ExpenseApprover", fields: [approvedBy], references: [id])
+
+  @@map("expenses")
+}
+
+enum SalaryStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+model SalaryPayment {
+  id            String       @id @default(uuid())
+  schoolId      String       @map("school_id")
+  staffId       String       @map("staff_id")
+  amount        Decimal
+  currency      String       @default("USD")
+  month         Int          // 1-12
+  year          Int
+  status        SalaryStatus @default(PENDING)
+  method        PaymentMethod?
+  referenceNo   String?      @map("reference_no")
+  processedBy   String?      @map("processed_by")
+  processedAt   DateTime?    @map("processed_at")
+  notes         String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  school        School  @relation(fields: [schoolId], references: [id])
+  staff         Staff   @relation(fields: [staffId], references: [id])
+  processor     User?   @relation("SalaryProcessor", fields: [processedBy], references: [id])
+
+  @@unique([staffId, month, year])
+  @@map("salary_payments")
+}
+
+model ExchangeRate {
+  id             String   @id @default(uuid())
+  schoolId       String   @map("school_id")
+  fromCurrency   String   @map("from_currency")  // e.g. "USD"
+  toCurrency     String   @map("to_currency")    // e.g. "ZiG"
+  rate           Decimal  // 1 USD = X ZiG
+  effectiveDate  DateTime @map("effective_date") @db.Date
+  source         String?  // "Manual", "RBZ", etc.
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  school         School   @relation(fields: [schoolId], references: [id])
+
+  @@map("exchange_rates")
+}
+
+// -----------------------------------------------------------------------------
+// 10. TRANSPORT MANAGEMENT
+// -----------------------------------------------------------------------------
+
+enum RouteStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RouteDirection {
+  MORNING
+  AFTERNOON
+  BOTH
+}
+
+model Vehicle {
+  id              String   @id @default(uuid())
+  schoolId        String   @map("school_id")
+  regNumber       String   @map("reg_number")
+  make            String?
+  model           String?
+  year            Int?
+  capacity        Int      @default(50)
+  status          String   @default("ACTIVE") // ACTIVE, MAINTENANCE, RETIRED
+  insuranceExpiry DateTime? @map("insurance_expiry")
+  nextServiceDate DateTime? @map("next_service_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  school          School   @relation(fields: [schoolId], references: [id])
+  routes          Route[]
+
+  @@unique([schoolId, regNumber])
+  @@map("vehicles")
+}
+
+model Route {
+  id           String      @id @default(uuid())
+  schoolId     String      @map("school_id")
+  name         String
+  description  String?
+  vehicleId    String?     @map("vehicle_id")
+  driverName   String?     @map("driver_name")
+  startTime    String?     @map("start_time")   // e.g. "06:30"
+  endTime      String?     @map("end_time")     // e.g. "07:30"
+  stops        Json?       // Array of stop names
+  status       RouteStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  school       School      @relation(fields: [schoolId], references: [id])
+  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
+  students     StudentRoute[]
+
+  @@map("routes")
+}
+
+model StudentRoute {
+  id           String         @id @default(uuid())
+  schoolId     String         @map("school_id")
+  studentId    String         @map("student_id")
+  routeId      String         @map("route_id")
+  pickupPoint  String?        @map("pickup_point")
+  direction    RouteDirection @default(BOTH)
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  school       School   @relation(fields: [schoolId], references: [id])
+  student      Student  @relation(fields: [studentId], references: [id])
+  route        Route    @relation(fields: [routeId], references: [id])
+
+  @@unique([studentId, routeId])
+  @@map("student_routes")
+}
+
+// -----------------------------------------------------------------------------
+// 11. ASSET & INVENTORY MANAGEMENT
+// -----------------------------------------------------------------------------
+
+enum AssetCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+  DISPOSED
+}
+
+model AssetCategory {
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  name        String   // Furniture, Lab Equipment, IT Equipment, Sports, etc.
+  description String?
+
+  school      School   @relation(fields: [schoolId], references: [id])
+  assets      Asset[]
+
+  @@unique([schoolId, name])
+  @@map("asset_categories")
+}
+
+model Asset {
+  id             String         @id @default(uuid())
+  schoolId       String         @map("school_id")
+  categoryId     String         @map("category_id")
+  name           String
+  serialNo       String?        @map("serial_no")
+  location       String?        // e.g. "Lab 2", "Library", "Room 15"
+  purchaseDate   DateTime?      @map("purchase_date")
+  purchasePrice  Decimal?       @map("purchase_price")
+  condition      AssetCondition @default(NEW)
+  quantity       Int            @default(1)
+  notes          String?
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  school         School        @relation(fields: [schoolId], references: [id])
+  category       AssetCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("assets")
+}
+
+// -----------------------------------------------------------------------------
+// 12. CONTINUOUS ASSESSMENT (CALA) & GRADE SCALES
+// -----------------------------------------------------------------------------
+
+model CalaRecord {
+  id             String   @id @default(uuid())
+  schoolId       String   @map("school_id")
+  studentId      String   @map("student_id")
+  subjectId      String   @map("subject_id")
+  termId         String   @map("term_id")
+  taskName       String   @map("task_name")
+  score          Float
+  maxScore       Float    @map("max_score")
+  teacherRemarks String?  @map("teacher_remarks")
+  assessedBy     String   @map("assessed_by")
+  date           DateTime @db.Date
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  school         School   @relation(fields: [schoolId], references: [id])
+  student        Student  @relation(fields: [studentId], references: [id])
+  subject        Subject  @relation(fields: [subjectId], references: [id])
+  term           ExamTerm @relation(fields: [termId], references: [id])
+  teacher        Staff    @relation(fields: [assessedBy], references: [id])
+
+  @@map("cala_records")
+}
+
+enum GradeSystem {
+  ZIMSEC_GRADE7
+  ZIMSEC_OLEVEL
+  ZIMSEC_ALEVEL
+  CAMBRIDGE_IGCSE
+  CAMBRIDGE_AS
+  CAMBRIDGE_A2
+  CUSTOM
+}
+
+model GradeScale {
+  id       String      @id @default(uuid())
+  schoolId String      @map("school_id")
+  name     String      // e.g. "ZIMSEC O-Level"
+  system   GradeSystem @default(CUSTOM)
+
+  school   School       @relation(fields: [schoolId], references: [id])
+  ranges   GradeRange[]
+
+  @@unique([schoolId, name])
+  @@map("grade_scales")
+}
+
+model GradeRange {
+  id          String   @id @default(uuid())
+  scaleId     String   @map("scale_id")
+  grade       String   // e.g. "A", "1", "Distinction"
+  symbol      String?  // e.g. "A*"
+  minPercent  Float    @map("min_percent")
+  maxPercent  Float    @map("max_percent")
+  points      Float?   // for GPA calculations
+  description String?  // e.g. "Outstanding"
+
+  scale       GradeScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+
+  @@map("grade_ranges")
+}
+
+// -----------------------------------------------------------------------------
+// 13. HEALTH & WELFARE (Sanatorium/Clinic)
+// -----------------------------------------------------------------------------
+
+model MedicalProfile {
+  id                  String   @id @default(uuid())
+  studentId           String   @unique @map("student_id")
+  bloodType           String?  @map("blood_type")
+  allergies           Json?    // Array of allergy strings
+  chronicConditions   Json?    @map("chronic_conditions") // Array
+  emergencyContact    String?  @map("emergency_contact")
+  emergencyPhone      String?  @map("emergency_phone")
+  medicalAidProvider  String?  @map("medical_aid_provider")
+  medicalAidNumber    String?  @map("medical_aid_number")
+  doctorName          String?  @map("doctor_name")
+  doctorPhone         String?  @map("doctor_phone")
+  notes               String?
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  student             Student  @relation(fields: [studentId], references: [id])
+
+  @@map("medical_profiles")
+}
+
+model ClinicVisit {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  studentId    String   @map("student_id")
+  date         DateTime @default(now())
+  complaint    String
+  diagnosis    String?
+  treatment    String?
+  referral     String?  // External referral if needed
+  attendedBy   String   @map("attended_by") // Staff who attended
+  parentNotified Boolean @default(false) @map("parent_notified")
+  notes        String?
+
+  school       School  @relation(fields: [schoolId], references: [id])
+  student      Student @relation(fields: [studentId], references: [id])
+
+  @@map("clinic_visits")
+}
+
+// -----------------------------------------------------------------------------
+// 14. DISCIPLINE & CONDUCT
+// -----------------------------------------------------------------------------
+
+enum DisciplineType {
+  MERIT
+  DEMERIT
+}
+
+model DisciplineRecord {
+  id              String         @id @default(uuid())
+  schoolId        String         @map("school_id")
+  studentId       String         @map("student_id")
+  type            DisciplineType
+  category        String         // e.g. "Academic", "Behaviour", "Uniform", "Attendance"
+  description     String
+  points          Int            @default(0)
+  issuedBy        String         @map("issued_by")
+  parentNotified  Boolean        @default(false) @map("parent_notified")
+  actionTaken     String?        @map("action_taken")
+  date            DateTime       @default(now())
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  school          School  @relation(fields: [schoolId], references: [id])
+  student         Student @relation(fields: [studentId], references: [id])
+  issuer          Staff   @relation(fields: [issuedBy], references: [id])
+
+  @@map("discipline_records")
+}
+
+// -----------------------------------------------------------------------------
+// 15. HOSTEL & BOARDING
+// -----------------------------------------------------------------------------
+
+enum HostelGender {
+  BOYS
+  GIRLS
+  MIXED
+}
+
+model Hostel {
+  id        String       @id @default(uuid())
+  schoolId  String       @map("school_id")
+  name      String
+  gender    HostelGender @default(MIXED)
+  capacity  Int          @default(100)
+  warden    String?      // Name of hostel warden
+
+  school    School @relation(fields: [schoolId], references: [id])
+  rooms     Room[]
+
+  @@unique([schoolId, name])
+  @@map("hostels")
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  hostelId  String   @map("hostel_id")
+  number    String   // e.g. "Room 12", "A-3"
+  floor     Int?     @default(0)
+  capacity  Int      @default(4)
+
+  school    School @relation(fields: [schoolId], references: [id])
+  hostel    Hostel @relation(fields: [hostelId], references: [id])
+  beds      BedAllocation[]
+
+  @@unique([hostelId, number])
+  @@map("rooms")
+}
+
+enum BedStatus {
+  OCCUPIED
+  AVAILABLE
+  RESERVED
+  MAINTENANCE
+}
+
+model BedAllocation {
+  id         String    @id @default(uuid())
+  schoolId   String    @map("school_id")
+  roomId     String    @map("room_id")
+  studentId  String    @map("student_id")
+  bedNumber  String    @map("bed_number")
+  term       String?   // e.g. "Term 1 2026"
+  status     BedStatus @default(OCCUPIED)
+  allocatedAt DateTime @default(now()) @map("allocated_at")
+
+  school     School  @relation(fields: [schoolId], references: [id])
+  room       Room    @relation(fields: [roomId], references: [id])
+  student    Student @relation(fields: [studentId], references: [id])
+
+  @@map("bed_allocations")
+}
+
+enum ExeatStatus {
+  PENDING
+  APPROVED
+  RETURNED
+  CANCELLED
+}
+
+model Exeat {
+  id           String      @id @default(uuid())
+  schoolId     String      @map("school_id")
+  studentId    String      @map("student_id")
+  reason       String
+  departDate   DateTime    @map("depart_date")
+  returnDate   DateTime    @map("return_date")
+  actualReturn DateTime?   @map("actual_return")
+  approvedBy   String?     @map("approved_by")
+  guardianName String?     @map("guardian_name")
+  status       ExeatStatus @default(PENDING)
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  school       School  @relation(fields: [schoolId], references: [id])
+  student      Student @relation(fields: [studentId], references: [id])
+
+  @@map("exeats")
+}
+
+// -----------------------------------------------------------------------------
+// 16. SMS / WHATSAPP ALERTS
+// -----------------------------------------------------------------------------
+
+enum AlertChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum AlertTrigger {
+  FEE_REMINDER
+  STUDENT_ABSENT
+  EMERGENCY
+  EXAM_RESULTS
+  GENERAL
+  DISCIPLINE
+}
+
+model AlertTemplate {
+  id             String       @id @default(uuid())
+  schoolId       String       @map("school_id")
+  name           String
+  channel        AlertChannel
+  triggerEvent   AlertTrigger @map("trigger_event")
+  messageTemplate String     @map("message_template") @db.Text
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  school         School     @relation(fields: [schoolId], references: [id])
+  logs           AlertLog[]
+
+  @@map("alert_templates")
+}
+
+enum AlertStatus {
+  SENT
+  FAILED
+  PENDING
+  QUEUED
+}
+
+model AlertLog {
+  id             String      @id @default(uuid())
+  schoolId       String      @map("school_id")
+  templateId     String?     @map("template_id")
+  recipientPhone String      @map("recipient_phone")
+  recipientName  String?     @map("recipient_name")
+  message        String      @db.Text
+  channel        AlertChannel
+  status         AlertStatus @default(PENDING)
+  sentAt         DateTime?   @map("sent_at")
+  cost           Decimal?    // Cost in USD if applicable
+  errorMessage   String?     @map("error_message")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  school         School        @relation(fields: [schoolId], references: [id])
+  template       AlertTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("alert_logs")
 }

@@ -34,6 +34,17 @@ import { EventsModule } from './events/events.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { StudentModule } from './student/student.module';
 import { ParentModule } from './parent/parent.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { SalariesModule } from './salaries/salaries.module';
+import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
+import { TransportModule } from './transport/transport.module';
+import { AssetsModule } from './assets/assets.module';
+import { CalaModule } from './cala/cala.module';
+import { GradeScalesModule } from './grade-scales/grade-scales.module';
+import { HealthModule } from './health/health.module';
+import { DisciplineModule } from './discipline/discipline.module';
+import { HostelModule } from './hostel/hostel.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -70,6 +81,17 @@ import { ParentModule } from './parent/parent.module';
     TeacherModule,
     StudentModule,
     ParentModule,
+    ExpensesModule,
+    SalariesModule,
+    ExchangeRatesModule,
+    TransportModule,
+    AssetsModule,
+    CalaModule,
+    GradeScalesModule,
+    HealthModule,
+    DisciplineModule,
+    HostelModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

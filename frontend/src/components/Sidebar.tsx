@@ -18,6 +18,9 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Calendar as IconCalendar,
+    Heart,
+    Shield,
+    Building2,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -73,6 +76,14 @@ const navSections: NavSection[] = [
             { icon: Bus, label: 'Transport', path: '/transport' },
             { icon: Building, label: 'Facilities', path: '/facilities' },
             { icon: ClipboardList, label: 'Visitor Log', path: '/visitor-log' },
+        ],
+    },
+    {
+        title: 'Student Welfare',
+        items: [
+            { icon: Heart, label: 'Health', path: '/health' },
+            { icon: Shield, label: 'Discipline', path: '/discipline' },
+            { icon: Building2, label: 'Hostel', path: '/hostel' },
         ],
     },
     {

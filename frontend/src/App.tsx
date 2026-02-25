@@ -58,6 +58,11 @@ import Admissions from './pages/Admissions';
 import Visitors from './pages/reception/Visitors';
 import Communication from './pages/Communication';
 import { Installation } from './pages/Installation';
+import Transport from './pages/Transport';
+import Facilities from './pages/Facilities';
+import Health from './pages/Health';
+import Discipline from './pages/Discipline';
+import Hostel from './pages/Hostel';
 
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -104,6 +109,15 @@ function App() {
             <Route path="/admin/users" element={<Users />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/reports" element={<Reports />} />
+
+            {/* Operations Routes */}
+            <Route path="/transport" element={<Transport />} />
+            <Route path="/facilities" element={<Facilities />} />
+
+            {/* Student Welfare Routes */}
+            <Route path="/health" element={<Health />} />
+            <Route path="/discipline" element={<Discipline />} />
+            <Route path="/hostel" element={<Hostel />} />
 
             {/* Placeholders for routes to be implemented */}
             <Route path="*" element={<div>Page Not Found</div>} />

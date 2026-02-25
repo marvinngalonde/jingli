@@ -1,261 +1,180 @@
-import { useState } from 'react';
-import {
-    Box,
-    Card,
-    Table,
-    Button,
-    Group,
-    Text,
-    Title,
-    Badge,
-    Grid,
-    Stack,
-    Select,
-    Modal,
-    TextInput,
-    Textarea,
-    rem,
-} from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, NumberInput, Select, Textarea } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Building2, Plus, Calendar } from 'lucide-react';
-import { useEffect } from 'react';
-import { facilitiesService } from '../services/facilitiesService';
-import { showErrorNotification } from '../utils/notifications';
-
-
-function getStatusColor(status: string) {
-    switch (status) {
-        case 'Available':
-            return 'green';
-        case 'Occupied':
-            return 'orange';
-        case 'Booked':
-            return 'blue';
-        default:
-            return 'gray';
-    }
-}
-
+import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
+import { IconBuildingFortress, IconCategory, IconPlus, IconTrash, IconSearch } from '@tabler/icons-react';
+import { api } from '../services/api';
 
 export default function Facilities() {
-    const [opened, { open, close }] = useDisclosure(false);
-    const [facilities, setFacilities] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<string | null>('categories');
+    const [categories, setCategories] = useState<any[]>([]);
+    const [assets, setAssets] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [stats, setStats] = useState({ totalCategories: 0, totalAssets: 0, totalValue: 0 });
+    const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const [drawerType, setDrawerType] = useState<'category' | 'asset'>('category');
+    const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        fetchFacilities();
-    }, []);
+    const categoryForm = useForm({
+        initialValues: { name: '', description: '' },
+        validate: { name: (v) => (!v ? 'Name is required' : null) },
+    });
 
-    const fetchFacilities = async () => {
+    const assetForm = useForm({
+        initialValues: { name: '', categoryId: '', location: '', purchasePrice: 0, purchaseDate: '', condition: 'GOOD', serialNumber: '' },
+        validate: {
+            name: (v) => (!v ? 'Name is required' : null),
+            categoryId: (v) => (!v ? 'Category is required' : null),
+        },
+    });
+
+    const fetchData = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const data = await facilitiesService.getAll();
-            setFacilities(data || []);
-        } catch (error: any) {
-            showErrorNotification(error.message || 'Failed to fetch facilities');
-        } finally {
-            setLoading(false);
-        }
+            const [catRes, assetRes, statsRes] = await Promise.allSettled([
+                api.get('/assets/categories'),
+                api.get('/assets'),
+                api.get('/assets/stats'),
+            ]);
+            if (catRes.status === 'fulfilled') setCategories(catRes.value.data || []);
+            if (assetRes.status === 'fulfilled') setAssets(assetRes.value.data || []);
+            if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+        } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'available':
-                return 'green';
-            case 'occupied':
-                return 'orange';
-            case 'maintenance':
-                return 'red';
-            default:
-                return 'gray';
-        }
+    useEffect(() => { fetchData(); }, []);
+
+    const handleOpenDrawer = (type: 'category' | 'asset') => {
+        setDrawerType(type);
+        if (type === 'category') categoryForm.reset(); else assetForm.reset();
+        openDrawer();
     };
+
+    const handleSaveCategory = async (values: typeof categoryForm.values) => {
+        try {
+            await api.post('/assets/categories', values);
+            notifications.show({ title: 'Success', message: 'Category added', color: 'green' });
+            closeDrawer(); categoryForm.reset(); fetchData();
+        } catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    };
+
+    const handleSaveAsset = async (values: typeof assetForm.values) => {
+        try {
+            await api.post('/assets', { ...values, purchasePrice: Number(values.purchasePrice) });
+            notifications.show({ title: 'Success', message: 'Asset added', color: 'green' });
+            closeDrawer(); assetForm.reset(); fetchData();
+        } catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    };
+
+    const handleDeleteCategory = async (id: string) => {
+        try { await api.delete(`/assets/categories/${id}`); notifications.show({ title: 'Deleted', message: 'Category removed', color: 'green' }); fetchData(); }
+        catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    };
+
+    const handleDeleteAsset = async (id: string) => {
+        try { await api.delete(`/assets/${id}`); notifications.show({ title: 'Deleted', message: 'Asset removed', color: 'green' }); fetchData(); }
+        catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    };
+
+    const filteredCategories = categories.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()));
+    const filteredAssets = assets.filter(a => a.name?.toLowerCase().includes(search.toLowerCase()) || a.serialNumber?.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <Box p={{ base: 'sm', md: 'xl' }}>
-            <Group justify="space-between" mb="lg" wrap="wrap">
-                <Title order={2}>Facilities & Resource Management</Title>
-                <Button
-                    leftSection={<Plus size={16} />}
-                    size="sm"
-                    radius={2}
-                    color="navy.9"
-                    onClick={open}
-                >
-                    Book Facility
-                </Button>
-            </Group>
+        <div>
+            <Title order={2} mb="lg">Facilities & Assets</Title>
+            <Grid mb="lg">
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Categories</Text><ThemeIcon variant="light" color="blue"><IconCategory size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">{stats.totalCategories}</Text>
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Total Assets</Text><ThemeIcon variant="light" color="green"><IconBuildingFortress size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">{stats.totalAssets}</Text>
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Total Value</Text><ThemeIcon variant="light" color="orange"><IconBuildingFortress size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">${stats.totalValue?.toLocaleString()}</Text>
+                    </Card>
+                </Grid.Col>
+            </Grid>
 
-            {/* Stats */}
-            <Grid gutter="md" mb="lg">
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="md" radius={2} withBorder>
-                        <Group gap="xs">
-                            <Building2 size={20} color="var(--mantine-color-navy-7)" />
-                            <Box>
-                                <Text size="xs" c="dimmed">
-                                    Total Facilities
-                                </Text>
-                                <Title order={3}>24</Title>
-                            </Box>
+            <Tabs value={activeTab} onChange={setActiveTab} radius="md">
+                <Tabs.List mb="md">
+                    <Tabs.Tab value="categories" leftSection={<IconCategory size={16} />}>Categories</Tabs.Tab>
+                    <Tabs.Tab value="assets" leftSection={<IconBuildingFortress size={16} />}>Assets</Tabs.Tab>
+                </Tabs.List>
+
+                <Tabs.Panel value="categories">
+                    <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                        <LoadingOverlay visible={loading} />
+                        <Group justify="space-between" mb="md">
+                            <TextInput placeholder="Search categories..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => handleOpenDrawer('category')}>Add Category</Button>
                         </Group>
-                    </Card>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="md" radius={2} withBorder>
-                        <Box>
-                            <Text size="xs" c="dimmed">
-                                Available
-                            </Text>
-                            <Title order={3} c="green">
-                                15
-                            </Title>
-                        </Box>
-                    </Card>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="md" radius={2} withBorder>
-                        <Box>
-                            <Text size="xs" c="dimmed">
-                                Occupied
-                            </Text>
-                            <Title order={3} c="orange">
-                                6
-                            </Title>
-                        </Box>
-                    </Card>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card shadow="sm" padding="md" radius={2} withBorder>
-                        <Box>
-                            <Text size="xs" c="dimmed">
-                                Booked
-                            </Text>
-                            <Title order={3} c="blue">
-                                3
-                            </Title>
-                        </Box>
-                    </Card>
-                </Grid.Col>
-            </Grid>
-
-            <Grid gutter="md">
-                {/* Facilities List */}
-                <Grid.Col span={{ base: 12, lg: 8 }}>
-                    <Card shadow="sm" padding="lg" radius={2} withBorder>
-                        <Title order={4} mb="md">
-                            All Facilities
-                        </Title>
-
-                        <Box style={{ overflowX: 'auto' }}>
-                            <Table highlightOnHover>
-                                <Table.Thead>
-                                    <Table.Tr style={{ backgroundColor: 'var(--app-surface-dim)' }}>
-                                        <Table.Th>ID</Table.Th>
-                                        <Table.Th>Facility Name</Table.Th>
-                                        <Table.Th>Type</Table.Th>
-                                        <Table.Th>Capacity</Table.Th>
-                                        <Table.Th>Status</Table.Th>
-                                        <Table.Th>Next Booking</Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {loading ? (
-                                        <Table.Tr>
-                                            <Table.Td colSpan={6} style={{ textAlign: 'center', padding: rem(40) }}>
-                                                <Text c="dimmed">Loading facilities...</Text>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ) : facilities.length === 0 ? (
-                                        <Table.Tr>
-                                            <Table.Td colSpan={6} style={{ textAlign: 'center', padding: rem(40) }}>
-                                                <Text c="dimmed">No facilities found</Text>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ) : (
-                                        facilities.map((facility) => (
-                                            <Table.Tr key={facility.id}>
-                                                <Table.Td>
-                                                    <Text size="sm">{facility.facility_id}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm" fw={500}>
-                                                        {facility.facility_name}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">{facility.facility_type}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">{facility.capacity}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge color={getStatusColor(facility.status)} variant="light" size="sm" radius={2}>
-                                                        {facility.status}
-                                                    </Badge>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm" c="dimmed">
-                                                        -
-                                                    </Text>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))
-                                    )}
-                                </Table.Tbody>
+                        {filteredCategories.length === 0 ? (
+                            <Text ta="center" c="dimmed" py="xl">No categories found. Click "Add Category" to get started.</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead><Table.Tr><Table.Th>Name</Table.Th><Table.Th>Description</Table.Th><Table.Th>Assets</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
+                                <Table.Tbody>{filteredCategories.map(c => (
+                                    <Table.Tr key={c.id}><Table.Td fw={500}>{c.name}</Table.Td><Table.Td>{c.description || '—'}</Table.Td><Table.Td><Badge variant="light">{c._count?.assets || 0}</Badge></Table.Td><Table.Td><ActionIcon color="red" variant="subtle" onClick={() => handleDeleteCategory(c.id)}><IconTrash size={16} /></ActionIcon></Table.Td></Table.Tr>
+                                ))}</Table.Tbody>
                             </Table>
-                        </Box>
-                    </Card>
-                </Grid.Col>
-            </Grid>
+                        )}
+                    </Paper>
+                </Tabs.Panel>
 
-            {/* Booking Modal */}
-            <Modal opened={opened} onClose={close} title="Book Facility" size="md">
-                <Stack gap="md">
-                    <Select
-                        label="Select Facility"
-                        placeholder="Choose facility"
-                        data={facilities.map((f) => ({ value: f.id, label: f.facility_name }))}
-                        size="sm"
-                        radius={2}
-                    />
-                    <TextInput
-                        label="Purpose"
-                        placeholder="Enter purpose"
-                        size="sm"
-                        radius={2}
-                    />
-                    <Group grow>
-                        <TextInput
-                            label="Start Time"
-                            placeholder="HH:MM"
-                            size="sm"
-                            radius={2}
-                        />
-                        <TextInput
-                            label="End Time"
-                            placeholder="HH:MM"
-                            size="sm"
-                            radius={2}
-                        />
-                    </Group>
-                    <Textarea
-                        label="Additional Notes"
-                        placeholder="Enter any additional information"
-                        size="sm"
-                        radius={2}
-                        minRows={3}
-                    />
-                    <Group justify="flex-end">
-                        <Button variant="outline" onClick={close} size="sm" radius={2} color="gray">
-                            Cancel
-                        </Button>
-                        <Button onClick={close} size="sm" radius={2} color="navy.9">
-                            Confirm Booking
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Box >
+                <Tabs.Panel value="assets">
+                    <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                        <LoadingOverlay visible={loading} />
+                        <Group justify="space-between" mb="md">
+                            <TextInput placeholder="Search assets..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => handleOpenDrawer('asset')}>Add Asset</Button>
+                        </Group>
+                        {filteredAssets.length === 0 ? (
+                            <Text ta="center" c="dimmed" py="xl">No assets found. Click "Add Asset" to get started.</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead><Table.Tr><Table.Th>Name</Table.Th><Table.Th>Category</Table.Th><Table.Th>S/N</Table.Th><Table.Th>Location</Table.Th><Table.Th>Condition</Table.Th><Table.Th>Value</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
+                                <Table.Tbody>{filteredAssets.map(a => (
+                                    <Table.Tr key={a.id}><Table.Td fw={500}>{a.name}</Table.Td><Table.Td>{a.category?.name || '—'}</Table.Td><Table.Td>{a.serialNumber || '—'}</Table.Td><Table.Td>{a.location || '—'}</Table.Td><Table.Td><Badge color={a.condition === 'GOOD' ? 'green' : a.condition === 'FAIR' ? 'orange' : 'red'} variant="light">{a.condition}</Badge></Table.Td><Table.Td>${a.purchasePrice?.toLocaleString()}</Table.Td><Table.Td><ActionIcon color="red" variant="subtle" onClick={() => handleDeleteAsset(a.id)}><IconTrash size={16} /></ActionIcon></Table.Td></Table.Tr>
+                                ))}</Table.Tbody>
+                            </Table>
+                        )}
+                    </Paper>
+                </Tabs.Panel>
+            </Tabs>
+
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerType === 'category' ? 'Add Category' : 'Add Asset'} position="right" size="md">
+                {drawerType === 'category' ? (
+                    <form onSubmit={categoryForm.onSubmit(handleSaveCategory)}>
+                        <Stack>
+                            <TextInput label="Name" placeholder="e.g. Furniture" required {...categoryForm.getInputProps('name')} />
+                            <Textarea label="Description" {...categoryForm.getInputProps('description')} />
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit">Save</Button></Group>
+                        </Stack>
+                    </form>
+                ) : (
+                    <form onSubmit={assetForm.onSubmit(handleSaveAsset)}>
+                        <Stack>
+                            <TextInput label="Asset Name" required {...assetForm.getInputProps('name')} />
+                            <Select label="Category" data={categories.map(c => ({ value: c.id, label: c.name }))} required {...assetForm.getInputProps('categoryId')} />
+                            <TextInput label="Serial Number" {...assetForm.getInputProps('serialNumber')} />
+                            <TextInput label="Location" {...assetForm.getInputProps('location')} />
+                            <NumberInput label="Purchase Price" prefix="$" min={0} {...assetForm.getInputProps('purchasePrice')} />
+                            <TextInput label="Purchase Date" type="date" {...assetForm.getInputProps('purchaseDate')} />
+                            <Select label="Condition" data={['NEW', 'GOOD', 'FAIR', 'POOR', 'DAMAGED']} {...assetForm.getInputProps('condition')} />
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit">Save</Button></Group>
+                        </Stack>
+                    </form>
+                )}
+            </Drawer>
+        </div>
     );
 }

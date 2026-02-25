@@ -19,6 +19,12 @@ import {
     IconLayoutSidebarLeftCollapse,
     IconLayoutSidebarLeftExpand,
     IconSpeakerphone,
+    IconBus,
+    IconBuildingFortress,
+    IconHeartbeat,
+    IconShield,
+    IconHome2,
+    IconBell as IconAlertBell,
 } from '@tabler/icons-react';
 
 // Import Logos
@@ -128,6 +134,23 @@ export function DashboardLayout() {
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
                 { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
                 { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
+            ]
+        },
+        {
+            title: 'Transport & Ops',
+            roles: ['admin', 'reception', 'security'],
+            links: [
+                { icon: IconBus, label: 'Transport', to: '/transport', roles: ['admin'] },
+                { icon: IconBuildingFortress, label: 'Facilities', to: '/facilities', roles: ['admin'] },
+            ]
+        },
+        {
+            title: 'Student Welfare',
+            roles: ['admin', 'teacher', 'reception'],
+            links: [
+                { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception'] },
+                { icon: IconShield, label: 'Discipline', to: '/discipline', roles: ['admin', 'teacher'] },
+                { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception'] },
             ]
         }
     ];
@@ -333,7 +356,7 @@ function activeNavLink(link: any, isActive: boolean, expanded: boolean, navigate
             color="brand"
             py="xs"
             my={2}
-            style={{ borderRadius: 'var(--mantine-radius-md)' }}
+            style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
         />
     );
 }
