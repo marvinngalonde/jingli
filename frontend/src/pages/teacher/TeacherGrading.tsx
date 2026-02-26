@@ -241,9 +241,7 @@ export function TeacherGrading() {
 
             <Group justify="space-between">
                 <Group>
-                    <ActionIcon variant="light" size="lg" onClick={() => navigate(-1)}>
-                        <IconArrowLeft size={20} />
-                    </ActionIcon>
+                  
                     <div>
                         <Title order={2}>Grading Center</Title>
                         <Text c="dimmed">Review submissions and enter marks.</Text>

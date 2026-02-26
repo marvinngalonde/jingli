@@ -147,9 +147,7 @@ export function TeacherAssignments() {
 
             <Group justify="space-between">
                 <Group>
-                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/teacher/classes')}>
-                        <IconArrowLeft size={20} />
-                    </ActionIcon>
+                   
                     <div>
                         <Title order={2}>{sectionId ? 'Class Assignments' : 'All Assignments'}</Title>
                         <Text c="dimmed">
@@ -212,7 +210,7 @@ export function TeacherAssignments() {
                                         </Table.Td>
                                         <Table.Td style={{ textAlign: 'right' }}>
                                             <Group gap="xs" justify="flex-end">
-                                                <ActionIcon variant="subtle" color="blue" title="View Submissions" onClick={() => navigate(`/teacher/grading?assignment=${a.id}`)}>
+                                                <ActionIcon variant="subtle" color="blue" title="View Submissions" onClick={() => navigate(`/portal/grading?assignment=${a.id}`)}>
                                                     <IconEye size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(a.id)} title="Delete">

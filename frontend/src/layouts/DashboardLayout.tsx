@@ -25,6 +25,12 @@ import {
     IconShield,
     IconHome2,
     IconBell as IconAlertBell,
+    IconCalendarEvent,
+    IconSchool,
+    IconWallet,
+    IconReceipt,
+    IconClipboardCheck,
+    IconClipboardList,
 } from '@tabler/icons-react';
 
 // Import Logos
@@ -105,6 +111,7 @@ export function DashboardLayout() {
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent', 'reception', 'finance', 'librarian', 'security', 'hr'] },
                 { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
                 { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'teacher', 'student', 'parent', 'reception'] },
+                { icon: IconSchool, label: 'E-Learning', to: '/portal/dashboard', roles: ['admin', 'teacher'] },
             ]
         },
         {
@@ -116,6 +123,9 @@ export function DashboardLayout() {
                 { icon: IconChalkboard, label: 'Classes', to: '/classes', roles: ['admin', 'teacher'] },
                 { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'teacher', 'student', 'parent'] },
                 { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'teacher', 'student', 'parent'] },
+                { icon: IconClipboardCheck, label: 'Attendance', to: '/attendance', roles: ['admin', 'teacher'] },
+                { icon: IconCalendarEvent, label: 'Events', to: '/events', roles: ['admin', 'teacher', 'reception'] },
+
             ]
         },
         {
@@ -131,8 +141,9 @@ export function DashboardLayout() {
             roles: ['admin', 'finance'],
             links: [
                 { icon: IconCurrencyDollar, label: 'Finance', to: '/finance', roles: ['admin', 'finance'] },
+                { icon: IconWallet, label: 'Salaries', to: '/salaries', roles: ['admin', 'finance'] },
+                { icon: IconReceipt, label: 'Expenses', to: '/expenses', roles: ['admin', 'finance'] },
                 { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
-               
             ]
         },
         {
@@ -156,7 +167,6 @@ export function DashboardLayout() {
             title: 'Admin',
             roles: ['admin', 'finance'],
             links: [
-                
                 { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
                 { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
             ]

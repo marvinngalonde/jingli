@@ -123,9 +123,7 @@ export function TeacherCourseMaterials() {
 
             <Group justify="space-between">
                 <Group>
-                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/teacher/classes')}>
-                        <IconArrowLeft size={20} />
-                    </ActionIcon>
+
                     <div>
                         <Title order={2}>{sectionId ? 'Course Materials' : 'All Materials'}</Title>
                         <Text c="dimmed">

@@ -69,7 +69,7 @@ export function TeacherClasses() {
                                             </ActionIcon>
                                         </Menu.Target>
                                         <Menu.Dropdown>
-                                            <Menu.Item leftSection={<IconEye size={14} />} onClick={() => navigate(`/teacher/classes/${cls.section.id}/students`)}>View Roster</Menu.Item>
+                                            <Menu.Item leftSection={<IconEye size={14} />} onClick={() => navigate(`/portal/classes/${cls.section.id}/students`)}>View Roster</Menu.Item>
                                             <Menu.Item leftSection={<IconMessageDots size={14} />}>Message Class</Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>
@@ -96,13 +96,13 @@ export function TeacherClasses() {
                             </Stack>
 
                             <Group grow mt="xl">
-                                <Button variant="light" color="blue" leftSection={<IconUsers size={16} />} onClick={() => navigate(`/teacher/classes/${cls.section.id}/students`)}>
+                                <Button variant="light" color="blue" leftSection={<IconUsers size={16} />} onClick={() => navigate(`/portal/classes/${cls.section.id}/students`)}>
                                     Students
                                 </Button>
-                                <Button variant="light" color="grape" leftSection={<IconFileDescription size={16} />} onClick={() => navigate(`/teacher/classes/${cls.section.id}/materials`)}>
+                                <Button variant="light" color="grape" leftSection={<IconFileDescription size={16} />} onClick={() => navigate(`/portal/classes/${cls.section.id}/materials`)}>
                                     Materials
                                 </Button>
-                                <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} onClick={() => navigate(`/teacher/classes/${cls.section.id}/assignments`)}>
+                                <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} onClick={() => navigate(`/portal/classes/${cls.section.id}/assignments`)}>
                                     Assignments
                                 </Button>
                             </Group>

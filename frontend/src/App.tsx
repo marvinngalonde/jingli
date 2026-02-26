@@ -28,6 +28,11 @@ import { TeacherTimetable } from './pages/teacher/TeacherTimetable';
 import { TeacherCourseMaterials } from './pages/teacher/TeacherCourseMaterials';
 import TeacherAssignments from './pages/teacher/TeacherAssignments';
 import TeacherGrading from './pages/teacher/TeacherGrading';
+import TeacherCBT from './pages/teacher/TeacherCBT';
+import TeacherLiveClass from './pages/teacher/TeacherLiveClass';
+import TeacherDiscussions from './pages/teacher/TeacherDiscussions';
+import TeacherAnalytics from './pages/teacher/TeacherAnalytics';
+import TeacherLeaderboard from './pages/teacher/TeacherLeaderboard';
 
 // import Fees from './pages/finance/Fees';
 // import { FeeStructures } from './pages/Finance/FeeStructures';
@@ -133,20 +138,25 @@ function App() {
             <Route path="*" element={<div>Page Not Found</div>} />
           </Route>
 
-          {/* Teacher Portal / E-Learning Routes */}
+          {/* E-Learning Portal Routes */}
           <Route element={<ProtectedRoute allowedRoles={['TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SEN_COORDINATOR', 'ADMIN', 'SUPER_ADMIN']}><TeacherLayout /></ProtectedRoute>}>
-            <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-            <Route path="/teacher/classes" element={<TeacherClasses />} />
-            <Route path="/teacher/timetable" element={<TeacherTimetable />} />
-            <Route path="/teacher/classes/:sectionId/students" element={<TeacherClassStudents />} />
-            <Route path="/teacher/classes/:sectionId/materials" element={<TeacherCourseMaterials />} />
-            <Route path="/teacher/materials" element={<TeacherCourseMaterials />} />
-            <Route path="/teacher/assignments" element={<TeacherAssignments />} />
-            <Route path="/teacher/grading" element={<TeacherGrading />} />
-            <Route path="/teacher/inbox" element={<Communication />} />
-            <Route path="/teacher/library" element={<Library />} />
-            <Route path="/teacher/calendar" element={<CalendarPage />} />
+            <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
+            <Route path="/portal/dashboard" element={<TeacherDashboard />} />
+            <Route path="/portal/classes" element={<TeacherClasses />} />
+            <Route path="/portal/timetable" element={<TeacherTimetable />} />
+            <Route path="/portal/classes/:sectionId/students" element={<TeacherClassStudents />} />
+            <Route path="/portal/classes/:sectionId/materials" element={<TeacherCourseMaterials />} />
+            <Route path="/portal/materials" element={<TeacherCourseMaterials />} />
+            <Route path="/portal/assignments" element={<TeacherAssignments />} />
+            <Route path="/portal/grading" element={<TeacherGrading />} />
+            <Route path="/portal/cbt" element={<TeacherCBT />} />
+            <Route path="/portal/live-classes" element={<TeacherLiveClass />} />
+            <Route path="/portal/discussions" element={<TeacherDiscussions />} />
+            <Route path="/portal/analytics" element={<TeacherAnalytics />} />
+            <Route path="/portal/leaderboard" element={<TeacherLeaderboard />} />
+            <Route path="/portal/inbox" element={<Communication />} />
+            <Route path="/portal/library" element={<Library />} />
+            <Route path="/portal/calendar" element={<CalendarPage />} />
           </Route>
 
           {/* Student Portal Routes */}

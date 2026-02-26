@@ -40,7 +40,7 @@ export function TeacherClassStudents() {
             <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
             <Group>
-                <ActionIcon variant="light" size="lg" onClick={() => navigate('/teacher/classes')}>
+                <ActionIcon variant="light" size="lg" onClick={() => navigate('/portal/classes')}>
                     <IconArrowLeft size={20} />
                 </ActionIcon>
                 <div>

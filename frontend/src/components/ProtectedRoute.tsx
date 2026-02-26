@@ -25,7 +25,7 @@ export const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) 
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (allowedRoles && !allowedRoles.map(r => r.toUpperCase()).includes(user.role.toUpperCase())) {
         // User authorized but role verification failed
         const defaultPath = getDashboardPath(user.role);
 
