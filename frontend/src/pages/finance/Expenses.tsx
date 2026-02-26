@@ -1,168 +1,73 @@
-import { Button, Drawer, Box, SimpleGrid, Paper, Text, Select, Group } from '@mantine/core';
+import { Title, Paper, Text, Group, Button, Card, ThemeIcon, Grid, Stack, Table, Badge, Drawer, TextInput, NumberInput, Textarea, Select, ActionIcon, LoadingOverlay, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconCheck } from '@tabler/icons-react';
-import { PageHeader } from '../../components/common/PageHeader';
-import { DataTable, type Column } from '../../components/common/DataTable';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { ActionMenu } from '../../components/common/ActionMenu';
-import { ConfirmModal } from '../../components/common/ConfirmModal';
-import { useState, useEffect } from 'react';
-import { ExpenseForm } from '../../components/finance/ExpenseForm';
+import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { expenseService, type Expense, type ExpenseStats } from '../../services/expenseService';
+import { IconReceipt, IconPlus, IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
+import { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 
 export default function Expenses() {
+    const [expenses, setExpenses] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
-    const [data, setData] = useState<Expense[]>([]);
-    const [stats, setStats] = useState<ExpenseStats>({ totalExpenses: 0, thisMonth: 0, pendingCount: 0 });
-    const [loading, setLoading] = useState(true);
-    const [opened, { open, close }] = useDisclosure(false);
-    const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
-    const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const [expenses, s] = await Promise.all([
-                expenseService.getAll(categoryFilter || undefined),
-                expenseService.getStats(),
-            ]);
-            setData(expenses);
-            setStats(s);
-        } catch (e: any) {
-            notifications.show({ message: e.message || 'Failed to load expenses', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { loadData(); }, [categoryFilter]);
-
-    const handleCreate = async (values: any) => {
-        try {
-            await expenseService.create(values);
-            notifications.show({ message: 'Expense recorded successfully', color: 'green' });
-            close();
-            loadData();
-        } catch (e: any) {
-            notifications.show({ message: e.message || 'Failed to create expense', color: 'red' });
-        }
-    };
-
-    const handleApprove = async (item: Expense) => {
-        try {
-            await expenseService.approve(item.id);
-            notifications.show({ message: 'Expense approved', color: 'green' });
-            loadData();
-        } catch (e: any) {
-            notifications.show({ message: e.message || 'Failed to approve', color: 'red' });
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!deleteTarget) return;
-        try {
-            await expenseService.remove(deleteTarget.id);
-            notifications.show({ message: 'Expense deleted', color: 'green' });
-            setDeleteTarget(null);
-            loadData();
-        } catch (e: any) {
-            notifications.show({ message: e.message || 'Failed to delete', color: 'red' });
-        }
-    };
-
-    const filteredData = data.filter(item =>
-        item.description.toLowerCase().includes(search.toLowerCase()) ||
-        item.category.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const columns: Column<Expense>[] = [
-        { accessor: 'description', header: 'Description' },
-        { accessor: 'category', header: 'Category' },
-        {
-            accessor: 'amount', header: 'Amount',
-            render: (item) => <Text size="sm" fw={500}>{item.currency} {Number(item.amount).toLocaleString()}</Text>
+    const form = useForm({
+        initialValues: { title: '', amount: 0, category: '', description: '', date: '', approvedBy: '', status: 'PENDING' },
+        validate: {
+            title: (v) => (!v ? 'Title required' : null),
+            amount: (v) => (v <= 0 ? 'Amount must be > 0' : null),
         },
-        { accessor: 'date', header: 'Date', render: (item) => <Text size="sm">{new Date(item.date).toLocaleDateString()}</Text> },
-        {
-            accessor: 'status', header: 'Status',
-            render: (item) => <StatusBadge status={item.status} />
-        },
-        {
-            accessor: 'actions', header: '',
-            render: (item) => (
-                <Group gap="xs" justify="flex-end">
-                    {item.status === 'PENDING' && (
-                        <Button size="xs" variant="light" color="green" leftSection={<IconCheck size={14} />} onClick={() => handleApprove(item)}>
-                            Approve
-                        </Button>
-                    )}
-                    <ActionMenu
-                        onDelete={() => setDeleteTarget(item)}
-                    />
-                </Group>
-            ),
-        },
-    ];
+    });
+
+    const fetchExpenses = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/expenses');
+            setExpenses(res.data || []);
+        } catch (err) { console.error(err); } finally { setLoading(false); }
+    };
+
+    useEffect(() => { fetchExpenses(); }, []);
 
     return (
-        <>
-            <PageHeader
-                title="Expenses"
-                subtitle="Track school operational expenses"
-                actions={<Button leftSection={<IconPlus size={16} />} onClick={open}>Record Expense</Button>}
-            />
+        <div>
+            <Title order={2} mb="lg">Expenses Management</Title>
 
-            <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
-                <Paper withBorder p="md" radius="md">
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total Expenses</Text>
-                    <Text size="xl" fw={700}>${stats.totalExpenses.toLocaleString()}</Text>
-                </Paper>
-                <Paper withBorder p="md" radius="md">
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={700}>This Month</Text>
-                    <Text size="xl" fw={700} c="red">+${stats.thisMonth.toLocaleString()}</Text>
-                </Paper>
-                <Paper withBorder p="md" radius="md">
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Pending Approval</Text>
-                    <Text size="xl" fw={700} c="orange">{stats.pendingCount}</Text>
-                </Paper>
-            </SimpleGrid>
+            <Grid mb="lg">
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Total Expenses</Text><ThemeIcon variant="light" color="red"><IconReceipt size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">{expenses.length} Records</Text>
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Pending Approval</Text><ThemeIcon variant="light" color="orange"><IconReceipt size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">{expenses.filter(e => e.status === 'PENDING').length}</Text>
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card shadow="sm" radius="md" p="md" withBorder>
+                        <Group justify="space-between" mb="xs"><Text fw={500} c="dimmed">Approved</Text><ThemeIcon variant="light" color="green"><IconReceipt size={16} /></ThemeIcon></Group>
+                        <Text fw={700} size="xl">{expenses.filter(e => e.status === 'APPROVED').length}</Text>
+                    </Card>
+                </Grid.Col>
+            </Grid>
 
-            <Group mb="md">
-                <Select
-                    placeholder="Filter by category"
-                    clearable
-                    data={['Operations', 'Maintenance', 'Equipment', 'Utilities', 'Supplies', 'Transport', 'Catering', 'Other']}
-                    value={categoryFilter}
-                    onChange={setCategoryFilter}
-                    w={200}
-                />
-            </Group>
-
-            <DataTable
-                data={filteredData}
-                columns={columns}
-                search={search}
-                onSearchChange={setSearch}
-                loading={loading}
-            />
-
-            <Drawer opened={opened} onClose={close} title="Record New Expense" position="right" size="md">
-                <Box p={0}>
-                    <ExpenseForm
-                        onSubmit={handleCreate}
-                        onCancel={close}
-                    />
-                </Box>
-            </Drawer>
-
-            <ConfirmModal
-                opened={!!deleteTarget}
-                onClose={() => setDeleteTarget(null)}
-                onConfirm={handleDelete}
-                title="Delete Expense?"
-                message={`Are you sure you want to delete "${deleteTarget?.description}"?`}
-            />
-        </>
+            <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                <LoadingOverlay visible={loading} />
+                <Group justify="space-between" mb="md">
+                    <TextInput placeholder="Search..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                    <Button leftSection={<IconPlus size={16} />} onClick={openDrawer}>Add Expense</Button>
+                </Group>
+                <Text ta="center" c="dimmed" py="xl">
+                    Expense tracking module. Records will appear here once expense data is available.
+                    {expenses.length > 0 && ` ${expenses.length} records found.`}
+                </Text>
+            </Paper>
+        </div>
     );
 }

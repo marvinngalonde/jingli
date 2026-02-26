@@ -292,10 +292,10 @@ function AdminDashboard() {
 
             {/* Quick Actions */}
             <Group mt="xl" grow>
-                <QuickAction title="Add Student" icon={IconPlus} color="blue" />
-                <QuickAction title="Create Invoice" icon={IconFileInvoice} color="indigo" />
-                <QuickAction title="Send Notice" icon={IconSpeakerphone} color="orange" />
-                <QuickAction title="View Timetable" icon={IconCalendarEvent} color="teal" />
+                <QuickAction title="Add Student" icon={IconPlus} color="blue" onClick={() => navigate('/students')} />
+                <QuickAction title="Create Invoice" icon={IconFileInvoice} color="indigo" onClick={() => navigate('/finance')} />
+                <QuickAction title="Send Notice" icon={IconSpeakerphone} color="orange" onClick={() => navigate('/communication')} />
+                <QuickAction title="View Timetable" icon={IconCalendarEvent} color="teal" onClick={() => navigate('/academics')} />
             </Group>
 
             {/* Charts & Activity */}
@@ -381,9 +381,9 @@ function StatsCard({ title, value, subtext, subtextColor, icon: Icon, color, ico
     );
 }
 
-function QuickAction({ title, icon: Icon, color }: any) {
+function QuickAction({ title, icon: Icon, color, onClick }: any) {
     return (
-        <Paper shadow="sm" p="md" radius="md" withBorder style={{ cursor: 'pointer', transition: 'transform 0.2s' }} >
+        <Paper shadow="sm" p="md" radius="md" withBorder style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={onClick}>
             <Group>
                 <ThemeIcon variant="light" color={color} size="lg" radius="md">
                     <Icon size={20} />

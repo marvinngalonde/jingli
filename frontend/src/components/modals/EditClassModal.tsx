@@ -35,7 +35,15 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
 
     // Populate form when section/classLevel changes
     useEffect(() => {
-        if (section && classLevel) {
+        if (classLevel && !section) {
+            form.setValues({
+                levelName: classLevel.name,
+                levelNumber: classLevel.level,
+                sectionName: '',
+                capacity: 30,
+                classTeacherId: '',
+            });
+        } else if (section && classLevel) {
             form.setValues({
                 levelName: classLevel.name,
                 levelNumber: classLevel.level,
@@ -47,7 +55,7 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
     }, [section, classLevel]);
 
     const handleSubmit = async (values: typeof form.values) => {
-        if (!section || !classLevel) return;
+        if (!classLevel) return;
 
         try {
             // Update class level if changed
@@ -59,12 +67,14 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
             }
 
             // Update section if changed
-            if (values.sectionName !== section.name || values.capacity !== section.capacity || values.classTeacherId !== (section.classTeacherId || '')) {
-                await classesApi.updateSection(section.id, {
-                    name: values.sectionName,
-                    capacity: values.capacity,
-                    classTeacherId: values.classTeacherId || undefined, // undefined removes assignment
-                });
+            if (section) {
+                if (values.sectionName !== section.name || values.capacity !== section.capacity || values.classTeacherId !== (section.classTeacherId || '')) {
+                    await classesApi.updateSection(section.id, {
+                        name: values.sectionName,
+                        capacity: values.capacity,
+                        classTeacherId: values.classTeacherId || undefined, // undefined removes assignment
+                    });
+                }
             }
 
             notifications.show({
@@ -103,30 +113,34 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
                             {...form.getInputProps('levelNumber')}
                             required
                         />
-                        <TextInput
-                            label="Section Name"
-                            placeholder="e.g., A, B, C"
-                            {...form.getInputProps('sectionName')}
-                            required
-                        />
-                        <NumberInput
-                            label="Capacity"
-                            placeholder="e.g., 30"
-                            min={1}
-                            {...form.getInputProps('capacity')}
-                            required
-                        />
-                        <Select
-                            label="Class Teacher (Optional)"
-                            placeholder="Select a teacher"
-                            data={teachers.map(t => ({
-                                value: t.user?.id || t.id,
-                                label: `${t.firstName} ${t.lastName}`
-                            }))}
-                            {...form.getInputProps('classTeacherId')}
-                            searchable
-                            clearable
-                        />
+                        {section && (
+                            <>
+                                <TextInput
+                                    label="Section Name"
+                                    placeholder="e.g., A, B, C"
+                                    {...form.getInputProps('sectionName')}
+                                    required
+                                />
+                                <NumberInput
+                                    label="Capacity"
+                                    placeholder="e.g., 30"
+                                    min={1}
+                                    {...form.getInputProps('capacity')}
+                                    required
+                                />
+                                <Select
+                                    label="Class Teacher (Optional)"
+                                    placeholder="Select a teacher"
+                                    data={teachers.map(t => ({
+                                        value: t.user?.id || t.id,
+                                        label: `${t.firstName} ${t.lastName}`
+                                    }))}
+                                    {...form.getInputProps('classTeacherId')}
+                                    searchable
+                                    clearable
+                                />
+                            </>
+                        )}
 
                         <Group justify="flex-end" mt="md">
                             <Button variant="subtle" onClick={onClose}>

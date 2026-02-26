@@ -1,30 +1,37 @@
 import { useState, useEffect } from 'react';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconHeartbeat, IconStethoscope, IconUser, IconPlus, IconTrash, IconSearch } from '@tabler/icons-react';
+import { IconHeartbeat, IconStethoscope, IconUser, IconPlus, IconTrash, IconSearch, IconEdit } from '@tabler/icons-react';
 import { api } from '../services/api';
+import { StudentPicker } from '../components/common/StudentPicker';
+import { StaffPicker } from '../components/common/StaffPicker';
 
 export default function Health() {
     const [activeTab, setActiveTab] = useState<string | null>('visits');
     const [visits, setVisits] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [stats, setStats] = useState({ totalVisits: 0, todayVisits: 0, profilesRecorded: 0 });
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const [drawerMode, setDrawerMode] = useState<'visit' | 'profile'>('visit');
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
     const visitForm = useForm({
-        initialValues: { studentId: '', complaint: '', diagnosis: '', treatment: '', attendedBy: '' },
+        initialValues: { studentId: '', complaint: '', diagnosis: '', treatment: '', attendedBy: '', referral: '', notes: '' },
         validate: {
-            studentId: (v) => (!v ? 'Student ID required' : null),
+            studentId: (v) => (!v ? 'Please select a student' : null),
             complaint: (v) => (!v ? 'Complaint required' : null),
+            attendedBy: (v) => (!v ? 'Please select attending staff' : null),
         },
     });
 
     const profileForm = useForm({
-        initialValues: { studentId: '', bloodType: '', allergies: '', medications: '', conditions: '', emergencyContact: '' },
-        validate: { studentId: (v) => (!v ? 'Student ID required' : null) },
+        initialValues: { studentId: '', bloodType: '', allergies: '', chronicConditions: '', emergencyContact: '', emergencyPhone: '', medicalAidProvider: '', medicalAidNumber: '', doctorName: '', doctorPhone: '', notes: '' },
+        validate: { studentId: (v) => (!v ? 'Please select a student' : null) },
     });
 
     const fetchData = async () => {
@@ -41,25 +48,73 @@ export default function Health() {
 
     useEffect(() => { fetchData(); }, []);
 
+    const openVisitDrawer = (item?: any) => {
+        setDrawerMode('visit');
+        setEditingId(item?.id || null);
+        if (item) {
+            visitForm.setValues({
+                studentId: item.studentId || '',
+                complaint: item.complaint || '',
+                diagnosis: item.diagnosis || '',
+                treatment: item.treatment || '',
+                attendedBy: item.attendedBy || '',
+                referral: item.referral || '',
+                notes: item.notes || '',
+            });
+        } else {
+            visitForm.reset();
+        }
+        openDrawer();
+    };
+
+    const openProfileDrawer = () => {
+        setDrawerMode('profile');
+        setEditingId(null);
+        profileForm.reset();
+        openDrawer();
+    };
+
     const handleSaveVisit = async (values: typeof visitForm.values) => {
+        setSubmitting(true);
         try {
-            await api.post('/health/visits', values);
-            notifications.show({ title: 'Success', message: 'Visit logged', color: 'green' });
-            closeDrawer(); visitForm.reset(); fetchData();
-        } catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+            if (editingId) {
+                await api.patch(`/health/visits/${editingId}`, values);
+                notifications.show({ title: 'Success', message: 'Visit updated', color: 'green' });
+            } else {
+                await api.post('/health/visits', values);
+                notifications.show({ title: 'Success', message: 'Visit logged', color: 'green' });
+            }
+            closeDrawer(); visitForm.reset(); setEditingId(null); fetchData();
+        } catch (err: any) {
+            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save visit', color: 'red' });
+        } finally { setSubmitting(false); }
     };
 
     const handleSaveProfile = async (values: typeof profileForm.values) => {
+        setSubmitting(true);
         try {
             await api.post('/health/profiles', values);
             notifications.show({ title: 'Success', message: 'Medical profile saved', color: 'green' });
             closeDrawer(); profileForm.reset(); fetchData();
-        } catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+        } catch (err: any) {
+            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save profile', color: 'red' });
+        } finally { setSubmitting(false); }
     };
 
-    const handleDeleteVisit = async (id: string) => {
-        try { await api.delete(`/health/visits/${id}`); notifications.show({ title: 'Deleted', message: 'Visit removed', color: 'green' }); fetchData(); }
-        catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    const confirmDelete = (id: string, name: string) => {
+        setDeleteModal({ opened: true, id, name });
+    };
+
+    const handleDelete = async () => {
+        try {
+            await api.delete(`/health/visits/${deleteModal.id}`);
+            notifications.show({ title: 'Deleted', message: 'Visit removed', color: 'green' });
+            fetchData();
+        } catch (err: any) {
+            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' });
+        } finally {
+            setDeleteModal({ opened: false, id: '', name: '' });
+        }
     };
 
     const filtered = visits.filter(v =>
@@ -104,7 +159,7 @@ export default function Health() {
                         <LoadingOverlay visible={loading} />
                         <Group justify="space-between" mb="md">
                             <TextInput placeholder="Search visits..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
-                            <Button leftSection={<IconPlus size={16} />} onClick={openDrawer}>Log Visit</Button>
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => openVisitDrawer()}>Log Visit</Button>
                         </Group>
                         {filtered.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl">No clinic visits found. Click "Log Visit" to get started.</Text>
@@ -118,7 +173,12 @@ export default function Health() {
                                         <Table.Td>{v.complaint}</Table.Td>
                                         <Table.Td>{v.diagnosis || '—'}</Table.Td>
                                         <Table.Td>{v.treatment || '—'}</Table.Td>
-                                        <Table.Td><ActionIcon color="red" variant="subtle" onClick={() => handleDeleteVisit(v.id)}><IconTrash size={16} /></ActionIcon></Table.Td>
+                                        <Table.Td>
+                                            <Group gap="xs">
+                                                <ActionIcon color="blue" variant="subtle" onClick={() => openVisitDrawer(v)}><IconEdit size={16} /></ActionIcon>
+                                                <ActionIcon color="red" variant="subtle" onClick={() => confirmDelete(v.id, `${v.student?.firstName} ${v.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
+                                            </Group>
+                                        </Table.Td>
                                     </Table.Tr>
                                 ))}</Table.Tbody>
                             </Table>
@@ -130,7 +190,7 @@ export default function Health() {
                     <Paper p="lg" radius="md" shadow="sm" withBorder>
                         <Group justify="space-between" mb="md">
                             <Text c="dimmed">Create or update a student's medical profile</Text>
-                            <Button leftSection={<IconPlus size={16} />} onClick={() => { setActiveTab('profiles'); openDrawer(); }}>New Profile</Button>
+                            <Button leftSection={<IconPlus size={16} />} onClick={openProfileDrawer}>New Profile</Button>
                         </Group>
                         <Text ta="center" c="dimmed" py="xl">Select a student from the Students page or use the form to create/update a medical profile.</Text>
                     </Paper>
@@ -138,32 +198,66 @@ export default function Health() {
             </Tabs>
 
             {/* Drawer */}
-            <Drawer opened={drawerOpened} onClose={closeDrawer} title={activeTab === 'profiles' ? 'Medical Profile' : 'Log Clinic Visit'} position="right" size="md">
-                {activeTab === 'profiles' ? (
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerMode === 'profile' ? 'Medical Profile' : (editingId ? 'Edit Clinic Visit' : 'Log Clinic Visit')} position="right" size="md">
+                {drawerMode === 'profile' ? (
                     <form onSubmit={profileForm.onSubmit(handleSaveProfile)}>
                         <Stack>
-                            <TextInput label="Student ID" required {...profileForm.getInputProps('studentId')} />
+                            <StudentPicker
+                                value={profileForm.values.studentId}
+                                onChange={(val) => profileForm.setFieldValue('studentId', val || '')}
+                                required
+                                error={profileForm.errors.studentId as string}
+                            />
                             <Select label="Blood Type" data={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} {...profileForm.getInputProps('bloodType')} />
                             <Textarea label="Allergies" placeholder="List known allergies" {...profileForm.getInputProps('allergies')} />
-                            <Textarea label="Current Medications" {...profileForm.getInputProps('medications')} />
-                            <Textarea label="Chronic Conditions" {...profileForm.getInputProps('conditions')} />
-                            <TextInput label="Emergency Contact" placeholder="+263..." {...profileForm.getInputProps('emergencyContact')} />
-                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit">Save Profile</Button></Group>
+                            <Textarea label="Chronic Conditions" {...profileForm.getInputProps('chronicConditions')} />
+                            <TextInput label="Emergency Contact Name" placeholder="Parent/Guardian name" {...profileForm.getInputProps('emergencyContact')} />
+                            <TextInput label="Emergency Phone" placeholder="+263..." {...profileForm.getInputProps('emergencyPhone')} />
+                            <TextInput label="Medical Aid Provider" {...profileForm.getInputProps('medicalAidProvider')} />
+                            <TextInput label="Medical Aid Number" {...profileForm.getInputProps('medicalAidNumber')} />
+                            <TextInput label="Doctor Name" {...profileForm.getInputProps('doctorName')} />
+                            <TextInput label="Doctor Phone" {...profileForm.getInputProps('doctorPhone')} />
+                            <Textarea label="Notes" {...profileForm.getInputProps('notes')} />
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>Save Profile</Button></Group>
                         </Stack>
                     </form>
                 ) : (
                     <form onSubmit={visitForm.onSubmit(handleSaveVisit)}>
                         <Stack>
-                            <TextInput label="Student ID" required {...visitForm.getInputProps('studentId')} />
+                            <StudentPicker
+                                value={visitForm.values.studentId}
+                                onChange={(val) => visitForm.setFieldValue('studentId', val || '')}
+                                required
+                                error={visitForm.errors.studentId as string}
+                            />
                             <Textarea label="Complaint" required {...visitForm.getInputProps('complaint')} />
                             <TextInput label="Diagnosis" {...visitForm.getInputProps('diagnosis')} />
                             <Textarea label="Treatment Given" {...visitForm.getInputProps('treatment')} />
-                            <TextInput label="Attended By (Staff ID)" {...visitForm.getInputProps('attendedBy')} />
-                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit">Save Visit</Button></Group>
+                            <StaffPicker
+                                label="Attended By"
+                                value={visitForm.values.attendedBy}
+                                onChange={(val) => visitForm.setFieldValue('attendedBy', val || '')}
+                                required
+                                error={visitForm.errors.attendedBy as string}
+                            />
+                            <TextInput label="Referral" placeholder="External referral if needed" {...visitForm.getInputProps('referral')} />
+                            <Textarea label="Notes" {...visitForm.getInputProps('notes')} />
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>{editingId ? 'Update Visit' : 'Save Visit'}</Button></Group>
                         </Stack>
                     </form>
                 )}
             </Drawer>
+
+            {/* Delete Confirmation */}
+            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Deletion">
+                <Stack>
+                    <Text size="sm">Are you sure you want to delete this clinic visit for <b>{deleteModal.name}</b>?</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
+                        <Button color="red" onClick={handleDelete}>Delete</Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </div>
     );
 }

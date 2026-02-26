@@ -116,7 +116,7 @@ export default function Users() {
             accessor: 'email',
             header: 'User',
             render: (item) => {
-                const profile = item.staffProfile || item.studentProfile;
+                const profile = item.staffProfile || item.studentProfile || item.guardianProfile;
                 const name = profile ? `${profile.firstName} ${profile.lastName}` : 'No Profile';
                 return (
                     <Group gap="sm">
@@ -275,7 +275,7 @@ export default function Users() {
             <Modal opened={deleteModalOpened} onClose={() => setDeleteModalOpened(false)} title="Deactivate User">
                 <Stack gap="md">
                     <Text size="sm">
-                        Are you sure you want to deactivate <b>{selectedUser?.staffProfile?.firstName || selectedUser?.studentProfile?.firstName || selectedUser?.email}</b>?
+                        Are you sure you want to deactivate <b>{selectedUser?.staffProfile?.firstName || selectedUser?.studentProfile?.firstName || selectedUser?.guardianProfile?.firstName || selectedUser?.email}</b>?
                         They will no longer be able to log in, but their records will be kept for future reference. You can restore them later.
                     </Text>
                     <Group justify="flex-end" mt="md">

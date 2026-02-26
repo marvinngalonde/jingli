@@ -114,7 +114,7 @@ export function NoticeBoard() {
                             clearable
                         />
                     </Group>
-                    {(user?.role === 'admin' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_HEAD' || user?.role === 'DEPUTY_HEAD') && (
+                    {(user?.role !== 'STUDENT' && user?.role !== 'PARENT') && (
                         <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>
                             Post New Notice
                         </Button>
@@ -147,7 +147,7 @@ export function NoticeBoard() {
                                         </Badge>
                                         <Title order={4}>{notice.title}</Title>
                                     </div>
-                                    {(user?.role === 'admin' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_HEAD' || user?.role === 'DEPUTY_HEAD') && (
+                                    {(user?.role !== 'STUDENT' && user?.role !== 'PARENT') && (
                                         <Menu position="bottom-end" withinPortal>
                                             <Menu.Target>
                                                 <ActionIcon variant="subtle">

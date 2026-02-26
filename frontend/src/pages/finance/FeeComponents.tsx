@@ -11,6 +11,7 @@ import {
     Drawer,
     TextInput,
     Select,
+    MultiSelect,
     NumberInput,
     ActionIcon,
     Stack,
@@ -34,6 +35,7 @@ export function FeeHeadManager() {
     const [heads, setHeads] = useState<FeeHead[]>([]);
     const [loading, setLoading] = useState(false);
     const [opened, { open, close }] = useDisclosure(false);
+    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
     const form = useForm({
         initialValues: {
@@ -78,15 +80,20 @@ export function FeeHeadManager() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure? This might affect existing structures.')) return;
+    const confirmDeleteHead = (id: string, name: string) => {
+        setDeleteModal({ opened: true, id, name });
+    };
+
+    const handleDelete = async () => {
         try {
-            await financeService.deleteFeeHead(id);
+            await financeService.deleteFeeHead(deleteModal.id);
             notifications.show({ title: 'Deleted', message: 'Fee Head removed', color: 'blue' });
             loadHeads();
         } catch (error) {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+        } finally {
+            setDeleteModal({ opened: false, id: '', name: '' });
         }
     };
 
@@ -116,7 +123,7 @@ export function FeeHeadManager() {
                                 </Badge>
                             </Table.Td>
                             <Table.Td style={{ textAlign: 'right' }}>
-                                <ActionIcon color="red" variant="subtle" onClick={() => handleDelete(head.id)}>
+                                <ActionIcon color="red" variant="subtle" onClick={() => confirmDeleteHead(head.id, head.name)}>
                                     <IconTrash size={16} />
                                 </ActionIcon>
                             </Table.Td>
@@ -152,6 +159,17 @@ export function FeeHeadManager() {
                     </Stack>
                 </form>
             </Modal>
+
+            {/* Delete Confirmation */}
+            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Deletion">
+                <Stack>
+                    <Text size="sm">Are you sure you want to delete <b>{deleteModal.name}</b>? This might affect existing structures.</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
+                        <Button color="red" onClick={handleDelete}>Delete</Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </Paper>
     );
 }
@@ -161,6 +179,7 @@ export function FeeStructureManager() {
     const [structures, setStructures] = useState<FeeStructure[]>([]);
     const [loading, setLoading] = useState(false);
     const [opened, { open, close }] = useDisclosure(false);
+    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
     // Dropdown Data
     const [academicYears, setAcademicYears] = useState<any[]>([]);
@@ -245,22 +264,27 @@ export function FeeStructureManager() {
         }
     };
 
-    const deleteStructure = async (id: string) => {
-        if (!window.confirm("Are you sure?")) return;
+    const confirmDeleteStructure = (id: string, name: string) => {
+        setDeleteModal({ opened: true, id, name });
+    };
+
+    const deleteStructure = async () => {
         try {
-            await financeService.deleteFeeStructure(id);
-            setStructures(prev => prev.filter(s => s.id !== id));
-            notifications.show({ title: 'Deleted', message: 'Fee Structure remove', color: 'blue' });
+            await financeService.deleteFeeStructure(deleteModal.id);
+            setStructures(prev => prev.filter(s => s.id !== deleteModal.id));
+            notifications.show({ title: 'Deleted', message: 'Fee Structure removed', color: 'blue' });
         } catch (e) {
             console.error(e);
             notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+        } finally {
+            setDeleteModal({ opened: false, id: '', name: '' });
         }
     };
 
     // Columns
     const columns = [
         { accessor: 'name', header: 'Structure Name', render: (item: FeeStructure) => <Text fw={500}>{item.name}</Text> },
-        { accessor: 'class', header: 'Class', render: (item: FeeStructure) => <Text size="sm">{item.classLevel?.name}</Text> },
+        { accessor: 'class', header: 'Class', render: (item: FeeStructure) => <Text size="sm">{item.classLevel?.name} {item.classLevel?.level}</Text> },
         { accessor: 'amount', header: 'Total Amount', render: (item: FeeStructure) => <Text fw={600}>${item.amount.toLocaleString()}</Text> },
         { accessor: 'frequency', header: 'Frequency', render: (item: FeeStructure) => <Badge>{item.frequency}</Badge> },
         {
@@ -288,7 +312,7 @@ export function FeeStructureManager() {
             accessor: 'actions',
             header: '',
             render: (item: FeeStructure) => (
-                <ActionIcon color="red" variant="subtle" onClick={() => deleteStructure(item.id)}>
+                <ActionIcon color="red" variant="subtle" onClick={() => confirmDeleteStructure(item.id, item.name)}>
                     <IconTrash size={16} />
                 </ActionIcon>
             )
@@ -334,8 +358,9 @@ export function FeeStructureManager() {
                             />
                             <Select
                                 label="Class Level"
-                                data={classes.map(c => ({ value: c.id, label: c.name }))}
+                                data={classes.map((c: any) => ({ value: c.id, label: `${c.name} ${c.level}` }))}
                                 required
+                                searchable
                                 {...form.getInputProps('classLevelId')}
                             />
                             <Select
@@ -392,6 +417,17 @@ export function FeeStructureManager() {
                     </form>
                 </ScrollArea>
             </Drawer>
+
+            {/* Delete Confirmation */}
+            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Deletion">
+                <Stack>
+                    <Text size="sm">Are you sure you want to delete <b>{deleteModal.name}</b>?</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
+                        <Button color="red" onClick={deleteStructure}>Delete</Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </Paper>
     );
 }

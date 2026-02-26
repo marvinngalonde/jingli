@@ -13,31 +13,31 @@ export class FeeHeadsController {
     constructor(private readonly feeHeadsService: FeeHeadsService) { }
 
     @Post()
-    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN, UserRole.ADMIN)
     create(@Body() createFeeHeadDto: CreateFeeHeadDto, @Request() req: any) {
         return this.feeHeadsService.create(createFeeHeadDto, req.user.schoolId);
     }
 
     @Get()
-    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.ADMIN)
     findAll(@Request() req: any) {
         return this.feeHeadsService.findAll(req.user.schoolId);
     }
 
     @Get(':id')
-    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.ADMIN)
     findOne(@Param('id') id: string, @Request() req: any) {
         return this.feeHeadsService.findOne(id, req.user.schoolId);
     }
 
     @Patch(':id')
-    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN, UserRole.ADMIN)
     update(@Param('id') id: string, @Body() updateFeeHeadDto: UpdateFeeHeadDto, @Request() req: any) {
         return this.feeHeadsService.update(id, updateFeeHeadDto, req.user.schoolId);
     }
 
     @Delete(':id')
-    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN, UserRole.ADMIN)
     remove(@Param('id') id: string, @Request() req: any) {
         return this.feeHeadsService.remove(id, req.user.schoolId);
     }

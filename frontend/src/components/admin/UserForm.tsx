@@ -1,8 +1,9 @@
-import { Drawer, Button, TextInput, Select, Stack, Group, PasswordInput } from '@mantine/core';
+import { Drawer, Button, TextInput, Select, Stack, Group, PasswordInput, MultiSelect } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { adminUsersService } from '../../services/adminUsersService';
+import { studentService } from '../../services/studentService';
 import { notifications } from '@mantine/notifications';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UserFormProps {
     opened: boolean;
@@ -13,6 +14,7 @@ interface UserFormProps {
 
 export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
     const isEdit = !!user;
+    const [students, setStudents] = useState<any[]>([]);
 
     const form = useForm({
         initialValues: {
@@ -22,6 +24,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
             firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || '',
             lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || '',
             role: user?.role || 'TEACHER',
+            studentIds: [] as string[],
         },
         validate: {
             username: (value) => (value.length >= 3 ? null : 'Username must be at least 3 characters'),
@@ -45,10 +48,14 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                 username: user?.username || '',
                 email: user?.email || '',
                 password: '',
-                firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || '',
-                lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || '',
+                firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || user?.guardianProfile?.firstName || '',
+                lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || user?.guardianProfile?.lastName || '',
                 role: user?.role || 'TEACHER',
+                studentIds: [],
             });
+
+            // Fetch students for parent linking
+            studentService.getAll().then(data => setStudents(data)).catch(console.error);
         }
     }, [opened, user]);
 
@@ -76,6 +83,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                     firstName: values.firstName,
                     lastName: values.lastName,
                     role: values.role as any,
+                    studentIds: values.role === 'PARENT' ? values.studentIds : undefined,
                 });
 
                 notifications.show({
@@ -196,6 +204,22 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                         required
                         {...form.getInputProps('role')}
                     />
+
+                    {form.values.role === 'PARENT' && !isEdit && (
+                        <MultiSelect
+                            label="Link to Students"
+                            description="Select the children/students this parent will oversee"
+                            placeholder="Search by name or admission number"
+                            data={students.map(s => ({
+                                value: s.id,
+                                label: `${s.firstName} ${s.lastName} (${s.admissionNo})`,
+                            }))}
+                            searchable
+                            clearable
+                            {...form.getInputProps('studentIds')}
+                        />
+                    )}
+
                     <Button type="submit" fullWidth mt="md">
                         {isEdit ? "Update Account" : "Create Account"}
                     </Button>

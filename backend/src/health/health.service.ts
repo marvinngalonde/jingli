@@ -7,10 +7,25 @@ export class HealthService {
 
     // ═══════ Medical Profiles ═══════
     async upsertProfile(dto: any) {
+        // Sanitize dto to only include valid schema fields
+        const validFields = {
+            studentId: dto.studentId,
+            bloodType: dto.bloodType || null,
+            allergies: dto.allergies || null,
+            chronicConditions: dto.chronicConditions || dto.conditions || null,
+            emergencyContact: dto.emergencyContact || null,
+            emergencyPhone: dto.emergencyPhone || null,
+            medicalAidProvider: dto.medicalAidProvider || null,
+            medicalAidNumber: dto.medicalAidNumber || null,
+            doctorName: dto.doctorName || null,
+            doctorPhone: dto.doctorPhone || null,
+            notes: dto.notes || null,
+        };
+
         return this.prisma.medicalProfile.upsert({
-            where: { studentId: dto.studentId },
-            create: { ...dto },
-            update: { ...dto },
+            where: { studentId: validFields.studentId },
+            create: validFields,
+            update: { ...validFields, studentId: undefined } as any,
         });
     }
 
@@ -21,7 +36,18 @@ export class HealthService {
     // ═══════ Clinic Visits ═══════
     async createVisit(dto: any, schoolId: string) {
         return this.prisma.clinicVisit.create({
-            data: { schoolId, ...dto, date: dto.date ? new Date(dto.date) : new Date() },
+            data: {
+                schoolId,
+                studentId: dto.studentId,
+                complaint: dto.complaint,
+                diagnosis: dto.diagnosis || null,
+                treatment: dto.treatment || null,
+                referral: dto.referral || null,
+                attendedBy: dto.attendedBy,
+                parentNotified: dto.parentNotified || false,
+                notes: dto.notes || null,
+                date: dto.date ? new Date(dto.date) : new Date(),
+            },
         });
     }
 

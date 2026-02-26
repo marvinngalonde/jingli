@@ -103,6 +103,9 @@ export class StudentsService {
                 // user: { select: { email: true, status: true } }, // User might not be needed for simple lists
                 section: {
                     include: { classLevel: true }
+                },
+                guardians: {
+                    include: { guardian: true }
                 }
             },
             orderBy: {

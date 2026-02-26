@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, NumberInput } from '@mantine/core';
+import { Title, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, NumberInput, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconShield, IconPlus, IconTrash, IconSearch, IconAward, IconAlertTriangle } from '@tabler/icons-react';
+import { IconShield, IconPlus, IconTrash, IconSearch, IconAward, IconAlertTriangle, IconEdit } from '@tabler/icons-react';
 import { api } from '../services/api';
+import { StudentPicker } from '../components/common/StudentPicker';
+import { StaffPicker } from '../components/common/StaffPicker';
 
 export default function Discipline() {
     const [records, setRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [typeFilter, setTypeFilter] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
     const form = useForm({
-        initialValues: { studentId: '', type: 'DEMERIT', category: 'Behaviour', description: '', points: 1, issuedBy: '' },
+        initialValues: { studentId: '', type: 'DEMERIT', category: 'Behaviour', description: '', points: 1, issuedBy: '', actionTaken: '' },
         validate: {
-            studentId: (v) => (!v ? 'Student ID required' : null),
+            studentId: (v) => (!v ? 'Please select a student' : null),
             description: (v) => (!v ? 'Description required' : null),
-            issuedBy: (v) => (!v ? 'Issuer required' : null),
+            issuedBy: (v) => (!v ? 'Please select the issuing staff' : null),
         },
     });
 
@@ -34,17 +39,55 @@ export default function Discipline() {
 
     useEffect(() => { fetchRecords(); }, [typeFilter]);
 
-    const handleSave = async (values: typeof form.values) => {
-        try {
-            await api.post('/discipline', { ...values, points: Number(values.points) });
-            notifications.show({ title: 'Success', message: 'Record added', color: 'green' });
-            closeDrawer(); form.reset(); fetchRecords();
-        } catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    const openEditDrawer = (item?: any) => {
+        setEditingId(item?.id || null);
+        if (item) {
+            form.setValues({
+                studentId: item.studentId || '',
+                type: item.type || 'DEMERIT',
+                category: item.category || 'Behaviour',
+                description: item.description || '',
+                points: item.points || 1,
+                issuedBy: item.issuedBy || '',
+                actionTaken: item.actionTaken || '',
+            });
+        } else {
+            form.reset();
+        }
+        openDrawer();
     };
 
-    const handleDelete = async (id: string) => {
-        try { await api.delete(`/discipline/${id}`); notifications.show({ title: 'Deleted', message: 'Record removed', color: 'green' }); fetchRecords(); }
-        catch (err: any) { notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' }); }
+    const handleSave = async (values: typeof form.values) => {
+        setSubmitting(true);
+        try {
+            const payload = { ...values, points: Number(values.points) };
+            if (editingId) {
+                await api.patch(`/discipline/${editingId}`, payload);
+                notifications.show({ title: 'Success', message: 'Record updated', color: 'green' });
+            } else {
+                await api.post('/discipline', payload);
+                notifications.show({ title: 'Success', message: 'Record added', color: 'green' });
+            }
+            closeDrawer(); form.reset(); setEditingId(null); fetchRecords();
+        } catch (err: any) {
+            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save record', color: 'red' });
+        } finally { setSubmitting(false); }
+    };
+
+    const confirmDelete = (id: string, name: string) => {
+        setDeleteModal({ opened: true, id, name });
+    };
+
+    const handleDelete = async () => {
+        try {
+            await api.delete(`/discipline/${deleteModal.id}`);
+            notifications.show({ title: 'Deleted', message: 'Record removed', color: 'green' });
+            fetchRecords();
+        } catch (err: any) {
+            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' });
+        } finally {
+            setDeleteModal({ opened: false, id: '', name: '' });
+        }
     };
 
     const filtered = records.filter(r =>
@@ -88,7 +131,7 @@ export default function Discipline() {
                         <TextInput placeholder="Search records..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ minWidth: 250 }} />
                         <Select placeholder="Filter type" data={[{ value: '', label: 'All' }, { value: 'MERIT', label: 'Merits' }, { value: 'DEMERIT', label: 'Demerits' }]} value={typeFilter} onChange={setTypeFilter} clearable w={140} />
                     </Group>
-                    <Button leftSection={<IconPlus size={16} />} onClick={openDrawer}>Add Record</Button>
+                    <Button leftSection={<IconPlus size={16} />} onClick={() => openEditDrawer()}>Add Record</Button>
                 </Group>
                 {filtered.length === 0 ? (
                     <Text ta="center" c="dimmed" py="xl">No discipline records found. Click "Add Record" to get started.</Text>
@@ -103,7 +146,12 @@ export default function Discipline() {
                                 <Table.Td>{r.description}</Table.Td>
                                 <Table.Td>{r.points}</Table.Td>
                                 <Table.Td>{new Date(r.date).toLocaleDateString()}</Table.Td>
-                                <Table.Td><ActionIcon color="red" variant="subtle" onClick={() => handleDelete(r.id)}><IconTrash size={16} /></ActionIcon></Table.Td>
+                                <Table.Td>
+                                    <Group gap="xs">
+                                        <ActionIcon color="blue" variant="subtle" onClick={() => openEditDrawer(r)}><IconEdit size={16} /></ActionIcon>
+                                        <ActionIcon color="red" variant="subtle" onClick={() => confirmDelete(r.id, `${r.student?.firstName} ${r.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
+                                    </Group>
+                                </Table.Td>
                             </Table.Tr>
                         ))}</Table.Tbody>
                     </Table>
@@ -111,19 +159,42 @@ export default function Discipline() {
             </Paper>
 
             {/* Drawer */}
-            <Drawer opened={drawerOpened} onClose={closeDrawer} title="Add Discipline Record" position="right" size="md">
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? 'Edit Discipline Record' : 'Add Discipline Record'} position="right" size="md">
                 <form onSubmit={form.onSubmit(handleSave)}>
                     <Stack>
-                        <TextInput label="Student ID" required {...form.getInputProps('studentId')} />
+                        <StudentPicker
+                            value={form.values.studentId}
+                            onChange={(val) => form.setFieldValue('studentId', val || '')}
+                            required
+                            error={form.errors.studentId as string}
+                        />
                         <Select label="Type" data={['MERIT', 'DEMERIT']} required {...form.getInputProps('type')} />
                         <Select label="Category" data={['Academic', 'Behaviour', 'Uniform', 'Attendance', 'Sports', 'Other']} required {...form.getInputProps('category')} />
                         <Textarea label="Description" required {...form.getInputProps('description')} />
                         <NumberInput label="Points" min={1} max={50} {...form.getInputProps('points')} />
-                        <TextInput label="Issued By (Staff ID)" required {...form.getInputProps('issuedBy')} />
-                        <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit">Save</Button></Group>
+                        <StaffPicker
+                            label="Issued By"
+                            value={form.values.issuedBy}
+                            onChange={(val) => form.setFieldValue('issuedBy', val || '')}
+                            required
+                            error={form.errors.issuedBy as string}
+                        />
+                        <Textarea label="Action Taken" placeholder="e.g. Detention, Warning, Suspension" {...form.getInputProps('actionTaken')} />
+                        <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>{editingId ? 'Update' : 'Save'}</Button></Group>
                     </Stack>
                 </form>
             </Drawer>
+
+            {/* Delete Confirmation */}
+            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Deletion">
+                <Stack>
+                    <Text size="sm">Are you sure you want to delete this discipline record for <b>{deleteModal.name}</b>?</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
+                        <Button color="red" onClick={handleDelete}>Delete</Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </div>
     );
 }

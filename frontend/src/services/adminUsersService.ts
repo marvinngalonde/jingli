@@ -8,6 +8,7 @@ export interface AdminUser {
     status: string;
     staffProfile?: { firstName: string; lastName: string; employeeId: string };
     studentProfile?: { firstName: string; lastName: string; admissionNo: string };
+    guardianProfile?: { firstName: string; lastName: string };
 }
 
 export const adminUsersService = {
@@ -16,7 +17,7 @@ export const adminUsersService = {
         return response.data;
     },
 
-    createUser: async (data: { username: string; email?: string; role: string; firstName: string; lastName: string; password?: string }) => {
+    createUser: async (data: { username: string; email?: string; role: string; firstName: string; lastName: string; password?: string; studentIds?: string[] }) => {
         const response = await api.post('/users', data);
         return response.data;
     },

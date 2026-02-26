@@ -90,7 +90,7 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teac
     };
 
     return (
-        <Drawer opened={opened} onClose={onClose} title="Add Class" position="right" size="md">
+        <Drawer opened={opened} onClose={onClose} title={form.values.type === 'level' ? 'Add Class Level' : 'Add Class Section'} position="right" size="md">
             <Box p={0}>
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
@@ -133,7 +133,7 @@ export function CreateClassModal({ opened, onClose, onSuccess, classLevels, teac
                                     placeholder="Select class level"
                                     data={classLevels.map(level => ({
                                         value: level.id,
-                                        label: level.name,
+                                        label: `${level.name} ${level.level}`,
                                     }))}
                                     {...form.getInputProps('classLevelId')}
                                     required

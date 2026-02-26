@@ -243,6 +243,19 @@ export default function Students() {
             render: (item) => <StatusBadge status={item.status || 'active'} />
         },
         {
+            accessor: 'parents',
+            header: 'Parent/s',
+            render: (item) => {
+                const parents = item.guardians?.map((g: any) => `${g.guardian.firstName} ${g.guardian.lastName}`);
+                if (!parents || parents.length === 0) return <Text size="sm" c="dimmed">None</Text>;
+                return (
+                    <Text size="sm">
+                        {parents.join(', ')}
+                    </Text>
+                );
+            }
+        },
+        {
             accessor: 'actions',
             header: '',
             render: (item) => (

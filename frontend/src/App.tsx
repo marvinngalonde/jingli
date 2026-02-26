@@ -63,6 +63,9 @@ import Facilities from './pages/Facilities';
 import Health from './pages/Health';
 import Discipline from './pages/Discipline';
 import Hostel from './pages/Hostel';
+import Events from './pages/Events';
+import Salaries from './pages/finance/Salaries';
+import Expenses from './pages/finance/Expenses';
 
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -119,12 +122,19 @@ function App() {
             <Route path="/discipline" element={<Discipline />} />
             <Route path="/hostel" element={<Hostel />} />
 
+            {/* Events Route */}
+            <Route path="/events" element={<Events />} />
+
+            {/* Finance Sub-Routes */}
+            <Route path="/salaries" element={<Salaries />} />
+            <Route path="/expenses" element={<Expenses />} />
+
             {/* Placeholders for routes to be implemented */}
             <Route path="*" element={<div>Page Not Found</div>} />
           </Route>
 
-          {/* Teacher Portal Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
+          {/* Teacher Portal / E-Learning Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SEN_COORDINATOR', 'ADMIN', 'SUPER_ADMIN']}><TeacherLayout /></ProtectedRoute>}>
             <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
             <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
             <Route path="/teacher/classes" element={<TeacherClasses />} />

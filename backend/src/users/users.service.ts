@@ -68,12 +68,24 @@ export class UsersService {
             include: {
                 staffProfile: { select: { firstName: true, lastName: true, employeeId: true } },
                 studentProfile: { select: { firstName: true, lastName: true, admissionNo: true } },
+                guardianProfile: { select: { firstName: true, lastName: true } },
             },
             orderBy: { createdAt: 'desc' }
         });
     }
 
-    async create(schoolId: string, data: { username: string; email: string; role: string; firstName: string; lastName: string; password?: string }) {
+    async create(
+        schoolId: string,
+        data: {
+            username: string;
+            email: string;
+            role: string;
+            firstName: string;
+            lastName: string;
+            password?: string;
+            studentIds?: string[];
+        }
+    ) {
         const password = data.password || 'Temporary123!';
 
         // 1. Create User in Supabase Auth via Admin API
@@ -150,6 +162,29 @@ export class UsersService {
                             enrollmentDate: new Date(),
                         }
                     });
+                } else if (data.role === 'PARENT') {
+                    const guardian = await tx.guardian.create({
+                        data: {
+                            userId: user.id,
+                            schoolId: schoolId,
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                            relationship: 'Parent/Guardian',
+                        }
+                    });
+
+                    // Link students if provided
+                    if (data.studentIds && data.studentIds.length > 0) {
+                        for (const studentId of data.studentIds) {
+                            await tx.studentGuardian.create({
+                                data: {
+                                    studentId: studentId,
+                                    guardianId: guardian.id,
+                                    isPrimary: true, // Default to primary when linked on creation
+                                }
+                            });
+                        }
+                    }
                 }
 
                 return user;

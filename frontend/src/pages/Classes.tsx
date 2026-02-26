@@ -98,7 +98,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
             levelId: level.id,
             levelName: level.name,
             sectionName: section.name,
-            fullName: `${level.name}-${section.name}`,
+            fullName: `${level.name} ${level.level} ${section.name}`,
             studentCount: section._count?.students || 0,
             classTeacherId: section.classTeacherId,
             section: section,
@@ -133,12 +133,23 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         const level = classLevels.find(l => l.id === item.levelId);
         setSelectedSection(item.section);
         setEditModalOpened(true);
-        // Store the class level in state
         setSelectedClassLevel(level || null);
     };
 
     const handleDelete = (item: ClassRow) => {
         setSelectedSection(item.section);
+        setDeleteModalOpened(true);
+    };
+
+    const handleEditClass = (level: ClassLevel) => {
+        setSelectedClassLevel(level);
+        setSelectedSection(null);
+        setEditModalOpened(true);
+    };
+
+    const handleDeleteClass = (level: ClassLevel) => {
+        setSelectedClassLevel(level);
+        setSelectedSection(null);
         setDeleteModalOpened(true);
     };
 
@@ -220,6 +231,18 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
                     </Group>
                 );
             }
+        },
+        {
+            accessor: 'actions',
+            header: '',
+            render: (item) => (
+                <Group justify="flex-end">
+                    <ActionMenu
+                        onEdit={() => handleEditClass(item)}
+                        onDelete={() => handleDeleteClass(item)}
+                    />
+                </Group>
+            )
         },
     ];
 

@@ -21,6 +21,10 @@ import {
     Heart,
     Shield,
     Building2,
+    GraduationCap,
+    CalendarDays,
+    Wallet,
+    Receipt,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -59,13 +63,23 @@ const navSections: NavSection[] = [
             { icon: BookOpen, label: 'Academics', path: '/academics' },
             { icon: FileText, label: 'Marks Entry', path: '/marks' },
             { icon: Book, label: 'Library', path: '/library' },
+            { icon: CalendarDays, label: 'Events', path: '/events' },
+            { icon: GraduationCap, label: 'E-Learning', path: '/teacher/materials' },
         ],
     },
     {
         title: 'Administrative',
         items: [
             { icon: UserCog, label: 'Staff & Payroll', path: '/staff' },
-            { icon: DollarSign, label: 'Finance', path: '/finance' },
+            {
+                icon: DollarSign,
+                label: 'Finance',
+                children: [
+                    { icon: DollarSign, label: 'Overview', path: '/finance' },
+                    { icon: Wallet, label: 'Salaries', path: '/salaries' },
+                    { icon: Receipt, label: 'Expenses', path: '/expenses' },
+                ]
+            },
             { icon: MessageSquare, label: 'Communication', path: '/communication' },
             { icon: FileText, label: 'Reports', path: '/reports' },
         ],
@@ -75,7 +89,7 @@ const navSections: NavSection[] = [
         items: [
             { icon: Bus, label: 'Transport', path: '/transport' },
             { icon: Building, label: 'Facilities', path: '/facilities' },
-            { icon: ClipboardList, label: 'Visitor Log', path: '/visitor-log' },
+            { icon: ClipboardList, label: 'Visitor Log', path: '/reception/visitors' },
         ],
     },
     {
