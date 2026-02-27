@@ -390,7 +390,7 @@ export class TeacherService {
 
     // --- GRADING ---
 
-    async getPendingSubmissions(user: any) {
+    async getDashboardSubmissions(user: any) {
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
@@ -399,7 +399,6 @@ export class TeacherService {
 
         return this.prisma.submission.findMany({
             where: {
-                marks: null,
                 assignment: {
                     teacherId: teacher.id
                 }
@@ -472,7 +471,217 @@ export class TeacherService {
             }
         });
     }
+    async getAnalytics(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        // Get class sections taught
+        const allocations = await this.prisma.subjectAllocation.findMany({
+            where: { staffId: teacher.id },
+            include: {
+                section: { select: { id: true, name: true, classLevel: { select: { name: true } } } },
+                subject: { select: { id: true, name: true } }
+            }
+        });
+
+        const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+
+        const totalStudents = await this.prisma.student.count({
+            where: { sectionId: { in: sectionIds } }
+        });
+
+        // Get assignment stats
+        const assignments = await this.prisma.assignment.findMany({
+            where: { teacherId: teacher.id },
+            include: {
+                subject: { select: { name: true } },
+                section: { select: { name: true, classLevel: { select: { name: true } } } },
+                _count: { select: { submissions: true } },
+                submissions: { select: { marks: true } }
+            }
+        });
+
+        const assignmentStats = assignments.map(a => {
+            const totalMarks = a.submissions.reduce((sum, sub) => sum + (sub.marks || 0), 0);
+            const avgScore = a.submissions.length > 0 ? Math.round(totalMarks / a.submissions.length) : 0;
+            return {
+                name: a.title,
+                subject: a.subject.name,
+                submitted: a._count.submissions,
+                total: totalStudents, // Approximate total students
+                avgScore
+            };
+        });
+
+        // Calculate real engagement: submission rate
+        const totalAssignments = assignments.length;
+        const totalSubmissions = assignments.reduce((sum, a) => sum + a._count.submissions, 0);
+        const avgEngagement = totalStudents > 0 && totalAssignments > 0
+            ? Math.round((totalSubmissions / (totalStudents * totalAssignments)) * 100)
+            : 0;
+
+        // Calculate syllabus from materials uploaded per allocation
+        const materialsCount = await this.prisma.courseMaterial.count({
+            where: { teacherId: teacher.id }
+        });
+        const syllabusCompletion = allocations.length > 0
+            ? Math.min(100, Math.round((materialsCount / (allocations.length * 10)) * 100))
+            : 0;
+
+        // At-risk students: students with avg score < 40% across graded submissions
+        const studentsInSections = await this.prisma.student.findMany({
+            where: { sectionId: { in: sectionIds } },
+            select: {
+                id: true, firstName: true, lastName: true,
+                section: { select: { name: true, classLevel: { select: { name: true } } } },
+                submissions: { select: { marks: true, assignment: { select: { maxMarks: true } } } }
+            }
+        });
+
+        const atRiskStudents = studentsInSections
+            .map(s => {
+                const graded = s.submissions.filter(sub => sub.marks !== null);
+                const avgScore = graded.length > 0
+                    ? Math.round(graded.reduce((sum, sub) => sum + ((sub.marks || 0) / sub.assignment.maxMarks) * 100, 0) / graded.length)
+                    : -1;
+                return {
+                    name: `${s.firstName} ${s.lastName}`,
+                    class: `${s.section?.classLevel?.name || ''} ${s.section?.name || ''}`.trim(),
+                    avgScore,
+                    attendance: 0,
+                    lastActive: graded.length > 0 ? 'Has submissions' : 'No submissions',
+                    issues: [
+                        ...(avgScore >= 0 && avgScore < 40 ? ['Low average score'] : []),
+                        ...(graded.length === 0 ? ['No graded work'] : []),
+                    ]
+                };
+            })
+            .filter(s => s.avgScore < 40 || s.avgScore === -1)
+            .slice(0, 10);
+
+        // Weekly activity from real submissions this week
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+
+        const recentSubmissions = await this.prisma.submission.findMany({
+            where: {
+                assignment: { teacherId: teacher.id },
+                submittedAt: { gte: weekStart }
+            },
+            select: { submittedAt: true }
+        });
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weeklyActivity = dayNames.map(day => {
+            const dayIndex = dayNames.indexOf(day);
+            const count = recentSubmissions.filter(s => new Date(s.submittedAt).getDay() === dayIndex).length;
+            return { day, logins: 0, submissions: count, quizzes: 0 };
+        });
+
+        // Real syllabus coverage per class
+        const classSyllabus = allocations.map(a => {
+            const classAssignments = assignments.filter(
+                asg => asg.subject.name === a.subject.name && asg.section?.name === a.section.name
+            );
+            const totalTopics = 20;
+            const completedTopics = Math.min(totalTopics, classAssignments.length);
+            return {
+                name: `${a.section.classLevel.name} ${a.section.name} - ${a.subject.name}`,
+                teacher: 'You',
+                progress: Math.round((completedTopics / totalTopics) * 100),
+                totalTopics,
+                completedTopics,
+            };
+        });
+
+        // Real subject performance (avg marks per subject)
+        const subjectPerformance = allocations.map(a => {
+            const subjectAssignments = assignments.filter(asg => asg.subject.name === a.subject.name);
+            const allSubs = subjectAssignments.flatMap(asg => asg.submissions.filter(s => s.marks !== null));
+            const avgScore = allSubs.length > 0
+                ? Math.round(allSubs.reduce((sum, s) => sum + (s.marks || 0), 0) / allSubs.length)
+                : 0;
+            return {
+                subject: a.subject.name,
+                avgScore,
+                topStudent: '',
+                weakArea: '',
+                trend: 'same'
+            };
+        });
+
+        return {
+            overallStats: {
+                totalStudents,
+                avgEngagement: Math.min(100, avgEngagement),
+                syllabusCompletion,
+                atRiskCount: atRiskStudents.length,
+            },
+            classSyllabus,
+            assignmentStats,
+            atRiskStudents,
+            weeklyActivity,
+            subjectPerformance,
+        };
+    }
+
+    async getLeaderboard(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        const allocations = await this.prisma.subjectAllocation.findMany({
+            where: { staffId: teacher.id },
+            select: { sectionId: true }
+        });
+        const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+
+        const students = await this.prisma.student.findMany({
+            where: { sectionId: { in: sectionIds } },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                admissionNo: true,
+                section: { select: { name: true, classLevel: { select: { name: true } } } },
+                submissions: {
+                    select: {
+                        marks: true,
+                        assignment: { select: { maxMarks: true, type: true } }
+                    }
+                },
+            }
+        });
+
+        const leaderboard = students.map(s => {
+            const graded = s.submissions.filter(sub => sub.marks !== null);
+            const totalScore = graded.reduce((sum, sub) => sum + (sub.marks || 0), 0);
+            const maxPossible = graded.reduce((sum, sub) => sum + sub.assignment.maxMarks, 0);
+            const avgScore = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+
+            return {
+                id: s.id,
+                name: `${s.firstName} ${s.lastName}`,
+                admissionNo: s.admissionNo,
+                class: `${s.section?.classLevel?.name || ''} ${s.section?.name || ''}`.trim(),
+                points: totalScore,
+                assignments: s.submissions.length,
+                quizScore: avgScore,
+                calaScore: 0,
+                attendance: 0,
+                badges: [],
+            };
+        })
+            .sort((a, b) => b.points - a.points)
+            .map((s, i) => ({ ...s, rank: i + 1, change: 'same' }));
+
+        return leaderboard;
+    }
+
 }
-
-
-

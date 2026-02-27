@@ -6,18 +6,26 @@ export class CalaService {
     constructor(private readonly prisma: PrismaService) { }
 
     async create(dto: any, schoolId: string) {
+        if (!dto.studentId) throw new Error('studentId is required');
+        if (!dto.subjectId) throw new Error('subjectId is required');
+
+        const parsedDate = dto.date ? new Date(dto.date) : new Date();
+        if (isNaN(parsedDate.getTime())) {
+            throw new Error('Invalid date provided');
+        }
+
         return this.prisma.calaRecord.create({
             data: {
                 schoolId,
                 studentId: dto.studentId,
                 subjectId: dto.subjectId,
-                termId: dto.termId,
-                taskName: dto.taskName,
-                score: dto.score,
-                maxScore: dto.maxScore,
-                teacherRemarks: dto.teacherRemarks,
-                assessedBy: dto.assessedBy,
-                date: new Date(dto.date),
+                termId: dto.termId || null,
+                taskName: dto.taskName || 'Untitled Task',
+                score: dto.score != null ? Number(dto.score) : 0,
+                maxScore: dto.maxScore != null ? Number(dto.maxScore) : 50,
+                teacherRemarks: dto.teacherRemarks || '',
+                assessedBy: dto.assessedBy || null,
+                date: parsedDate,
             },
         });
     }

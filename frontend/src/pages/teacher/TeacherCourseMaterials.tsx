@@ -1,9 +1,12 @@
-import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, FileInput, TextInput, Select, Modal } from '@mantine/core';
-import { IconArrowLeft, IconUpload, IconFile, IconTrash, IconDownload } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, TextInput, Select, Drawer, Textarea, ScrollArea, SimpleGrid, Paper, ThemeIcon, Modal, FileInput } from '@mantine/core';
+import { IconUpload, IconFile, IconTrash, IconDownload, IconEdit, IconSearch, IconFileText, IconPhoto, IconVideo, IconFileSpreadsheet, IconCloudDownload, IconFileCheck } from '@tabler/icons-react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
+import { storageService } from '../../services/storageService';
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
 
 interface CourseMaterial {
@@ -16,247 +19,322 @@ interface CourseMaterial {
     subject: { name: string; code: string };
 }
 
+function getFileIcon(fileType: string | null) {
+    const ft = (fileType || '').toLowerCase();
+    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(ft)) return { icon: IconFileText, color: 'red' };
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ft)) return { icon: IconPhoto, color: 'teal' };
+    if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ft)) return { icon: IconVideo, color: 'grape' };
+    if (['xls', 'xlsx', 'csv'].includes(ft)) return { icon: IconFileSpreadsheet, color: 'green' };
+    return { icon: IconFile, color: 'blue' };
+}
+
+function getFileLabel(fileType: string | null) {
+    const ft = (fileType || '').toUpperCase();
+    if (!ft || ft === 'UNKNOWN') return 'FILE';
+    return ft;
+}
+
 export function TeacherCourseMaterials() {
     const { sectionId } = useParams();
     const navigate = useNavigate();
     const [materials, setMaterials] = useState<CourseMaterial[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const [opened, { open, close }] = useDisclosure(false);
-    const [uploading, setUploading] = useState(false);
+    const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Form state
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [fileUrl, setFileUrl] = useState(''); // Assuming simple URL input for MVP. True file upload would require Supabase storage integration.
+    const [fileUrl, setFileUrl] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [subjectId, setSubjectId] = useState('');
     const [selectedGlobalSectionId, setSelectedGlobalSectionId] = useState<string | null>(null);
-    const [availableSubjects, setAvailableSubjects] = useState<{ value: string, label: string }[]>([]);
-    const [availableClasses, setAvailableClasses] = useState<{ value: string, label: string }[]>([]);
+    const [availableSubjects, setAvailableSubjects] = useState<{ value: string; label: string }[]>([]);
+    const [availableClasses, setAvailableClasses] = useState<{ value: string; label: string }[]>([]);
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                if (sectionId) {
-                    const [matsRes, classesRes] = await Promise.all([
-                        api.get(`/teacher/classes/${sectionId}/materials`),
-                        api.get('/teacher/classes') // Quick way to get assigned subjects
-                    ]);
-                    setMaterials(matsRes.data);
-
-                    // Extract subjects for this section
-                    const thisClass = classesRes.data.find((c: any) => c.section.id === sectionId);
-                    if (thisClass) {
-                        setAvailableSubjects(thisClass.subjects.map((s: any) => ({
-                            value: s.id,
-                            label: `${s.name} (${s.code})`
-                        })));
-                        if (thisClass.subjects.length > 0) {
-                            setSubjectId(thisClass.subjects[0].id);
-                        }
-                    }
-                } else {
-                    const [matsRes, classesRes] = await Promise.all([
-                        api.get('/teacher/materials'),
-                        api.get('/teacher/classes')
-                    ]);
-                    setMaterials(matsRes.data);
-
-                    setAvailableClasses(classesRes.data.map((c: any) => ({
-                        value: c.section.id,
-                        label: `${c.section.classLevel.name} ${c.section.name}`
-                    })));
+    const fetchMaterials = useCallback(async () => {
+        setLoading(true);
+        try {
+            if (sectionId) {
+                const [matsRes, classesRes] = await Promise.all([
+                    api.get(`/teacher/classes/${sectionId}/materials`),
+                    api.get('/teacher/classes'),
+                ]);
+                setMaterials(matsRes.data);
+                const cls = classesRes.data.find((c: any) => c.section.id === sectionId);
+                if (cls) {
+                    setAvailableSubjects(cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
+                    if (cls.subjects.length > 0 && !subjectId) setSubjectId(cls.subjects[0].id);
                 }
-            } catch (error) {
-                console.error("Failed to fetch materials", error);
-            } finally {
-                setLoading(false);
+            } else {
+                const [matsRes, classesRes] = await Promise.all([
+                    api.get('/teacher/materials'),
+                    api.get('/teacher/classes'),
+                ]);
+                setMaterials(matsRes.data);
+                setAvailableClasses(classesRes.data.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` })));
             }
-        };
-        fetchInitialData();
+        } catch { notifications.show({ title: 'Error', message: 'Failed to load materials', color: 'red' }); }
+        finally { setLoading(false); }
     }, [sectionId]);
 
-    // Use custom hook to fetch subjects when global class selection changes
-    useGlobalSubjectsEffect(sectionId, selectedGlobalSectionId, setAvailableSubjects, setSubjectId);
+    useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
-    const handleUpload = async () => {
+    // Fetch subjects when global section changes
+    useEffect(() => {
+        if (sectionId || !selectedGlobalSectionId) return;
+        (async () => {
+            try {
+                const { data } = await api.get('/teacher/classes');
+                const cls = data.find((c: any) => c.section.id === selectedGlobalSectionId);
+                if (cls) {
+                    setAvailableSubjects(cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
+                    if (cls.subjects.length > 0) setSubjectId(cls.subjects[0].id);
+                }
+            } catch { /* ignore */ }
+        })();
+    }, [selectedGlobalSectionId, sectionId]);
+
+    const resetForm = () => { setTitle(''); setDescription(''); setFileUrl(''); setFile(null); setSubjectId(''); setEditingId(null); if (!sectionId) setSelectedGlobalSectionId(null); };
+
+    const openCreate = () => { resetForm(); openDrawer(); };
+
+    const openEdit = (m: CourseMaterial) => {
+        setEditingId(m.id);
+        setTitle(m.title);
+        setDescription(m.description || '');
+        setFileUrl(m.fileUrl);
+        openDrawer();
+    };
+
+    const handleSave = async () => {
         const targetSectionId = sectionId || selectedGlobalSectionId;
-        if (!title || !fileUrl || !subjectId || !targetSectionId) return;
-        setUploading(true);
+        if (!title || (!fileUrl && !file)) return;
+        setSaving(true);
         try {
-            const { data } = await api.post(`/teacher/classes/${targetSectionId}/materials`, {
-                title,
-                description,
-                fileUrl,
-                fileType: fileUrl.split('.').pop() || 'unknown',
-                subjectId
-            });
-            setMaterials([data, ...materials]);
-            close();
-            // Reset
-            setTitle('');
-            setDescription('');
-            setFileUrl('');
-            if (!sectionId) {
-                setSelectedGlobalSectionId(null);
+            let uploadedUrl = fileUrl;
+            let fileType = fileUrl ? fileUrl.split('.').pop() || 'unknown' : 'unknown';
+
+            if (file) {
+                const path = await storageService.uploadDocument('materials', file.name, file);
+                uploadedUrl = storageService.getPublicUrl('documents', path);
+                fileType = file.name.split('.').pop() || 'unknown';
             }
-        } catch (error) {
-            console.error("Failed to upload material", error);
-        } finally {
-            setUploading(false);
-        }
+
+            if (editingId) {
+                await api.delete(`/teacher/materials/${editingId}`);
+                if (targetSectionId && subjectId) {
+                    await api.post(`/teacher/classes/${targetSectionId}/materials`, {
+                        title, description, fileUrl: uploadedUrl,
+                        fileType,
+                        subjectId,
+                    });
+                }
+                notifications.show({ title: 'Updated', message: `"${title}" updated successfully`, color: 'green' });
+            } else {
+                if (!subjectId || !targetSectionId) return;
+                await api.post(`/teacher/classes/${targetSectionId}/materials`, {
+                    title, description, fileUrl: uploadedUrl,
+                    fileType,
+                    subjectId,
+                });
+                notifications.show({ title: 'Uploaded', message: `"${title}" uploaded successfully`, color: 'green' });
+            }
+            closeDrawer();
+            resetForm();
+            fetchMaterials();
+        } catch { notifications.show({ title: 'Error', message: 'Failed to save material', color: 'red' }); }
+        finally { setSaving(false); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this material?')) return;
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await api.delete(`/teacher/materials/${id}`);
-            setMaterials(materials.filter(m => m.id !== id));
-        } catch (error) {
-            console.error("Failed to delete", error);
-        }
+            await api.delete(`/teacher/materials/${deleteTarget.id}`);
+            setMaterials(prev => prev.filter(m => m.id !== deleteTarget.id));
+            notifications.show({ title: 'Deleted', message: `"${deleteTarget.title}" deleted`, color: 'orange' });
+            setDeleteTarget(null);
+        } catch { notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' }); }
+        finally { setDeleting(false); }
     };
+
+    const filtered = materials.filter(m => m.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <Stack gap="lg" pos="relative">
-            <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+            <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: 'sm', blur: 2 }} />
 
             <Group justify="space-between">
-                <Group>
-
-                    <div>
-                        <Title order={2}>{sectionId ? 'Course Materials' : 'All Materials'}</Title>
-                        <Text c="dimmed">
-                            {sectionId ? 'Upload and manage learning resources for this class.' : 'View all learning resources across your classes.'}
-                        </Text>
-                    </div>
-                </Group>
-                <Button leftSection={<IconUpload size={16} />} onClick={open}>
-                    Upload Material
-                </Button>
+                <div>
+                    <Title order={2}>Content Library</Title>
+                    <Text c="dimmed" size="sm">Upload and manage learning resources — notes, videos, documents.</Text>
+                </div>
+                <Button leftSection={<IconUpload size={16} />} onClick={openCreate}>Upload Material</Button>
             </Group>
+
+            {/* Stats */}
+            <SimpleGrid cols={{ base: 2, md: 4 }}>
+                <Paper p="md" radius="md" shadow="sm" withBorder>
+                    <Group>
+                        <ThemeIcon variant="light" color="blue" size="lg"><IconFile size={18} /></ThemeIcon>
+                        <div>
+                            <Text size="xs" c="dimmed">Total Resources</Text>
+                            <Text fw={700} size="lg">{materials.length}</Text>
+                        </div>
+                    </Group>
+                </Paper>
+                <Paper p="md" radius="md" shadow="sm" withBorder>
+                    <Group>
+                        <ThemeIcon variant="light" color="red" size="lg"><IconFileText size={18} /></ThemeIcon>
+                        <div>
+                            <Text size="xs" c="dimmed">Documents</Text>
+                            <Text fw={700} size="lg">{materials.filter(m => ['pdf', 'doc', 'docx', 'txt'].includes((m.fileType || '').toLowerCase())).length}</Text>
+                        </div>
+                    </Group>
+                </Paper>
+                <Paper p="md" radius="md" shadow="sm" withBorder>
+                    <Group>
+                        <ThemeIcon variant="light" color="grape" size="lg"><IconVideo size={18} /></ThemeIcon>
+                        <div>
+                            <Text size="xs" c="dimmed">Videos</Text>
+                            <Text fw={700} size="lg">{materials.filter(m => ['mp4', 'avi', 'mov', 'mkv', 'webm'].includes((m.fileType || '').toLowerCase())).length}</Text>
+                        </div>
+                    </Group>
+                </Paper>
+                <Paper p="md" radius="md" shadow="sm" withBorder>
+                    <Group>
+                        <ThemeIcon variant="light" color="teal" size="lg"><IconPhoto size={18} /></ThemeIcon>
+                        <div>
+                            <Text size="xs" c="dimmed">Images</Text>
+                            <Text fw={700} size="lg">{materials.filter(m => ['jpg', 'jpeg', 'png', 'gif', 'svg'].includes((m.fileType || '').toLowerCase())).length}</Text>
+                        </div>
+                    </Group>
+                </Paper>
+            </SimpleGrid>
+
+            {/* Search */}
+            <Group>
+                <TextInput placeholder="Search materials..." leftSection={<IconSearch size={16} />} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ minWidth: 280 }} />
+            </Group>
+
+            {/* Table */}
             <Card withBorder radius="md" p={0}>
-                {materials.length === 0 && !loading ? (
-                    <Text p="xl" ta="center" c="dimmed" fs="italic">No materials uploaded yet.</Text>
+                {filtered.length === 0 && !loading ? (
+                    <Stack align="center" p="xl">
+                        <ThemeIcon size={60} variant="light" color="blue" radius="xl"><IconFile size={30} /></ThemeIcon>
+                        <Title order={4}>No Materials Found</Title>
+                        <Text c="dimmed" size="sm">Upload your first learning resource to get started.</Text>
+                        <Button variant="light" onClick={openCreate}>Upload Material</Button>
+                    </Stack>
                 ) : (
-                    <Table verticalSpacing="md" striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Resource</Table.Th>
-                                <Table.Th>Subject</Table.Th>
-                                <Table.Th>Uploaded</Table.Th>
-                                <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {materials.map((m) => (
-                                <Table.Tr key={m.id}>
-                                    <Table.Td>
-                                        <Group gap="sm">
-                                            <ActionIcon variant="light" color="blue" size="lg" component="a" href={m.fileUrl} target="_blank">
-                                                <IconFile size={20} />
-                                            </ActionIcon>
-                                            <div>
-                                                <Text size="sm" fw={500}>{m.title}</Text>
-                                                <Text size="xs" c="dimmed">{m.description || 'No description'}</Text>
-                                            </div>
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge variant="light" color="grape">{m.subject?.name || 'Unknown'}</Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text>
-                                    </Table.Td>
-                                    <Table.Td style={{ textAlign: 'right' }}>
-                                        <Group gap="xs" justify="flex-end">
-                                            <ActionIcon variant="subtle" color="blue" component="a" href={m.fileUrl} target="_blank" title="Download">
-                                                <IconDownload size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(m.id)} title="Delete">
-                                                <IconTrash size={16} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
+                    <ScrollArea>
+                        <Table verticalSpacing="md" striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Resource</Table.Th>
+                                    <Table.Th>Subject</Table.Th>
+                                    <Table.Th>Type</Table.Th>
+                                    <Table.Th>Uploaded</Table.Th>
+                                    <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {filtered.map(m => {
+                                    const fi = getFileIcon(m.fileType);
+                                    const FileIcon = fi.icon;
+                                    return (
+                                        <Table.Tr key={m.id}>
+                                            <Table.Td>
+                                                <Group gap="sm">
+                                                    <ThemeIcon variant="light" color={fi.color} size="lg" radius="md">
+                                                        <FileIcon size={18} />
+                                                    </ThemeIcon>
+                                                    <div>
+                                                        <Text size="sm" fw={500}>{m.title}</Text>
+                                                        <Text size="xs" c="dimmed" lineClamp={1}>{m.description || 'No description'}</Text>
+                                                    </div>
+                                                </Group>
+                                            </Table.Td>
+                                            <Table.Td><Badge variant="light" color="grape">{m.subject?.name || '—'}</Badge></Table.Td>
+                                            <Table.Td><Badge variant="outline" size="sm">{getFileLabel(m.fileType)}</Badge></Table.Td>
+                                            <Table.Td><Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text></Table.Td>
+                                            <Table.Td style={{ textAlign: 'right' }}>
+                                                <Group gap="xs" justify="flex-end">
+                                                    <Button variant="subtle" color="teal" size="xs" component="a" href={m.fileUrl} target="_blank" leftSection={<IconCloudDownload size={16} />}>
+                                                        Download for Offline
+                                                    </Button>
+                                                    <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEdit(m)}>
+                                                        <IconEdit size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setDeleteTarget({ id: m.id, title: m.title })}>
+                                                        <IconTrash size={16} />
+                                                    </ActionIcon>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                })}
+                            </Table.Tbody>
+                        </Table>
+                    </ScrollArea>
                 )}
             </Card>
 
-            <Modal opened={opened} onClose={close} title="Upload Course Material" centered>
+            {/* ═══════════ UPLOAD / EDIT DRAWER ═══════════ */}
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? 'Edit Material' : 'Upload Material'} position="right" size="md" padding="lg">
                 <Stack gap="md">
-                    <Select
-                        label="Subject"
-                        placeholder="Select subject"
-                        data={availableSubjects}
-                        value={subjectId}
-                        onChange={(v) => setSubjectId(v || '')}
-                        required
-                    />
-                    {!sectionId && (
-                        <Select
-                            label="Target Class"
-                            placeholder="Select class"
-                            data={availableClasses}
-                            value={selectedGlobalSectionId}
-                            onChange={setSelectedGlobalSectionId}
-                            required
-                        />
+                    {!sectionId && !editingId && (
+                        <Select label="Target Class" placeholder="Select class" data={availableClasses} value={selectedGlobalSectionId} onChange={setSelectedGlobalSectionId} required searchable />
                     )}
-                    <TextInput
-                        label="Title"
-                        placeholder="e.g., Chapter 1 Notes"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
+                    {!editingId && (
+                        <Select label="Subject" placeholder="Select subject" data={availableSubjects} value={subjectId} onChange={v => setSubjectId(v || '')} required searchable />
+                    )}
+                    <TextInput label="Title" placeholder="e.g., Chapter 1 Notes — Algebra" value={title} onChange={e => setTitle(e.target.value)} required />
+                    <Textarea label="Description" placeholder="Brief description of this resource..." value={description} onChange={e => setDescription(e.target.value)} minRows={3} />
+                    <FileInput
+                        label="Upload File"
+                        placeholder="Select file from computer"
+                        value={file}
+                        onChange={setFile}
+                        leftSection={<IconUpload size={14} />}
+                        required={!fileUrl}
+                        description="Upload a local file or provide a URL below."
+                        clearable
                     />
                     <TextInput
-                        label="Description"
-                        placeholder="Brief description (optional)"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                    />
-                    <TextInput
-                        label="File URL"
+                        label="Or File URL"
                         placeholder="https://link-to-your-file.pdf"
                         value={fileUrl}
-                        onChange={(e) => setFileUrl(e.target.value)}
-                        required
-                        description="For MVP, paste a direct link to the file. True file uploads will follow."
+                        onChange={e => setFileUrl(e.target.value)}
+                        required={!file}
+                        disabled={!!file}
+                        description="Paste a direct link to the file if it's hosted elsewhere."
                     />
                     <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={close}>Cancel</Button>
-                        <Button onClick={handleUpload} loading={uploading} disabled={!title || !fileUrl || !subjectId || (!sectionId && !selectedGlobalSectionId)}>Upload</Button>
+                        <Button variant="default" onClick={closeDrawer}>Cancel</Button>
+                        <Button onClick={handleSave} loading={saving} disabled={!title || (!fileUrl && !file)}>
+                            {editingId ? 'Update' : 'Upload'}
+                        </Button>
                     </Group>
                 </Stack>
+            </Drawer>
+
+            {/* ═══════════ DELETE CONFIRM ═══════════ */}
+            <Modal opened={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Material" centered size="sm">
+                <Text size="sm">Are you sure you want to delete <b>"{deleteTarget?.title}"</b>? This cannot be undone.</Text>
+                <Group justify="flex-end" mt="lg">
+                    <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                    <Button color="red" onClick={handleDelete} loading={deleting}>Delete</Button>
+                </Group>
             </Modal>
         </Stack>
     );
-}
-
-// Effect to fetch subjects when selectedGlobalSectionId changes in global view
-function useGlobalSubjectsEffect(sectionId: string | undefined, selectedGlobalSectionId: string | null, setAvailableSubjects: any, setSubjectId: any) {
-    useEffect(() => {
-        if (sectionId || !selectedGlobalSectionId) return;
-        const fetchSubjects = async () => {
-            try {
-                const classesRes = await api.get('/teacher/classes');
-                const thisClass = classesRes.data.find((c: any) => c.section.id === selectedGlobalSectionId);
-                if (thisClass) {
-                    setAvailableSubjects(thisClass.subjects.map((s: any) => ({
-                        value: s.id,
-                        label: `${s.name} (${s.code})`
-                    })));
-                    if (thisClass.subjects.length > 0) {
-                        setSubjectId(thisClass.subjects[0].id);
-                    }
-                }
-            } catch (err) { }
-        };
-        fetchSubjects();
-    }, [selectedGlobalSectionId, sectionId, setAvailableSubjects, setSubjectId]);
 }
 
 export default TeacherCourseMaterials;

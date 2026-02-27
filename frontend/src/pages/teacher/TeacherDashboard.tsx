@@ -1,23 +1,20 @@
-import { Title, Text, SimpleGrid, Card, Group, ThemeIcon, Stack, Button, LoadingOverlay, Badge, Paper, Grid, Progress, RingProgress, Table, ActionIcon, Avatar, Box, Divider } from '@mantine/core';
+import { Title, Text, SimpleGrid, Card, Group, ThemeIcon, Stack, Button, LoadingOverlay, Badge, Paper, Grid, Progress, RingProgress, Table, Avatar, Box } from '@mantine/core';
 import {
     IconChalkboard,
     IconClipboardList,
     IconUsers,
-    IconTrendingUp,
-    IconPlus,
     IconUpload,
     IconMessage,
     IconPencil,
     IconBrandZoom,
-    IconTrophy,
     IconChevronRight,
-    IconClock,
     IconCalendarEvent,
 } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 
 interface DashboardStats {
     classesToday: number;
@@ -26,54 +23,69 @@ interface DashboardStats {
     ungraded: number;
 }
 
+interface PendingSub {
+    id: string;
+    submittedAt: string;
+    student: { firstName: string; lastName: string; admissionNo: string };
+    assignment: { id: string; title: string; maxMarks: number; type: string; subject: { name: string; code: string }; section: { name: string } };
+    marks: number | null;
+    feedback: string | null;
+}
+
 export function TeacherDashboard() {
     const [stats, setStats] = useState<DashboardStats>({ classesToday: 0, totalStudents: 0, activeAssignments: 0, ungraded: 0 });
     const [schedule, setSchedule] = useState<any[]>([]);
+    const [pendingSubs, setPendingSubs] = useState<PendingSub[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    const teacherName = user?.email?.split('@')[0] || 'Teacher';
+    const teacherName = user?.firstName || user?.email?.split('@')[0] || 'Teacher';
     const today = new Date();
     const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsRes, scheduleRes] = await Promise.allSettled([
+                const [statsRes, scheduleRes, pendingRes] = await Promise.allSettled([
                     api.get('/teacher/dashboard-stats'),
                     api.get('/teacher/schedule/today'),
+                    api.get('/teacher/grading/dashboard-submissions'),
                 ]);
                 if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
                 if (scheduleRes.status === 'fulfilled') setSchedule(scheduleRes.value.data || []);
+                if (pendingRes.status === 'fulfilled') setPendingSubs(Array.isArray(pendingRes.value.data) ? pendingRes.value.data : []);
             } catch { /* ignore */ }
             finally { setLoading(false); }
         };
         fetchData();
     }, []);
 
-    // Mock data for subjects — in production these come from API
-    const subjectProgress = [
-        { name: 'Mathematics', progress: 78, color: 'blue' },
-        { name: 'English', progress: 85, color: 'green' },
-        { name: 'Science', progress: 62, color: 'orange' },
-        { name: 'History', progress: 45, color: 'grape' },
-        { name: 'Geography', progress: 70, color: 'teal' },
-    ];
+    // Split into pending (ungraded) and recently graded
+    const ungradedSubs = pendingSubs.filter(s => s.marks === null).slice(0, 5);
+    const gradedSubs = pendingSubs.filter(s => s.marks !== null).slice(0, 5);
 
-    const pendingWork = [
-        { title: 'Form 2 Maths Assignment', subject: 'Mathematics', due: 'Today', points: 10 },
-        { title: 'Science Lab Report Review', subject: 'Science', due: 'Tomorrow', points: 15 },
-        { title: 'English Essay Marking', subject: 'English', due: 'Feb 28', points: 20 },
-    ];
-
-    const recentSubmissions = [
-        { student: 'John M.', title: 'Algebra Worksheet', subject: 'Mathematics', points: 10, status: 'Pending' },
-        { student: 'Sarah K.', title: 'Lab Report #3', subject: 'Science', points: 15, status: 'Graded' },
-        { student: 'David L.', title: 'Book Review', subject: 'English', points: 20, status: 'Pending' },
-    ];
-
-    const overallProgress = Math.round(subjectProgress.reduce((a, s) => a + s.progress, 0) / subjectProgress.length);
+    // Subject progress from API
+    const [subjectProgress, setSubjectProgress] = useState<{ name: string, progress: number, color: string }[]>([]);
+    useEffect(() => {
+        const fetchSubjectProgress = async () => {
+            try {
+                const { data } = await api.get('/teacher/analytics');
+                if (data?.classSyllabus) {
+                    const colors = ['blue', 'green', 'orange', 'grape', 'teal', 'cyan', 'red', 'indigo'];
+                    setSubjectProgress(data.classSyllabus.map((s: any, i: number) => ({
+                        name: s.name,
+                        progress: s.progress || 0,
+                        color: colors[i % colors.length],
+                    })));
+                }
+            } catch { /* analytics unavailable */ }
+        };
+        fetchSubjectProgress();
+    }, []);
+    const overallProgress = subjectProgress.length > 0
+        ? Math.round(subjectProgress.reduce((a, s) => a + s.progress, 0) / subjectProgress.length)
+        : 0;
 
     return (
         <Box pos="relative">
@@ -107,12 +119,12 @@ export function TeacherDashboard() {
                     <Grid.Col span={{ base: 12, md: 4 }}>
                         <Group justify="flex-end" visibleFrom="md">
                             <Paper p="md" radius="md" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
-                                <Text ta="center" size="xs" fw={500} opacity={0.9}>Engagement Score</Text>
-                                <Text ta="center" fw={800} size="xl">92%</Text>
+                                <Text ta="center" size="xs" fw={500} opacity={0.9}>Pending Reviews</Text>
+                                <Text ta="center" fw={800} size="xl">{stats.ungraded}</Text>
                             </Paper>
                             <Paper p="md" radius="md" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
-                                <Text ta="center" size="xs" fw={500} opacity={0.9}>Total Points</Text>
-                                <Text ta="center" fw={800} size="xl">1,240</Text>
+                                <Text ta="center" size="xs" fw={500} opacity={0.9}>Active Assignments</Text>
+                                <Text ta="center" fw={800} size="xl">{stats.activeAssignments}</Text>
                             </Paper>
                         </Group>
                     </Grid.Col>
@@ -155,21 +167,11 @@ export function TeacherDashboard() {
             <Paper p="md" radius="md" shadow="sm" withBorder mb="lg">
                 <Text fw={600} mb="sm">Quick Actions</Text>
                 <Group>
-                    <Button variant="light" color="teal" leftSection={<IconUpload size={16} />} radius="md" onClick={() => navigate('/portal/materials')}>
-                        Upload Material
-                    </Button>
-                    <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} radius="md" onClick={() => navigate('/portal/assignments')}>
-                        Create Assignment
-                    </Button>
-                    <Button variant="light" color="grape" leftSection={<IconPencil size={16} />} radius="md" onClick={() => navigate('/portal/cbt')}>
-                        Create Quiz
-                    </Button>
-                    <Button variant="light" color="cyan" leftSection={<IconBrandZoom size={16} />} radius="md" onClick={() => navigate('/portal/live-classes')}>
-                        Schedule Live Class
-                    </Button>
-                    <Button variant="light" color="violet" leftSection={<IconMessage size={16} />} radius="md" onClick={() => navigate('/portal/discussions')}>
-                        Start Discussion
-                    </Button>
+                    <Button variant="light" color="teal" leftSection={<IconUpload size={16} />} radius="md" onClick={() => navigate('/portal/materials')}>Upload Material</Button>
+                    <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} radius="md" onClick={() => navigate('/portal/assignments')}>Create Assignment</Button>
+                    <Button variant="light" color="grape" leftSection={<IconPencil size={16} />} radius="md" onClick={() => navigate('/portal/cbt')}>Create Quiz</Button>
+                    <Button variant="light" color="cyan" leftSection={<IconBrandZoom size={16} />} radius="md" onClick={() => navigate('/portal/live-classes')}>Schedule Live Class</Button>
+                    <Button variant="light" color="violet" leftSection={<IconMessage size={16} />} radius="md" onClick={() => navigate('/portal/discussions')}>Start Discussion</Button>
                 </Group>
             </Paper>
 
@@ -178,22 +180,18 @@ export function TeacherDashboard() {
                 <Grid.Col span={{ base: 12, md: 7 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder h="100%">
                         <Group justify="space-between" mb="md">
-                            <Text fw={600}>Syllabus Coverage</Text>
-                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/analytics')}>
-                                View All
-                            </Button>
+                            <Group gap="xs">
+                                <Text fw={600}>Syllabus Coverage</Text>
+                            </Group>
+                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/analytics')}>View All</Button>
                         </Group>
                         <Grid>
                             <Grid.Col span={4}>
                                 <Stack align="center" gap="xs">
                                     <RingProgress
-                                        size={120}
-                                        thickness={10}
-                                        roundCaps
+                                        size={120} thickness={10} roundCaps
                                         sections={[{ value: overallProgress, color: 'brand' }]}
-                                        label={
-                                            <Text ta="center" fw={800} size="lg">{overallProgress}%</Text>
-                                        }
+                                        label={<Text ta="center" fw={800} size="lg">{overallProgress}%</Text>}
                                     />
                                     <Text size="sm" fw={500} c="dimmed">Overall Progress</Text>
                                 </Stack>
@@ -254,65 +252,73 @@ export function TeacherDashboard() {
                 <Grid.Col span={{ base: 12, md: 6 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder>
                         <Group justify="space-between" mb="md">
-                            <Text fw={600} c="orange">Pending Work</Text>
-                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/assignments')}>
-                                View All
-                            </Button>
+                            <Text fw={600} c="orange">Pending Reviews</Text>
+                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/grading')}>View All</Button>
                         </Group>
-                        <Table striped highlightOnHover>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>No.</Table.Th>
-                                    <Table.Th>Title</Table.Th>
-                                    <Table.Th>Subject</Table.Th>
-                                    <Table.Th>Points</Table.Th>
-                                    <Table.Th></Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {pendingWork.map((w, i) => (
-                                    <Table.Tr key={i}>
-                                        <Table.Td>{i + 1}</Table.Td>
-                                        <Table.Td fw={500}>{w.title}</Table.Td>
-                                        <Table.Td>{w.subject}</Table.Td>
-                                        <Table.Td>{w.points}</Table.Td>
-                                        <Table.Td><Button size="xs" variant="filled" color="brand" radius="xl">Review</Button></Table.Td>
+                        {ungradedSubs.length === 0 ? (
+                            <Text ta="center" c="dimmed" size="sm" py="md">No pending submissions to review</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Student</Table.Th>
+                                        <Table.Th>Assignment</Table.Th>
+                                        <Table.Th>Subject</Table.Th>
+                                        <Table.Th></Table.Th>
                                     </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {ungradedSubs.map(s => (
+                                        <Table.Tr key={s.id}>
+                                            <Table.Td fw={500}>{s.student?.firstName} {s.student?.lastName}</Table.Td>
+                                            <Table.Td><Text size="sm" lineClamp={1}>{s.assignment?.title}</Text></Table.Td>
+                                            <Table.Td><Badge variant="light" size="sm">{s.assignment?.subject?.name}</Badge></Table.Td>
+                                            <Table.Td>
+                                                <Button size="xs" variant="filled" color="brand" radius="xl" onClick={() => navigate(`/portal/grading?assignment=${s.assignment?.id}`)}>
+                                                    Review
+                                                </Button>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
                     </Paper>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder>
                         <Group justify="space-between" mb="md">
                             <Text fw={600} c="teal">Recent Submissions</Text>
-                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/grading')}>
-                                View All
-                            </Button>
+                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/grading')}>View All</Button>
                         </Group>
-                        <Table striped highlightOnHover>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>No.</Table.Th>
-                                    <Table.Th>Student</Table.Th>
-                                    <Table.Th>Subject</Table.Th>
-                                    <Table.Th>Points</Table.Th>
-                                    <Table.Th>Status</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {recentSubmissions.map((s, i) => (
-                                    <Table.Tr key={i}>
-                                        <Table.Td>{i + 1}</Table.Td>
-                                        <Table.Td fw={500}>{s.student}</Table.Td>
-                                        <Table.Td>{s.subject}</Table.Td>
-                                        <Table.Td>{s.points}</Table.Td>
-                                        <Table.Td><Badge color={s.status === 'Graded' ? 'green' : 'orange'} variant="light" size="sm">{s.status}</Badge></Table.Td>
+                        {gradedSubs.length === 0 && ungradedSubs.length === 0 ? (
+                            <Text ta="center" c="dimmed" size="sm" py="md">No recent submissions</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Student</Table.Th>
+                                        <Table.Th>Assignment</Table.Th>
+                                        <Table.Th>Marks</Table.Th>
+                                        <Table.Th>Status</Table.Th>
                                     </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {(gradedSubs.length > 0 ? gradedSubs : ungradedSubs).map(s => (
+                                        <Table.Tr key={s.id}>
+                                            <Table.Td fw={500}>{s.student?.firstName} {s.student?.lastName}</Table.Td>
+                                            <Table.Td><Text size="sm" lineClamp={1}>{s.assignment?.title}</Text></Table.Td>
+                                            <Table.Td>{s.marks !== null ? `${s.marks}/${s.assignment?.maxMarks}` : '—'}</Table.Td>
+                                            <Table.Td>
+                                                <Badge color={s.marks !== null ? 'green' : 'orange'} variant="light" size="sm">
+                                                    {s.marks !== null ? 'Graded' : 'Pending'}
+                                                </Badge>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
                     </Paper>
                 </Grid.Col>
             </Grid>

@@ -1,13 +1,29 @@
-import { useState } from 'react';
-import { Title, Text, Paper, Group, Button, Stack, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Avatar, Progress, Select, TextInput, Textarea, Divider, ScrollArea } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Title, Text, Paper, Group, Button, Stack, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Avatar, Progress, Select, TextInput, Textarea, Divider, ScrollArea, LoadingOverlay } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconTrophy, IconMedal, IconSearch, IconAward,
     IconFlame, IconStar, IconChevronUp, IconChevronDown, IconMinus,
-    IconTargetArrow, IconUsers, IconBookmark,IconClipboardList,
+    IconTargetArrow, IconUsers, IconBookmark, IconClipboardList,
 } from '@tabler/icons-react';
+import { api } from '../../services/api';
+
+interface StudentRank {
+    id: string;
+    name: string;
+    admissionNo: string;
+    class: string;
+    points: number;
+    rank: number;
+    change: string;
+    badges: string[];
+    assignments: number;
+    quizScore: number;
+    calaScore: number;
+    attendance: number;
+}
 
 // Badge definitions
 const BADGES = [
@@ -23,26 +39,30 @@ const BADGES = [
     { id: 'rising_star', name: 'Rising Star', icon: '⭐', color: 'yellow', description: 'Improved grades by 20%+ this term' },
 ];
 
-// Mock student data for demo
-const mockStudents = [
-    { id: '1', name: 'Takudzwa Moyo', class: 'Form 2 Blue', points: 1450, rank: 1, change: 'up', badges: ['math_whiz', 'top_submitter', 'quiz_master'], assignments: 24, quizScore: 92, calaScore: 88, attendance: 98 },
-    { id: '2', name: 'Rudo Chikwanha', class: 'Form 2 Blue', points: 1380, rank: 2, change: 'up', badges: ['top_submitter', 'bookworm', 'perfect_attendance'], assignments: 24, quizScore: 88, calaScore: 90, attendance: 100 },
-    { id: '3', name: 'Blessing Madziva', class: 'Form 2 Red', points: 1295, rank: 3, change: 'same', badges: ['cala_champion', 'science_star'], assignments: 22, quizScore: 85, calaScore: 95, attendance: 96 },
-    { id: '4', name: 'Tatenda Sibanda', class: 'Form 2 Red', points: 1180, rank: 4, change: 'down', badges: ['early_bird', 'team_player'], assignments: 20, quizScore: 78, calaScore: 82, attendance: 94 },
-    { id: '5', name: 'Nyasha Chimani', class: 'Form 3 Green', points: 1120, rank: 5, change: 'up', badges: ['rising_star'], assignments: 18, quizScore: 80, calaScore: 75, attendance: 90 },
-    { id: '6', name: 'Farai Dube', class: 'Form 3 Green', points: 1050, rank: 6, change: 'same', badges: ['bookworm'], assignments: 19, quizScore: 72, calaScore: 80, attendance: 92 },
-    { id: '7', name: 'Chipo Munyoro', class: 'Form 2 Blue', points: 980, rank: 7, change: 'down', badges: [], assignments: 16, quizScore: 68, calaScore: 70, attendance: 88 },
-    { id: '8', name: 'Tinotenda Gumbo', class: 'Form 3 Green', points: 920, rank: 8, change: 'up', badges: ['team_player'], assignments: 15, quizScore: 65, calaScore: 72, attendance: 85 },
-];
-
 export default function TeacherLeaderboard() {
-    const [students] = useState(mockStudents);
+    const [students, setStudents] = useState<StudentRank[]>([]);
+    const [loading, setLoading] = useState(true);
     const [badgeModal, setBadgeModal] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
     const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
     const [filterClass, setFilterClass] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState<string | null>('leaderboard');
+
+    useEffect(() => {
+        const fetchLeaderboard = async () => {
+            setLoading(true);
+            try {
+                const { data } = await api.get('/teacher/leaderboard');
+                setStudents(Array.isArray(data) ? data : []);
+            } catch {
+                notifications.show({ title: 'Error', message: 'Failed to load leaderboard', color: 'red' });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchLeaderboard();
+    }, []);
 
     const awardBadge = () => {
         if (!selectedStudent || !selectedBadge) {

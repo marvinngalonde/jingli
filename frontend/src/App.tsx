@@ -33,6 +33,7 @@ import TeacherLiveClass from './pages/teacher/TeacherLiveClass';
 import TeacherDiscussions from './pages/teacher/TeacherDiscussions';
 import TeacherAnalytics from './pages/teacher/TeacherAnalytics';
 import TeacherLeaderboard from './pages/teacher/TeacherLeaderboard';
+import TeacherLibrary from './pages/teacher/TeacherLibrary';
 
 // import Fees from './pages/finance/Fees';
 // import { FeeStructures } from './pages/Finance/FeeStructures';
@@ -146,6 +147,7 @@ function App() {
             <Route path="/portal/timetable" element={<TeacherTimetable />} />
             <Route path="/portal/classes/:sectionId/students" element={<TeacherClassStudents />} />
             <Route path="/portal/classes/:sectionId/materials" element={<TeacherCourseMaterials />} />
+            <Route path="/portal/classes/:sectionId/assignments" element={<TeacherAssignments />} />
             <Route path="/portal/materials" element={<TeacherCourseMaterials />} />
             <Route path="/portal/assignments" element={<TeacherAssignments />} />
             <Route path="/portal/grading" element={<TeacherGrading />} />
@@ -155,7 +157,7 @@ function App() {
             <Route path="/portal/analytics" element={<TeacherAnalytics />} />
             <Route path="/portal/leaderboard" element={<TeacherLeaderboard />} />
             <Route path="/portal/inbox" element={<Communication />} />
-            <Route path="/portal/library" element={<Library />} />
+            <Route path="/portal/library" element={<TeacherLibrary />} />
             <Route path="/portal/calendar" element={<CalendarPage />} />
           </Route>
 

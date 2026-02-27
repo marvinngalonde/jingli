@@ -12,56 +12,59 @@ datasource db {
 // -----------------------------------------------------------------------------
 
 model School {
-  id          String   @id @default(uuid())
-  name        String
-  subdomain   String   @unique
-  logoUrl     String?  @map("logo_url")
-  config      Json?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  name      String
+  subdomain String   @unique
+  logoUrl   String?  @map("logo_url")
+  config    Json?
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  users           User[]
-  academicYears   AcademicYear[]
-  classes         ClassLevel[]
-  sections        ClassSection[]
-  subjects        Subject[]
-  students        Student[]
-  staff           Staff[]
-  feeHeads        FeeHead[]
-  feeStructures   FeeStructure[]
-  invoices        Invoice[]
-  transactions    Transaction[]
-  visitors        Visitor[]
-  gatePasses      GatePass[]
-  lateArrivals    LateArrival[]
-  inquiries       Inquiry[]
-  notices         Notice[]
-  exams           Exam[]
-  examTerms       ExamTerm[]
-  attendance      Attendance[]
-  books           Book[]
-  bookCirculations BookCirculation[]
-  reportLogs      ReportLog[]
-  events          Event[]
-  expenses        Expense[]
-  salaryPayments  SalaryPayment[]
-  exchangeRates   ExchangeRate[]
-  routes          Route[]
-  vehicles        Vehicle[]
-  studentRoutes   StudentRoute[]
-  assetCategories AssetCategory[]
-  assets          Asset[]
-  calaRecords     CalaRecord[]
-  gradeScales     GradeScale[]
-  clinicVisits    ClinicVisit[]
+  users             User[]
+  academicYears     AcademicYear[]
+  classes           ClassLevel[]
+  sections          ClassSection[]
+  subjects          Subject[]
+  students          Student[]
+  staff             Staff[]
+  feeHeads          FeeHead[]
+  feeStructures     FeeStructure[]
+  invoices          Invoice[]
+  transactions      Transaction[]
+  visitors          Visitor[]
+  gatePasses        GatePass[]
+  lateArrivals      LateArrival[]
+  inquiries         Inquiry[]
+  notices           Notice[]
+  exams             Exam[]
+  examTerms         ExamTerm[]
+  attendance        Attendance[]
+  books             Book[]
+  bookCirculations  BookCirculation[]
+  reportLogs        ReportLog[]
+  events            Event[]
+  expenses          Expense[]
+  salaryPayments    SalaryPayment[]
+  exchangeRates     ExchangeRate[]
+  routes            Route[]
+  vehicles          Vehicle[]
+  studentRoutes     StudentRoute[]
+  assetCategories   AssetCategory[]
+  assets            Asset[]
+  calaRecords       CalaRecord[]
+  gradeScales       GradeScale[]
+  clinicVisits      ClinicVisit[]
   disciplineRecords DisciplineRecord[]
-  hostels         Hostel[]
-  rooms           Room[]
-  bedAllocations  BedAllocation[]
-  exeats          Exeat[]
-  alertTemplates  AlertTemplate[]
-  alertLogs       AlertLog[]
-  
+  hostels           Hostel[]
+  rooms             Room[]
+  bedAllocations    BedAllocation[]
+  exeats            Exeat[]
+  alertTemplates    AlertTemplate[]
+  alertLogs         AlertLog[]
+  quizzes           Quiz[]
+  liveClasses       LiveClass[]
+  DiscussionThread  DiscussionThread[]
+
   @@map("schools")
 }
 
@@ -105,10 +108,10 @@ enum UserRole {
   STUDENT
 
   // Legacy (backward-compatible aliases)
-  ADMIN      // → SUPER_ADMIN
-  TEACHER    // → SUBJECT_TEACHER
-  RECEPTION  // → SENIOR_CLERK
-  FINANCE    // → BURSAR
+  ADMIN // → SUPER_ADMIN
+  TEACHER // → SUBJECT_TEACHER
+  RECEPTION // → SENIOR_CLERK
+  FINANCE // → BURSAR
 }
 
 enum UserStatus {
@@ -120,7 +123,7 @@ enum UserStatus {
 model User {
   id           String     @id @default(uuid())
   schoolId     String     @map("school_id")
-  supabaseUid  String?    @unique @map("supabase_uid") 
+  supabaseUid  String?    @unique @map("supabase_uid")
   username     String     @map("username")
   email        String?
   passwordHash String     @map("password_hash")
@@ -130,22 +133,22 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   lastLogin    DateTime?  @map("last_login")
 
-  school       School     @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
   // Profile Links
-  staffProfile   Staff?
-  studentProfile Student?
+  staffProfile    Staff?
+  studentProfile  Student?
   guardianProfile Guardian?
 
   // Operations
-  recordedAttendance Attendance[] @relation("AttendanceRecorder")
-  issuedPasses       GatePass[]   @relation("PassIssuer")
-  recordedLate       LateArrival[] @relation("LateRecorder")
-  collectedPayments  Transaction[] @relation("PaymentCollector")
-  sentMessages       Message[]    @relation("Sender")
-  receivedMessages   Message[]    @relation("Receiver")
+  recordedAttendance Attendance[]    @relation("AttendanceRecorder")
+  issuedPasses       GatePass[]      @relation("PassIssuer")
+  recordedLate       LateArrival[]   @relation("LateRecorder")
+  collectedPayments  Transaction[]   @relation("PaymentCollector")
+  sentMessages       Message[]       @relation("Sender")
+  receivedMessages   Message[]       @relation("Receiver")
   postedNotices      Notice[]
-  aiChatSessions      AiChatSession[]
+  aiChatSessions     AiChatSession[]
   notifications      Notification[]
   approvedExpenses   Expense[]       @relation("ExpenseApprover")
   processedSalaries  SalaryPayment[] @relation("SalaryProcessor")
@@ -160,9 +163,9 @@ model User {
 // -----------------------------------------------------------------------------
 
 model Permission {
-  id          String @id @default(uuid())
-  module      String   // e.g. "finance", "academics", "library"
-  action      String   // e.g. "read", "write", "approve", "delete"
+  id          String  @id @default(uuid())
+  module      String // e.g. "finance", "academics", "library"
+  action      String // e.g. "read", "write", "approve", "delete"
   description String?
 
   rolePermissions RolePermission[]
@@ -172,33 +175,33 @@ model Permission {
 }
 
 model RolePermission {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   role         UserRole
-  permissionId String     @map("permission_id")
+  permissionId String   @map("permission_id")
 
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
   @@unique([role, permissionId])
   @@map("role_permissions")
 }
 
 model Guardian {
-    id        String @id @default(uuid())
-    schoolId  String @map("school_id")
-    userId    String @unique @map("user_id")
-    
-    firstName String @map("first_name")
-    lastName  String @map("last_name")
-    phone     String?
-    address   String?
-    relationship String 
-    occupation   String?
+  id       String @id @default(uuid())
+  schoolId String @map("school_id")
+  userId   String @unique @map("user_id")
 
-    user      User @relation(fields: [userId], references: [id])
-    
-    students  StudentGuardian[]
+  firstName    String  @map("first_name")
+  lastName     String  @map("last_name")
+  phone        String?
+  address      String?
+  relationship String
+  occupation   String?
 
-    @@map("guardians")
+  user User @relation(fields: [userId], references: [id])
+
+  students StudentGuardian[]
+
+  @@map("guardians")
 }
 
 // -----------------------------------------------------------------------------
@@ -213,7 +216,7 @@ model AcademicYear {
   endDate   DateTime @map("end_date")
   current   Boolean  @default(false)
 
-  school    School   @relation(fields: [schoolId], references: [id])
+  school        School         @relation(fields: [schoolId], references: [id])
   feeStructures FeeStructure[]
   examTerms     ExamTerm[]
 
@@ -221,13 +224,13 @@ model AcademicYear {
 }
 
 model ClassLevel {
-  id        String   @id @default(uuid())
-  schoolId  String   @map("school_id")
-  name      String   
-  level     Int      
+  id       String @id @default(uuid())
+  schoolId String @map("school_id")
+  name     String
+  level    Int
 
-  school    School   @relation(fields: [schoolId], references: [id])
-  sections  ClassSection[]
+  school        School         @relation(fields: [schoolId], references: [id])
+  sections      ClassSection[]
   feeStructures FeeStructure[]
   exams         Exam[]
   subjects      Subject[]
@@ -236,16 +239,16 @@ model ClassLevel {
 }
 
 model ClassSection {
-  id             String   @id @default(uuid())
-  schoolId       String   @map("school_id")
-  classLevelId   String   @map("class_id")
-  name           String   
-  capacity       Int      @default(30)
-  classTeacherId String?  @map("class_teacher_id")
+  id             String  @id @default(uuid())
+  schoolId       String  @map("school_id")
+  classLevelId   String  @map("class_id")
+  name           String
+  capacity       Int     @default(30)
+  classTeacherId String? @map("class_teacher_id")
 
-  school         School     @relation(fields: [schoolId], references: [id])
-  classLevel     ClassLevel @relation(fields: [classLevelId], references: [id])
-  classTeacher   Staff?     @relation(fields: [classTeacherId], references: [id])
+  school       School     @relation(fields: [schoolId], references: [id])
+  classLevel   ClassLevel @relation(fields: [classLevelId], references: [id])
+  classTeacher Staff?     @relation(fields: [classTeacherId], references: [id])
 
   students           Student[]
   subjectAllocations SubjectAllocation[]
@@ -253,13 +256,15 @@ model ClassSection {
   assignments        Assignment[]
   courseMaterials    CourseMaterial[]
   attendance         Attendance[]
+  Quiz               Quiz[]
+  LiveClass          LiveClass[]
 
   @@map("sections")
 }
 
 model Subject {
-  id         String   @id @default(uuid())
-  schoolId   String   @map("school_id")
+  id         String  @id @default(uuid())
+  schoolId   String  @map("school_id")
   name       String
   code       String
   department String?
@@ -268,13 +273,15 @@ model Subject {
   school      School       @relation(fields: [schoolId], references: [id])
   classLevels ClassLevel[]
   teacher     Staff?       @relation(fields: [teacherId], references: [id])
-  
-  allocations SubjectAllocation[]
-  timetables  Timetable[]
-  assignments Assignment[]
+
+  allocations     SubjectAllocation[]
+  timetables      Timetable[]
+  assignments     Assignment[]
   courseMaterials CourseMaterial[]
-  exams       Exam[]
-  calaRecords CalaRecord[]
+  exams           Exam[]
+  calaRecords     CalaRecord[]
+  quizzes         Quiz[]
+  liveClasses     LiveClass[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -286,9 +293,9 @@ model SubjectAllocation {
   subjectId String @map("subject_id")
   sectionId String @map("section_id")
 
-  staff     Staff        @relation(fields: [staffId], references: [id])
-  subject   Subject      @relation(fields: [subjectId], references: [id])
-  section   ClassSection @relation(fields: [sectionId], references: [id])
+  staff   Staff        @relation(fields: [staffId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
 
   @@map("subject_allocations")
 }
@@ -298,71 +305,72 @@ model SubjectAllocation {
 // -----------------------------------------------------------------------------
 
 model Student {
-  id            String   @id @default(uuid())
-  schoolId      String   @map("school_id")
-  userId        String   @unique @map("user_id")
-  admissionNo   String   @map("admission_no")
-  rollNo        String?  @map("roll_no")
-  sectionId     String   @map("section_id")
+  id             String   @id @default(uuid())
+  schoolId       String   @map("school_id")
+  userId         String   @unique @map("user_id")
+  admissionNo    String   @map("admission_no")
+  rollNo         String?  @map("roll_no")
+  sectionId      String   @map("section_id")
   enrollmentDate DateTime @map("enrollment_date")
-  
-  firstName     String   @map("first_name")
-  lastName      String   @map("last_name")
-  dob           DateTime?
-  gender        String?
-  address       String?
 
-  school        School       @relation(fields: [schoolId], references: [id])
-  user          User         @relation(fields: [userId], references: [id])
-  section       ClassSection @relation(fields: [sectionId], references: [id])
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  dob       DateTime?
+  gender    String?
+  address   String?
 
-  guardians     StudentGuardian[]
-  attendance    Attendance[]
-  submissions   Submission[]
-  invoices      Invoice[]
-  gatePasses    GatePass[]
-  lateArrivals  LateArrival[]
-  examResults   ExamResult[]
-  bookCirculations BookCirculation[]
-  transportRoutes StudentRoute[]
-  calaRecords     CalaRecord[]
-  clinicVisits    ClinicVisit[]
+  school  School       @relation(fields: [schoolId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
+
+  guardians         StudentGuardian[]
+  attendance        Attendance[]
+  submissions       Submission[]
+  invoices          Invoice[]
+  gatePasses        GatePass[]
+  lateArrivals      LateArrival[]
+  examResults       ExamResult[]
+  bookCirculations  BookCirculation[]
+  transportRoutes   StudentRoute[]
+  calaRecords       CalaRecord[]
+  clinicVisits      ClinicVisit[]
   disciplineRecords DisciplineRecord[]
-  bedAllocations  BedAllocation[]
-  exeats          Exeat[]
-  medicalProfile  MedicalProfile?
+  bedAllocations    BedAllocation[]
+  exeats            Exeat[]
+  medicalProfile    MedicalProfile?
+  quizAttempts      QuizAttempt[]
 
   @@unique([schoolId, admissionNo])
   @@map("students")
 }
 
 model StudentGuardian {
-  studentId  String @map("student_id")
-  guardianId String @map("guardian_id")
+  studentId  String  @map("student_id")
+  guardianId String  @map("guardian_id")
   isPrimary  Boolean @default(false) @map("is_primary")
 
-  student    Student  @relation(fields: [studentId], references: [id])
-  guardian   Guardian @relation(fields: [guardianId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id])
+  guardian Guardian @relation(fields: [guardianId], references: [id])
 
   @@id([studentId, guardianId])
   @@map("student_guardians")
 }
 
 model Staff {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
-  userId       String   @unique @map("user_id")
-  employeeId   String   @map("employee_id")
-  designation  String
-  department   String
-  joinDate     DateTime @map("join_date")
-  
-  firstName    String   @map("first_name")
-  lastName     String   @map("last_name")
-  phone        String?
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  userId      String   @unique @map("user_id")
+  employeeId  String   @map("employee_id")
+  designation String
+  department  String
+  joinDate    DateTime @map("join_date")
 
-  school       School   @relation(fields: [schoolId], references: [id])
-  user         User     @relation(fields: [userId], references: [id])
+  firstName String  @map("first_name")
+  lastName  String  @map("last_name")
+  phone     String?
+
+  school School @relation(fields: [schoolId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   classTeacherOf     ClassSection[]
   subjectAllocations SubjectAllocation[]
@@ -374,6 +382,8 @@ model Staff {
   salaryPayments     SalaryPayment[]
   calaRecords        CalaRecord[]
   disciplineRecords  DisciplineRecord[]
+  quizzes            Quiz[]
+  liveClasses        LiveClass[]
 
   @@unique([schoolId, employeeId])
   @@map("staff")
@@ -399,13 +409,13 @@ model Timetable {
   subjectId String    @map("subject_id")
   teacherId String    @map("teacher_id")
   day       DayOfWeek
-  startTime DateTime  @map("start_time") 
+  startTime DateTime  @map("start_time")
   endTime   DateTime  @map("end_time")
   roomNo    String?   @map("room_no")
 
-  section   ClassSection @relation(fields: [sectionId], references: [id])
-  subject   Subject      @relation(fields: [subjectId], references: [id])
-  teacher   Staff        @relation(fields: [teacherId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  teacher Staff        @relation(fields: [teacherId], references: [id])
 
   @@map("timetables")
 }
@@ -419,11 +429,11 @@ model Assignment {
   description String?
   dueDate     DateTime @map("due_date")
   maxMarks    Int      @map("max_marks")
-  type        String   
+  type        String
 
-  section     ClassSection @relation(fields: [sectionId], references: [id])
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  teacher     Staff        @relation(fields: [teacherId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  teacher Staff        @relation(fields: [teacherId], references: [id])
 
   submissions Submission[]
 
@@ -439,27 +449,27 @@ model Submission {
   marks        Int?
   feedback     String?
 
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
-  student      Student    @relation(fields: [studentId], references: [id])
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  student    Student    @relation(fields: [studentId], references: [id])
 
   @@map("submissions")
 }
 
 model CourseMaterial {
-  id           String   @id @default(uuid())
-  title        String
-  description  String?
-  fileUrl      String   @map("file_url")
-  fileType     String?  @map("file_type") // e.g., pdf, video, doc
-  uploadedAt   DateTime @default(now()) @map("uploaded_at")
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String   @map("file_url")
+  fileType    String?  @map("file_type") // e.g., pdf, video, doc
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
 
-  teacherId    String   @map("teacher_id")
-  subjectId    String   @map("subject_id")
-  sectionId    String   @map("section_id")
+  teacherId String @map("teacher_id")
+  subjectId String @map("subject_id")
+  sectionId String @map("section_id")
 
-  teacher      Staff        @relation(fields: [teacherId], references: [id])
-  subject      Subject      @relation(fields: [subjectId], references: [id])
-  section      ClassSection @relation(fields: [sectionId], references: [id])
+  teacher Staff        @relation(fields: [teacherId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
 
   @@map("course_materials")
 }
@@ -481,10 +491,10 @@ model Attendance {
   remarks    String?
   recordedBy String           @map("recorded_by")
 
-  school     School       @relation(fields: [schoolId], references: [id])
-  student    Student      @relation(fields: [studentId], references: [id])
-  section    ClassSection @relation(fields: [sectionId], references: [id])
-  recorder   User         @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
+  school   School       @relation(fields: [schoolId], references: [id])
+  student  Student      @relation(fields: [studentId], references: [id])
+  section  ClassSection @relation(fields: [sectionId], references: [id])
+  recorder User         @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
 
   @@unique([studentId, date])
   @@index([sectionId, date])
@@ -506,45 +516,45 @@ model FeeHead {
   id       String @id @default(uuid())
   schoolId String @map("school_id")
   name     String
-  type     String 
+  type     String
 
-  school   School @relation(fields: [schoolId], references: [id])
+  school     School             @relation(fields: [schoolId], references: [id])
   structures FeeStructure[]
-  items    FeeStructureItem[]
+  items      FeeStructureItem[]
 
   @@map("fee_heads")
 }
 
 model FeeStructure {
-  id             String @id @default(uuid())
-  schoolId       String @map("school_id")
-  academicYearId String @map("academic_year_id")
-  classLevelId   String @map("class_id")
-  feeHeadId      String? @map("fee_head_id")
+  id             String       @id @default(uuid())
+  schoolId       String       @map("school_id")
+  academicYearId String       @map("academic_year_id")
+  classLevelId   String       @map("class_id")
+  feeHeadId      String?      @map("fee_head_id")
   name           String
   amount         Decimal
-  currency       String  @default("USD") // USD, ZiG, etc.
+  currency       String       @default("USD") // USD, ZiG, etc.
   frequency      FeeFrequency
 
-  school         School       @relation(fields: [schoolId], references: [id])
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
-  classLevel     ClassLevel   @relation(fields: [classLevelId], references: [id])
-  feeHead        FeeHead?     @relation(fields: [feeHeadId], references: [id])
-  
-  items          FeeStructureItem[]
-  invoices       Invoice[]
+  school       School       @relation(fields: [schoolId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  classLevel   ClassLevel   @relation(fields: [classLevelId], references: [id])
+  feeHead      FeeHead?     @relation(fields: [feeHeadId], references: [id])
+
+  items    FeeStructureItem[]
+  invoices Invoice[]
 
   @@map("fee_structures")
 }
 
 model FeeStructureItem {
-  id             String @id @default(uuid())
-  feeStructureId String @map("fee_structure_id")
-  feeHeadId      String @map("fee_head_id")
+  id             String  @id @default(uuid())
+  feeStructureId String  @map("fee_structure_id")
+  feeHeadId      String  @map("fee_head_id")
   amount         Decimal
 
-  structure      FeeStructure @relation(fields: [feeStructureId], references: [id])
-  head           FeeHead @relation(fields: [feeHeadId], references: [id])
+  structure FeeStructure @relation(fields: [feeStructureId], references: [id])
+  head      FeeHead      @relation(fields: [feeHeadId], references: [id])
 
   @@map("fee_structure_items")
 }
@@ -557,21 +567,21 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id             String   @id @default(uuid())
-  schoolId       String   @map("school_id")
-  studentId      String   @map("student_id")
-  feeStructureId String?  @map("fee_structure_id")
+  id             String        @id @default(uuid())
+  schoolId       String        @map("school_id")
+  studentId      String        @map("student_id")
+  feeStructureId String?       @map("fee_structure_id")
   amount         Decimal
-  dueDate        DateTime @map("due_date")
+  dueDate        DateTime      @map("due_date")
   status         InvoiceStatus @default(PENDING)
-  currency       String   @default("USD") // USD, ZiG, etc.
-  issueDate      DateTime @default(now()) @map("issue_date")
+  currency       String        @default("USD") // USD, ZiG, etc.
+  issueDate      DateTime      @default(now()) @map("issue_date")
 
-  school         School       @relation(fields: [schoolId], references: [id])
-  student        Student      @relation(fields: [studentId], references: [id])
-  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id])
+  school       School        @relation(fields: [schoolId], references: [id])
+  student      Student       @relation(fields: [studentId], references: [id])
+  feeStructure FeeStructure? @relation(fields: [feeStructureId], references: [id])
 
-  transactions   Transaction[]
+  transactions Transaction[]
 
   @@map("invoices")
 }
@@ -581,23 +591,23 @@ enum PaymentMethod {
   CARD
   ONLINE
   CHEQUE
-  MOBILE_MONEY  // EcoCash, InnBucks, etc.
+  MOBILE_MONEY // EcoCash, InnBucks, etc.
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
-  schoolId    String   @map("school_id")
-  invoiceId   String   @map("invoice_id")
+  id          String        @id @default(uuid())
+  schoolId    String        @map("school_id")
+  invoiceId   String        @map("invoice_id")
   amount      Decimal
-  currency    String  @default("USD") // USD, ZiG, etc.
+  currency    String        @default("USD") // USD, ZiG, etc.
   method      PaymentMethod
-  date        DateTime @default(now())
-  referenceNo String?  @map("reference_no")
-  collectedBy String   @map("collected_by")
+  date        DateTime      @default(now())
+  referenceNo String?       @map("reference_no")
+  collectedBy String        @map("collected_by")
 
-  school      School  @relation(fields: [schoolId], references: [id])
-  invoice     Invoice @relation(fields: [invoiceId], references: [id])
-  collector   User    @relation("PaymentCollector", fields: [collectedBy], references: [id])
+  school    School  @relation(fields: [schoolId], references: [id])
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  collector User    @relation("PaymentCollector", fields: [collectedBy], references: [id])
 
   @@map("transactions")
 }
@@ -612,19 +622,19 @@ enum VisitorStatus {
 }
 
 model Visitor {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
+  id           String        @id @default(uuid())
+  schoolId     String        @map("school_id")
   name         String
   phone        String
   purpose      String
-  personToMeet String?  @map("person_to_meet")
-  checkIn      DateTime @default(now()) @map("check_in_time")
-  checkOut     DateTime? @map("check_out_time")
-  idProof      String?  @map("id_proof")
-  vehicleNo    String?  @map("vehicle_no")
+  personToMeet String?       @map("person_to_meet")
+  checkIn      DateTime      @default(now()) @map("check_in_time")
+  checkOut     DateTime?     @map("check_out_time")
+  idProof      String?       @map("id_proof")
+  vehicleNo    String?       @map("vehicle_no")
   status       VisitorStatus @default(IN)
 
-  school       School   @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
   @@map("visitors")
 }
@@ -637,17 +647,17 @@ enum BookStatus {
 }
 
 model Book {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
-  title        String
-  author       String
-  isbn         String?
-  category     String?
-  accessionNo  String?  @map("accession_no")
-  status       BookStatus @default(AVAILABLE)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id          String     @id @default(uuid())
+  schoolId    String     @map("school_id")
+  title       String
+  author      String
+  isbn        String?
+  category    String?
+  accessionNo String?    @map("accession_no")
+  status      BookStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now()) @map("created_at")
 
-  school       School   @relation(fields: [schoolId], references: [id])
+  school       School            @relation(fields: [schoolId], references: [id])
   circulations BookCirculation[]
 
   @@map("library_books")
@@ -660,19 +670,19 @@ enum CirculationStatus {
 }
 
 model BookCirculation {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
-  bookId       String   @map("book_id")
-  studentId    String   @map("student_id")
-  issueDate    DateTime @default(now()) @map("issue_date")
-  dueDate      DateTime @map("due_date")
-  returnDate   DateTime? @map("return_date")
-  status       CirculationStatus @default(ISSUED)
-  remarks      String?
+  id         String            @id @default(uuid())
+  schoolId   String            @map("school_id")
+  bookId     String            @map("book_id")
+  studentId  String            @map("student_id")
+  issueDate  DateTime          @default(now()) @map("issue_date")
+  dueDate    DateTime          @map("due_date")
+  returnDate DateTime?         @map("return_date")
+  status     CirculationStatus @default(ISSUED)
+  remarks    String?
 
-  school       School  @relation(fields: [schoolId], references: [id])
-  book         Book    @relation(fields: [bookId], references: [id])
-  student      Student @relation(fields: [studentId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  book    Book    @relation(fields: [bookId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("book_circulations")
 }
@@ -685,44 +695,44 @@ model GatePass {
   issuedAt     DateTime @default(now()) @map("issued_at")
   issuedBy     String   @map("issued_by")
   guardianName String   @map("guardian_name")
-  
-  school       School  @relation(fields: [schoolId], references: [id])
-  student      Student @relation(fields: [studentId], references: [id])
-  issuer       User    @relation("PassIssuer", fields: [issuedBy], references: [id])
+
+  school  School  @relation(fields: [schoolId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  issuer  User    @relation("PassIssuer", fields: [issuedBy], references: [id])
 
   @@map("gate_passes")
 }
 
 model LateArrival {
-  id         String   @id @default(uuid())
-  schoolId   String   @map("school_id")
-  studentId  String   @map("student_id")
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  studentId   String   @map("student_id")
   arrivalTime DateTime @default(now()) @map("arrival_time")
-  reason     String
-  reportedBy String   @map("reported_by") 
-  recordedBy String   @map("recorded_by")
+  reason      String
+  reportedBy  String   @map("reported_by")
+  recordedBy  String   @map("recorded_by")
 
-  school     School  @relation(fields: [schoolId], references: [id])
-  student    Student @relation(fields: [studentId], references: [id])
-  recorder   User    @relation("LateRecorder", fields: [recordedBy], references: [id])
+  school   School  @relation(fields: [schoolId], references: [id])
+  student  Student @relation(fields: [studentId], references: [id])
+  recorder User    @relation("LateRecorder", fields: [recordedBy], references: [id])
 
   @@map("late_arrivals")
 }
 
 model Inquiry {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
+  id            String  @id @default(uuid())
+  schoolId      String  @map("school_id")
   applicantName String  @map("applicant_name")
-  parentName   String   @map("parent_name")
-  email        String
-  phone        String
-  targetClass  String   @map("target_class")
-  status       String   
-  notes        String?
-  assignedTo   String?  @map("assigned_to")
+  parentName    String  @map("parent_name")
+  email         String
+  phone         String
+  targetClass   String  @map("target_class")
+  status        String
+  notes         String?
+  assignedTo    String? @map("assigned_to")
 
-  school       School   @relation(fields: [schoolId], references: [id])
-  
+  school School @relation(fields: [schoolId], references: [id])
+
   @@map("inquiries")
 }
 
@@ -731,45 +741,45 @@ model Inquiry {
 // -----------------------------------------------------------------------------
 
 model Notice {
-  id             String   @id @default(uuid())
-  schoolId       String   @map("school_id")
+  id             String    @id @default(uuid())
+  schoolId       String    @map("school_id")
   title          String
   content        String
-  postedBy       String   @map("posted_by")
-  targetAudience String   @map("target_audience") 
-  postedAt       DateTime @default(now()) @map("posted_at")
+  postedBy       String    @map("posted_by")
+  targetAudience String    @map("target_audience")
+  postedAt       DateTime  @default(now()) @map("posted_at")
   expiresAt      DateTime? @map("expires_at")
 
-  school         School @relation(fields: [schoolId], references: [id])
-  poster         User   @relation(fields: [postedBy], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
+  poster User   @relation(fields: [postedBy], references: [id])
 
   @@map("notices")
 }
 
 model Message {
-  id         String   @id @default(uuid())
-  senderId   String   @map("sender_id")
-  receiverId String   @map("receiver_id")
+  id         String    @id @default(uuid())
+  senderId   String    @map("sender_id")
+  receiverId String    @map("receiver_id")
   content    String
-  sentAt     DateTime @default(now()) @map("sent_at")
+  sentAt     DateTime  @default(now()) @map("sent_at")
   readAt     DateTime? @map("read_at")
 
-  sender     User @relation("Sender", fields: [senderId], references: [id])
-  receiver   User @relation("Receiver", fields: [receiverId], references: [id])
+  sender   User @relation("Sender", fields: [senderId], references: [id])
+  receiver User @relation("Receiver", fields: [receiverId], references: [id])
 
   @@map("messages")
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  title       String
-  message     String
-  type        String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  readStatus  Boolean  @default(false) @map("read_status")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  title      String
+  message    String
+  type       String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  readStatus Boolean  @default(false) @map("read_status")
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  user        User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
@@ -779,12 +789,12 @@ model Notification {
 // -----------------------------------------------------------------------------
 
 model ExamTerm {
-  id        String   @id @default(uuid())
-  schoolId  String   @map("school_id")
-  name      String   
-  startDate DateTime @map("start_date")
-  endDate   DateTime @map("end_date")
-  academicYearId String @map("academic_year_id")
+  id             String   @id @default(uuid())
+  schoolId       String   @map("school_id")
+  name           String
+  startDate      DateTime @map("start_date")
+  endDate        DateTime @map("end_date")
+  academicYearId String   @map("academic_year_id")
 
   school       School       @relation(fields: [schoolId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -795,38 +805,38 @@ model ExamTerm {
 }
 
 model Exam {
-  id        String   @id @default(uuid())
-  schoolId  String   @map("school_id")
-  subjectId String   @map("subject_id")
-  classLevelId   String   @map("class_id")   
-  termId    String   @map("term_id")
-  name      String   
-  date      DateTime
-  startTime DateTime @map("start_time")
-  duration  Int      
-  maxMarks  Float    @map("max_marks")
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  subjectId    String   @map("subject_id")
+  classLevelId String   @map("class_id")
+  termId       String   @map("term_id")
+  name         String
+  date         DateTime
+  startTime    DateTime @map("start_time")
+  duration     Int
+  maxMarks     Float    @map("max_marks")
 
-  school    School     @relation(fields: [schoolId], references: [id])
-  subject   Subject    @relation(fields: [subjectId], references: [id])
+  school     School     @relation(fields: [schoolId], references: [id])
+  subject    Subject    @relation(fields: [subjectId], references: [id])
   classLevel ClassLevel @relation(fields: [classLevelId], references: [id])
-  term      ExamTerm   @relation(fields: [termId], references: [id])
-  
-  results   ExamResult[]
+  term       ExamTerm   @relation(fields: [termId], references: [id])
+
+  results ExamResult[]
 
   @@map("exams")
 }
 
 model ExamResult {
-  id        String   @id @default(uuid())
-  examId    String   @map("exam_id")
-  studentId String   @map("student_id")
-  marksObtained Float @map("marks_obtained")
-  remarks   String?
-  gradedBy  String   @map("graded_by") 
+  id            String  @id @default(uuid())
+  examId        String  @map("exam_id")
+  studentId     String  @map("student_id")
+  marksObtained Float   @map("marks_obtained")
+  remarks       String?
+  gradedBy      String  @map("graded_by")
 
-  exam      Exam     @relation(fields: [examId], references: [id])
-  student   Student  @relation(fields: [studentId], references: [id])
-  grader    Staff    @relation(fields: [gradedBy], references: [id])
+  exam    Exam    @relation(fields: [examId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  grader  Staff   @relation(fields: [gradedBy], references: [id])
 
   @@unique([examId, studentId])
   @@map("exam_results")
@@ -839,7 +849,7 @@ model ExamResult {
 model AiChatSession {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  title     String?  
+  title     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -852,7 +862,7 @@ model AiChatSession {
 model AiChatMessage {
   id        String   @id @default(uuid())
   sessionId String   @map("session_id")
-  role      String   // 'user' or 'model'
+  role      String // 'user' or 'model'
   content   String   @db.Text
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -865,14 +875,14 @@ model ReportLog {
   id          String   @id @default(uuid())
   schoolId    String   @map("school_id")
   name        String
-  type        String   
-  status      String   @default("Ready") 
+  type        String
+  status      String   @default("Ready")
   generatedBy String   @map("generated_by")
   fileUrl     String?  @map("file_url")
   parameters  Json?
   createdAt   DateTime @default(now()) @map("created_at")
 
-  school      School   @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
   @@map("report_logs")
 }
@@ -889,7 +899,7 @@ model Event {
   allDay      Boolean  @default(false) @map("all_day")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  school      School   @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
   @@map("events")
 }
@@ -906,21 +916,21 @@ enum ExpenseStatus {
 }
 
 model Expense {
-  id           String        @id @default(uuid())
-  schoolId     String        @map("school_id")
-  description  String
-  category     String        // Operations, Maintenance, Equipment, Utilities, Supplies, Other
-  amount       Decimal
-  currency     String        @default("USD")
-  date         DateTime      @db.Date
-  status       ExpenseStatus @default(PENDING)
-  approvedBy   String?       @map("approved_by")
-  receiptUrl   String?       @map("receipt_url")
-  notes        String?
-  createdAt    DateTime      @default(now()) @map("created_at")
+  id          String        @id @default(uuid())
+  schoolId    String        @map("school_id")
+  description String
+  category    String // Operations, Maintenance, Equipment, Utilities, Supplies, Other
+  amount      Decimal
+  currency    String        @default("USD")
+  date        DateTime      @db.Date
+  status      ExpenseStatus @default(PENDING)
+  approvedBy  String?       @map("approved_by")
+  receiptUrl  String?       @map("receipt_url")
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
 
-  school       School  @relation(fields: [schoolId], references: [id])
-  approver     User?   @relation("ExpenseApprover", fields: [approvedBy], references: [id])
+  school   School @relation(fields: [schoolId], references: [id])
+  approver User?  @relation("ExpenseApprover", fields: [approvedBy], references: [id])
 
   @@map("expenses")
 }
@@ -933,40 +943,40 @@ enum SalaryStatus {
 }
 
 model SalaryPayment {
-  id            String       @id @default(uuid())
-  schoolId      String       @map("school_id")
-  staffId       String       @map("staff_id")
-  amount        Decimal
-  currency      String       @default("USD")
-  month         Int          // 1-12
-  year          Int
-  status        SalaryStatus @default(PENDING)
-  method        PaymentMethod?
-  referenceNo   String?      @map("reference_no")
-  processedBy   String?      @map("processed_by")
-  processedAt   DateTime?    @map("processed_at")
-  notes         String?
-  createdAt     DateTime     @default(now()) @map("created_at")
+  id          String         @id @default(uuid())
+  schoolId    String         @map("school_id")
+  staffId     String         @map("staff_id")
+  amount      Decimal
+  currency    String         @default("USD")
+  month       Int // 1-12
+  year        Int
+  status      SalaryStatus   @default(PENDING)
+  method      PaymentMethod?
+  referenceNo String?        @map("reference_no")
+  processedBy String?        @map("processed_by")
+  processedAt DateTime?      @map("processed_at")
+  notes       String?
+  createdAt   DateTime       @default(now()) @map("created_at")
 
-  school        School  @relation(fields: [schoolId], references: [id])
-  staff         Staff   @relation(fields: [staffId], references: [id])
-  processor     User?   @relation("SalaryProcessor", fields: [processedBy], references: [id])
+  school    School @relation(fields: [schoolId], references: [id])
+  staff     Staff  @relation(fields: [staffId], references: [id])
+  processor User?  @relation("SalaryProcessor", fields: [processedBy], references: [id])
 
   @@unique([staffId, month, year])
   @@map("salary_payments")
 }
 
 model ExchangeRate {
-  id             String   @id @default(uuid())
-  schoolId       String   @map("school_id")
-  fromCurrency   String   @map("from_currency")  // e.g. "USD"
-  toCurrency     String   @map("to_currency")    // e.g. "ZiG"
-  rate           Decimal  // 1 USD = X ZiG
-  effectiveDate  DateTime @map("effective_date") @db.Date
-  source         String?  // "Manual", "RBZ", etc.
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  schoolId      String   @map("school_id")
+  fromCurrency  String   @map("from_currency") // e.g. "USD"
+  toCurrency    String   @map("to_currency") // e.g. "ZiG"
+  rate          Decimal // 1 USD = X ZiG
+  effectiveDate DateTime @map("effective_date") @db.Date
+  source        String? // "Manual", "RBZ", etc.
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  school         School   @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
   @@map("exchange_rates")
 }
@@ -987,57 +997,57 @@ enum RouteDirection {
 }
 
 model Vehicle {
-  id              String   @id @default(uuid())
-  schoolId        String   @map("school_id")
-  regNumber       String   @map("reg_number")
+  id              String    @id @default(uuid())
+  schoolId        String    @map("school_id")
+  regNumber       String    @map("reg_number")
   make            String?
   model           String?
   year            Int?
-  capacity        Int      @default(50)
-  status          String   @default("ACTIVE") // ACTIVE, MAINTENANCE, RETIRED
+  capacity        Int       @default(50)
+  status          String    @default("ACTIVE") // ACTIVE, MAINTENANCE, RETIRED
   insuranceExpiry DateTime? @map("insurance_expiry")
   nextServiceDate DateTime? @map("next_service_date")
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
-  school          School   @relation(fields: [schoolId], references: [id])
-  routes          Route[]
+  school School  @relation(fields: [schoolId], references: [id])
+  routes Route[]
 
   @@unique([schoolId, regNumber])
   @@map("vehicles")
 }
 
 model Route {
-  id           String      @id @default(uuid())
-  schoolId     String      @map("school_id")
-  name         String
-  description  String?
-  vehicleId    String?     @map("vehicle_id")
-  driverName   String?     @map("driver_name")
-  startTime    String?     @map("start_time")   // e.g. "06:30"
-  endTime      String?     @map("end_time")     // e.g. "07:30"
-  stops        Json?       // Array of stop names
-  status       RouteStatus @default(ACTIVE)
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(uuid())
+  schoolId    String      @map("school_id")
+  name        String
+  description String?
+  vehicleId   String?     @map("vehicle_id")
+  driverName  String?     @map("driver_name")
+  startTime   String?     @map("start_time") // e.g. "06:30"
+  endTime     String?     @map("end_time") // e.g. "07:30"
+  stops       Json? // Array of stop names
+  status      RouteStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now()) @map("created_at")
 
-  school       School      @relation(fields: [schoolId], references: [id])
-  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
-  students     StudentRoute[]
+  school   School         @relation(fields: [schoolId], references: [id])
+  vehicle  Vehicle?       @relation(fields: [vehicleId], references: [id])
+  students StudentRoute[]
 
   @@map("routes")
 }
 
 model StudentRoute {
-  id           String         @id @default(uuid())
-  schoolId     String         @map("school_id")
-  studentId    String         @map("student_id")
-  routeId      String         @map("route_id")
-  pickupPoint  String?        @map("pickup_point")
-  direction    RouteDirection @default(BOTH)
-  createdAt    DateTime       @default(now()) @map("created_at")
+  id          String         @id @default(uuid())
+  schoolId    String         @map("school_id")
+  studentId   String         @map("student_id")
+  routeId     String         @map("route_id")
+  pickupPoint String?        @map("pickup_point")
+  direction   RouteDirection @default(BOTH)
+  createdAt   DateTime       @default(now()) @map("created_at")
 
-  school       School   @relation(fields: [schoolId], references: [id])
-  student      Student  @relation(fields: [studentId], references: [id])
-  route        Route    @relation(fields: [routeId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id])
 
   @@unique([studentId, routeId])
   @@map("student_routes")
@@ -1056,34 +1066,34 @@ enum AssetCondition {
 }
 
 model AssetCategory {
-  id          String   @id @default(uuid())
-  schoolId    String   @map("school_id")
-  name        String   // Furniture, Lab Equipment, IT Equipment, Sports, etc.
+  id          String  @id @default(uuid())
+  schoolId    String  @map("school_id")
+  name        String // Furniture, Lab Equipment, IT Equipment, Sports, etc.
   description String?
 
-  school      School   @relation(fields: [schoolId], references: [id])
-  assets      Asset[]
+  school School  @relation(fields: [schoolId], references: [id])
+  assets Asset[]
 
   @@unique([schoolId, name])
   @@map("asset_categories")
 }
 
 model Asset {
-  id             String         @id @default(uuid())
-  schoolId       String         @map("school_id")
-  categoryId     String         @map("category_id")
-  name           String
-  serialNo       String?        @map("serial_no")
-  location       String?        // e.g. "Lab 2", "Library", "Room 15"
-  purchaseDate   DateTime?      @map("purchase_date")
-  purchasePrice  Decimal?       @map("purchase_price")
-  condition      AssetCondition @default(NEW)
-  quantity       Int            @default(1)
-  notes          String?
-  createdAt      DateTime       @default(now()) @map("created_at")
+  id            String         @id @default(uuid())
+  schoolId      String         @map("school_id")
+  categoryId    String         @map("category_id")
+  name          String
+  serialNo      String?        @map("serial_no")
+  location      String? // e.g. "Lab 2", "Library", "Room 15"
+  purchaseDate  DateTime?      @map("purchase_date")
+  purchasePrice Decimal?       @map("purchase_price")
+  condition     AssetCondition @default(NEW)
+  quantity      Int            @default(1)
+  notes         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
 
-  school         School        @relation(fields: [schoolId], references: [id])
-  category       AssetCategory @relation(fields: [categoryId], references: [id])
+  school   School        @relation(fields: [schoolId], references: [id])
+  category AssetCategory @relation(fields: [categoryId], references: [id])
 
   @@map("assets")
 }
@@ -1106,11 +1116,11 @@ model CalaRecord {
   date           DateTime @db.Date
   createdAt      DateTime @default(now()) @map("created_at")
 
-  school         School   @relation(fields: [schoolId], references: [id])
-  student        Student  @relation(fields: [studentId], references: [id])
-  subject        Subject  @relation(fields: [subjectId], references: [id])
-  term           ExamTerm @relation(fields: [termId], references: [id])
-  teacher        Staff    @relation(fields: [assessedBy], references: [id])
+  school  School   @relation(fields: [schoolId], references: [id])
+  student Student  @relation(fields: [studentId], references: [id])
+  subject Subject  @relation(fields: [subjectId], references: [id])
+  term    ExamTerm @relation(fields: [termId], references: [id])
+  teacher Staff    @relation(fields: [assessedBy], references: [id])
 
   @@map("cala_records")
 }
@@ -1128,27 +1138,27 @@ enum GradeSystem {
 model GradeScale {
   id       String      @id @default(uuid())
   schoolId String      @map("school_id")
-  name     String      // e.g. "ZIMSEC O-Level"
+  name     String // e.g. "ZIMSEC O-Level"
   system   GradeSystem @default(CUSTOM)
 
-  school   School       @relation(fields: [schoolId], references: [id])
-  ranges   GradeRange[]
+  school School       @relation(fields: [schoolId], references: [id])
+  ranges GradeRange[]
 
   @@unique([schoolId, name])
   @@map("grade_scales")
 }
 
 model GradeRange {
-  id          String   @id @default(uuid())
-  scaleId     String   @map("scale_id")
-  grade       String   // e.g. "A", "1", "Distinction"
-  symbol      String?  // e.g. "A*"
-  minPercent  Float    @map("min_percent")
-  maxPercent  Float    @map("max_percent")
-  points      Float?   // for GPA calculations
-  description String?  // e.g. "Outstanding"
+  id          String  @id @default(uuid())
+  scaleId     String  @map("scale_id")
+  grade       String // e.g. "A", "1", "Distinction"
+  symbol      String? // e.g. "A*"
+  minPercent  Float   @map("min_percent")
+  maxPercent  Float   @map("max_percent")
+  points      Float? // for GPA calculations
+  description String? // e.g. "Outstanding"
 
-  scale       GradeScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  scale GradeScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
 
   @@map("grade_ranges")
 }
@@ -1158,40 +1168,40 @@ model GradeRange {
 // -----------------------------------------------------------------------------
 
 model MedicalProfile {
-  id                  String   @id @default(uuid())
-  studentId           String   @unique @map("student_id")
-  bloodType           String?  @map("blood_type")
-  allergies           Json?    // Array of allergy strings
-  chronicConditions   Json?    @map("chronic_conditions") // Array
-  emergencyContact    String?  @map("emergency_contact")
-  emergencyPhone      String?  @map("emergency_phone")
-  medicalAidProvider  String?  @map("medical_aid_provider")
-  medicalAidNumber    String?  @map("medical_aid_number")
-  doctorName          String?  @map("doctor_name")
-  doctorPhone         String?  @map("doctor_phone")
-  notes               String?
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid())
+  studentId          String   @unique @map("student_id")
+  bloodType          String?  @map("blood_type")
+  allergies          Json? // Array of allergy strings
+  chronicConditions  Json?    @map("chronic_conditions") // Array
+  emergencyContact   String?  @map("emergency_contact")
+  emergencyPhone     String?  @map("emergency_phone")
+  medicalAidProvider String?  @map("medical_aid_provider")
+  medicalAidNumber   String?  @map("medical_aid_number")
+  doctorName         String?  @map("doctor_name")
+  doctorPhone        String?  @map("doctor_phone")
+  notes              String?
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  student             Student  @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("medical_profiles")
 }
 
 model ClinicVisit {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
-  studentId    String   @map("student_id")
-  date         DateTime @default(now())
-  complaint    String
-  diagnosis    String?
-  treatment    String?
-  referral     String?  // External referral if needed
-  attendedBy   String   @map("attended_by") // Staff who attended
-  parentNotified Boolean @default(false) @map("parent_notified")
-  notes        String?
+  id             String   @id @default(uuid())
+  schoolId       String   @map("school_id")
+  studentId      String   @map("student_id")
+  date           DateTime @default(now())
+  complaint      String
+  diagnosis      String?
+  treatment      String?
+  referral       String? // External referral if needed
+  attendedBy     String   @map("attended_by") // Staff who attended
+  parentNotified Boolean  @default(false) @map("parent_notified")
+  notes          String?
 
-  school       School  @relation(fields: [schoolId], references: [id])
-  student      Student @relation(fields: [studentId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("clinic_visits")
 }
@@ -1206,22 +1216,22 @@ enum DisciplineType {
 }
 
 model DisciplineRecord {
-  id              String         @id @default(uuid())
-  schoolId        String         @map("school_id")
-  studentId       String         @map("student_id")
-  type            DisciplineType
-  category        String         // e.g. "Academic", "Behaviour", "Uniform", "Attendance"
-  description     String
-  points          Int            @default(0)
-  issuedBy        String         @map("issued_by")
-  parentNotified  Boolean        @default(false) @map("parent_notified")
-  actionTaken     String?        @map("action_taken")
-  date            DateTime       @default(now())
-  createdAt       DateTime       @default(now()) @map("created_at")
+  id             String         @id @default(uuid())
+  schoolId       String         @map("school_id")
+  studentId      String         @map("student_id")
+  type           DisciplineType
+  category       String // e.g. "Academic", "Behaviour", "Uniform", "Attendance"
+  description    String
+  points         Int            @default(0)
+  issuedBy       String         @map("issued_by")
+  parentNotified Boolean        @default(false) @map("parent_notified")
+  actionTaken    String?        @map("action_taken")
+  date           DateTime       @default(now())
+  createdAt      DateTime       @default(now()) @map("created_at")
 
-  school          School  @relation(fields: [schoolId], references: [id])
-  student         Student @relation(fields: [studentId], references: [id])
-  issuer          Staff   @relation(fields: [issuedBy], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  issuer  Staff   @relation(fields: [issuedBy], references: [id])
 
   @@map("discipline_records")
 }
@@ -1237,31 +1247,31 @@ enum HostelGender {
 }
 
 model Hostel {
-  id        String       @id @default(uuid())
-  schoolId  String       @map("school_id")
-  name      String
-  gender    HostelGender @default(MIXED)
-  capacity  Int          @default(100)
-  warden    String?      // Name of hostel warden
+  id       String       @id @default(uuid())
+  schoolId String       @map("school_id")
+  name     String
+  gender   HostelGender @default(MIXED)
+  capacity Int          @default(100)
+  warden   String? // Name of hostel warden
 
-  school    School @relation(fields: [schoolId], references: [id])
-  rooms     Room[]
+  school School @relation(fields: [schoolId], references: [id])
+  rooms  Room[]
 
   @@unique([schoolId, name])
   @@map("hostels")
 }
 
 model Room {
-  id        String   @id @default(uuid())
-  schoolId  String   @map("school_id")
-  hostelId  String   @map("hostel_id")
-  number    String   // e.g. "Room 12", "A-3"
-  floor     Int?     @default(0)
-  capacity  Int      @default(4)
+  id       String @id @default(uuid())
+  schoolId String @map("school_id")
+  hostelId String @map("hostel_id")
+  number   String // e.g. "Room 12", "A-3"
+  floor    Int?   @default(0)
+  capacity Int    @default(4)
 
-  school    School @relation(fields: [schoolId], references: [id])
-  hostel    Hostel @relation(fields: [hostelId], references: [id])
-  beds      BedAllocation[]
+  school School          @relation(fields: [schoolId], references: [id])
+  hostel Hostel          @relation(fields: [hostelId], references: [id])
+  beds   BedAllocation[]
 
   @@unique([hostelId, number])
   @@map("rooms")
@@ -1275,18 +1285,18 @@ enum BedStatus {
 }
 
 model BedAllocation {
-  id         String    @id @default(uuid())
-  schoolId   String    @map("school_id")
-  roomId     String    @map("room_id")
-  studentId  String    @map("student_id")
-  bedNumber  String    @map("bed_number")
-  term       String?   // e.g. "Term 1 2026"
-  status     BedStatus @default(OCCUPIED)
-  allocatedAt DateTime @default(now()) @map("allocated_at")
+  id          String    @id @default(uuid())
+  schoolId    String    @map("school_id")
+  roomId      String    @map("room_id")
+  studentId   String    @map("student_id")
+  bedNumber   String    @map("bed_number")
+  term        String? // e.g. "Term 1 2026"
+  status      BedStatus @default(OCCUPIED)
+  allocatedAt DateTime  @default(now()) @map("allocated_at")
 
-  school     School  @relation(fields: [schoolId], references: [id])
-  room       Room    @relation(fields: [roomId], references: [id])
-  student    Student @relation(fields: [studentId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  room    Room    @relation(fields: [roomId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("bed_allocations")
 }
@@ -1311,8 +1321,8 @@ model Exeat {
   status       ExeatStatus @default(PENDING)
   createdAt    DateTime    @default(now()) @map("created_at")
 
-  school       School  @relation(fields: [schoolId], references: [id])
-  student      Student @relation(fields: [studentId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("exeats")
 }
@@ -1337,17 +1347,17 @@ enum AlertTrigger {
 }
 
 model AlertTemplate {
-  id             String       @id @default(uuid())
-  schoolId       String       @map("school_id")
-  name           String
-  channel        AlertChannel
-  triggerEvent   AlertTrigger @map("trigger_event")
-  messageTemplate String     @map("message_template") @db.Text
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now()) @map("created_at")
+  id              String       @id @default(uuid())
+  schoolId        String       @map("school_id")
+  name            String
+  channel         AlertChannel
+  triggerEvent    AlertTrigger @map("trigger_event")
+  messageTemplate String       @map("message_template") @db.Text
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now()) @map("created_at")
 
-  school         School     @relation(fields: [schoolId], references: [id])
-  logs           AlertLog[]
+  school School     @relation(fields: [schoolId], references: [id])
+  logs   AlertLog[]
 
   @@map("alert_templates")
 }
@@ -1360,21 +1370,166 @@ enum AlertStatus {
 }
 
 model AlertLog {
-  id             String      @id @default(uuid())
-  schoolId       String      @map("school_id")
-  templateId     String?     @map("template_id")
-  recipientPhone String      @map("recipient_phone")
-  recipientName  String?     @map("recipient_name")
-  message        String      @db.Text
+  id             String       @id @default(uuid())
+  schoolId       String       @map("school_id")
+  templateId     String?      @map("template_id")
+  recipientPhone String       @map("recipient_phone")
+  recipientName  String?      @map("recipient_name")
+  message        String       @db.Text
   channel        AlertChannel
-  status         AlertStatus @default(PENDING)
-  sentAt         DateTime?   @map("sent_at")
-  cost           Decimal?    // Cost in USD if applicable
-  errorMessage   String?     @map("error_message")
-  createdAt      DateTime    @default(now()) @map("created_at")
+  status         AlertStatus  @default(PENDING)
+  sentAt         DateTime?    @map("sent_at")
+  cost           Decimal? // Cost in USD if applicable
+  errorMessage   String?      @map("error_message")
+  createdAt      DateTime     @default(now()) @map("created_at")
 
-  school         School        @relation(fields: [schoolId], references: [id])
-  template       AlertTemplate? @relation(fields: [templateId], references: [id])
+  school   School         @relation(fields: [schoolId], references: [id])
+  template AlertTemplate? @relation(fields: [templateId], references: [id])
 
   @@map("alert_logs")
+}
+
+// -----------------------------------------------------------------------------
+// 17. COMPUTER BASED TESTING (CBT)
+// -----------------------------------------------------------------------------
+
+model Quiz {
+  id          String    @id @default(uuid())
+  schoolId    String    @map("school_id")
+  teacherId   String    @map("teacher_id")
+  subjectId   String    @map("subject_id")
+  sectionId   String    @map("section_id")
+  title       String
+  description String?
+  duration    Int // minutes
+  maxAttempts Int       @default(1) @map("max_attempts")
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+  isPublished Boolean   @default(false) @map("is_published")
+  randomize   Boolean   @default(true)
+  showAnswers Boolean   @default(true) @map("show_answers")
+  autoGrade   Boolean   @default(true) @map("auto_grade")
+  secureMode  Boolean   @default(false) @map("secure_mode")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  school  School       @relation(fields: [schoolId], references: [id])
+  teacher Staff        @relation(fields: [teacherId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model QuizQuestion {
+  id            String       @id @default(uuid())
+  quizId        String       @map("quiz_id")
+  type          QuestionType @default(MULTIPLE_CHOICE)
+  question      String       @db.Text
+  options       Json? // Array of strings or objects { text, isCorrect }
+  correctAnswer String?      @map("correct_answer")
+  explanation   String?      @db.Text
+  marks         Float        @default(1)
+  order         Int          @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_questions")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model QuizAttempt {
+  id        String        @id @default(uuid())
+  quizId    String        @map("quiz_id")
+  studentId String        @map("student_id")
+  startTime DateTime      @default(now()) @map("start_time")
+  endTime   DateTime?     @map("end_time")
+  score     Float?
+  status    AttemptStatus @default(IN_PROGRESS)
+  answers   Json?
+
+  quiz    Quiz    @relation(fields: [quizId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@map("quiz_attempts")
+}
+
+// -----------------------------------------------------------------------------
+// 18. VIRTUAL CLASSROOM (Zoom/Meet Integration)
+// -----------------------------------------------------------------------------
+
+model LiveClass {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  teacherId    String   @map("teacher_id")
+  subjectId    String   @map("subject_id")
+  sectionId    String   @map("section_id")
+  title        String
+  description  String?
+  provider     String   @default("ZOOM")
+  meetingUrl   String   @map("meeting_url")
+  meetingId    String?  @map("meeting_id")
+  passcode     String?
+  scheduledFor DateTime @map("scheduled_for")
+  duration     Int // minutes
+  status       String   @default("SCHEDULED")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  school  School       @relation(fields: [schoolId], references: [id])
+  teacher Staff        @relation(fields: [teacherId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  section ClassSection @relation(fields: [sectionId], references: [id])
+
+  @@map("live_classes")
+}
+
+// -----------------------------------------------------------------------------
+// 1X. DISCUSSIONS
+// -----------------------------------------------------------------------------
+
+model DiscussionThread {
+  id         String   @id @default(uuid())
+  schoolId   String   @map("school_id")
+  subjectId  String?  @map("subject_id")
+  sectionId  String?  @map("section_id")
+  title      String
+  body       String   @db.Text
+  authorId   String   @map("author_id")
+  authorName String   @map("author_name")
+  authorRole String   @map("author_role")
+  pinned     Boolean  @default(false)
+  locked     Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  school  School            @relation(fields: [schoolId], references: [id])
+  replies DiscussionReply[]
+
+  @@map("discussion_threads")
+}
+
+model DiscussionReply {
+  id         String   @id @default(uuid())
+  threadId   String   @map("thread_id")
+  authorId   String   @map("author_id")
+  authorName String   @map("author_name")
+  authorRole String   @map("author_role")
+  content    String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  thread DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("discussion_replies")
 }

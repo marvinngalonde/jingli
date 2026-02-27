@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 import { Title, Text, Paper, Group, Card, Badge, Grid, ThemeIcon, SimpleGrid, Progress, RingProgress, Stack, Select, Table, Box, ScrollArea } from '@mantine/core';
 import {
     IconChartBar, IconUsers, IconTrendingUp, IconAlertTriangle,
@@ -6,56 +7,31 @@ import {
     IconChevronUp, IconChevronDown,
 } from '@tabler/icons-react';
 
-// Mock analytics data
-const overallStats = {
-    totalStudents: 124,
-    avgEngagement: 78,
-    syllabusCompletion: 72,
-    atRiskCount: 8,
-};
 
-const classSyllabus = [
-    { name: 'Form 2 Blue - Mathematics', teacher: 'You', progress: 85, totalTopics: 24, completedTopics: 20 },
-    { name: 'Form 2 Blue - Science', teacher: 'You', progress: 72, totalTopics: 20, completedTopics: 14 },
-    { name: 'Form 2 Red - Mathematics', teacher: 'You', progress: 68, totalTopics: 24, completedTopics: 16 },
-    { name: 'Form 3 Green - Mathematics', teacher: 'You', progress: 55, totalTopics: 28, completedTopics: 15 },
-];
-
-const assignmentStats = [
-    { name: 'Algebra Worksheet 3', subject: 'Mathematics', submitted: 28, total: 32, avgScore: 76 },
-    { name: 'Lab Report: Acids & Bases', subject: 'Science', submitted: 30, total: 32, avgScore: 82 },
-    { name: 'Essay: Climate Change', subject: 'English', submitted: 25, total: 32, avgScore: 68 },
-    { name: 'History Timeline Project', subject: 'History', submitted: 22, total: 30, avgScore: 74 },
-    { name: 'Geography Map Exercise', subject: 'Geography', submitted: 29, total: 32, avgScore: 80 },
-];
-
-const atRiskStudents = [
-    { name: 'Grace Mapfumo', class: 'Form 2 Blue', attendance: 62, avgScore: 35, lastActive: '5 days ago', issues: ['Low attendance', 'Missing 4 assignments'] },
-    { name: 'Peter Nyoni', class: 'Form 2 Red', attendance: 70, avgScore: 42, lastActive: '3 days ago', issues: ['Low quiz scores', 'No CALA submissions'] },
-    { name: 'Tinashe Guta', class: 'Form 3 Green', attendance: 55, avgScore: 38, lastActive: '1 week ago', issues: ['Absent from live classes', 'Low engagement'] },
-    { name: 'Mercy Hove', class: 'Form 2 Blue', attendance: 72, avgScore: 45, lastActive: '2 days ago', issues: ['Declining grades', 'Missing labs'] },
-];
-
-const weeklyActivity = [
-    { day: 'Mon', logins: 98, submissions: 12, quizzes: 3 },
-    { day: 'Tue', logins: 105, submissions: 8, quizzes: 5 },
-    { day: 'Wed', logins: 112, submissions: 15, quizzes: 2 },
-    { day: 'Thu', logins: 95, submissions: 10, quizzes: 4 },
-    { day: 'Fri', logins: 88, submissions: 18, quizzes: 1 },
-    { day: 'Sat', logins: 42, submissions: 5, quizzes: 0 },
-    { day: 'Sun', logins: 38, submissions: 3, quizzes: 0 },
-];
-
-const subjectPerformance = [
-    { subject: 'Mathematics', avgScore: 72, topStudent: 'Takudzwa M.', weakArea: 'Geometry', trend: 'up' as const },
-    { subject: 'Science', avgScore: 78, topStudent: 'Rudo C.', weakArea: 'Physics', trend: 'up' as const },
-    { subject: 'English', avgScore: 68, topStudent: 'Blessing M.', weakArea: 'Grammar', trend: 'down' as const },
-    { subject: 'History', avgScore: 74, topStudent: 'Tatenda S.', weakArea: 'World History', trend: 'same' as const },
-    { subject: 'Geography', avgScore: 70, topStudent: 'Nyasha C.', weakArea: 'Map Skills', trend: 'up' as const },
-];
 
 export default function TeacherAnalytics() {
     const [period, setPeriod] = useState<string | null>('this-term');
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            setLoading(true);
+            try {
+                const res = await api.get('/teacher/analytics');
+                setData(res.data);
+            } catch (error) {
+                console.error('Failed to load analytics', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, [period]);
+
+    if (!data) return <div style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }}>Loading analytics...</div>;
+
+    const { overallStats, classSyllabus, assignmentStats, atRiskStudents, weeklyActivity, subjectPerformance } = data;
 
     const maxLogins = Math.max(...weeklyActivity.map(w => w.logins));
 

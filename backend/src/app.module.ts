@@ -1,4 +1,6 @@
+import { CbtModule } from './cbt/cbt.module';
 import { Module } from '@nestjs/common';
+import { DiscussionsModule } from './discussions/discussions.module';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -45,9 +47,13 @@ import { HealthModule } from './health/health.module';
 import { DisciplineModule } from './discipline/discipline.module';
 import { HostelModule } from './hostel/hostel.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
+import { LiveClassesModule } from './live-classes/live-classes.module';
 
 @Module({
   imports: [
+    CbtModule,
+    DiscussionsModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
@@ -92,6 +98,8 @@ import { AlertsModule } from './alerts/alerts.module';
     DisciplineModule,
     HostelModule,
     AlertsModule,
+    QuizzesModule,
+    LiveClassesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

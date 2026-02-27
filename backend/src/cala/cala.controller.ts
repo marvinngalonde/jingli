@@ -17,6 +17,9 @@ export class CalaController {
     @ApiOperation({ summary: 'Create CALA Record' })
     @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
     create(@Req() req: any, @Body() dto: any) {
+        if (!dto.assessedBy) {
+            dto.assessedBy = req.user.id;
+        }
         return this.service.create(dto, req.user.schoolId);
     }
 

@@ -70,7 +70,7 @@ export function TeacherClasses() {
                                         </Menu.Target>
                                         <Menu.Dropdown>
                                             <Menu.Item leftSection={<IconEye size={14} />} onClick={() => navigate(`/portal/classes/${cls.section.id}/students`)}>View Roster</Menu.Item>
-                                            <Menu.Item leftSection={<IconMessageDots size={14} />}>Message Class</Menu.Item>
+                                            <Menu.Item leftSection={<IconMessageDots size={14} />} onClick={() => navigate('/communication')}>Message Class</Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>
                                 </Group>

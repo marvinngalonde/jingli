@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 import { Title, Text, Paper, Group, Button, Stack, Card, Badge, Grid, ActionIcon, Tabs, ThemeIcon, SimpleGrid, Box, Avatar, Textarea, TextInput, Divider, ScrollArea, Modal, Select } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -30,35 +31,28 @@ interface Thread {
     createdAt: string;
 }
 
-let nextThreadId = 1;
-let nextReplyId = 1;
 
-const mockThreads: Thread[] = [
-    {
-        id: 't-1', title: 'Tips for Form 2 Mathematics Mid-Term', body: 'Hello class! Here are some tips for the upcoming mid-term:\n\n1. Review Chapter 3-5 thoroughly\n2. Practice past papers (2024 papers are available in the Content Library)\n3. Focus on algebra and geometry\n\nFeel free to ask any questions below!',
-        subject: 'Mathematics', classSection: 'Form 2 Blue', author: 'Mr. Chikwanha', authorRole: 'teacher',
-        replies: [
-            { id: 'r-1', author: 'Takudzwa M.', role: 'student', content: 'Thank you sir! Can you also upload the 2023 past papers?', createdAt: '2026-02-25T10:30:00Z' },
-            { id: 'r-2', author: 'Mr. Chikwanha', role: 'teacher', content: 'Yes, I will upload them this afternoon. Check the Content Library.', createdAt: '2026-02-25T11:00:00Z' },
-        ],
-        pinned: true, locked: false, createdAt: '2026-02-24T09:00:00Z',
-    },
-    {
-        id: 't-2', title: 'Science Lab Report Format', body: 'Reminder: All lab reports must follow the standard format:\n- Title\n- Aim\n- Apparatus\n- Method\n- Observations\n- Conclusion\n\nReports not following this format will be returned.',
-        subject: 'Science', classSection: 'Form 2 Red', author: 'Mrs. Dube', authorRole: 'teacher',
-        replies: [{ id: 'r-3', author: 'Rudo C.', role: 'student', content: 'Is there a template we can download?', createdAt: '2026-02-25T14:00:00Z' }],
-        pinned: false, locked: false, createdAt: '2026-02-25T08:00:00Z',
-    },
-    {
-        id: 't-3', title: 'Book Club: February Read - Things Fall Apart', body: 'This month we are reading "Things Fall Apart" by Chinua Achebe. Please complete chapters 1-5 by next Monday and share your thoughts in this thread.',
-        subject: 'English', classSection: 'Form 3 Green', author: 'Mr. Sibanda', authorRole: 'teacher',
-        replies: [], pinned: false, locked: false, createdAt: '2026-02-23T12:00:00Z',
-    },
-];
 
 export default function TeacherDiscussions() {
-    const [threads, setThreads] = useState<Thread[]>(mockThreads);
+    const [threads, setThreads] = useState<Thread[]>([]);
+    const [loading, setLoading] = useState(true);
     const [activeThread, setActiveThread] = useState<Thread | null>(null);
+
+    const fetchThreads = async () => {
+        setLoading(true);
+        try {
+            const { data } = await api.get('/discussions');
+            setThreads(data);
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to load discussions', color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchThreads();
+    }, []);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const [search, setSearch] = useState('');
     const [filterSubject, setFilterSubject] = useState<string | null>(null);
@@ -74,53 +68,57 @@ export default function TeacherDiscussions() {
         },
     });
 
-    const handleCreateThread = (values: typeof threadForm.values) => {
-        const thread: Thread = {
-            id: `t-${nextThreadId++}`,
-            title: values.title,
-            body: values.body,
-            subject: values.subject,
-            classSection: values.classSection,
-            author: 'You',
-            authorRole: 'teacher',
-            replies: [],
-            pinned: false,
-            locked: false,
-            createdAt: new Date().toISOString(),
-        };
-        setThreads(prev => [thread, ...prev]);
-        setCreateModal(false);
-        threadForm.reset();
-        notifications.show({ id: 'thread-create', title: 'Posted', message: 'Discussion thread created', color: 'green' });
+    const handleCreateThread = async (values: typeof threadForm.values) => {
+        try {
+            await api.post('/discussions', values);
+            setCreateModal(false);
+            threadForm.reset();
+            notifications.show({ title: 'Posted', message: 'Discussion thread created', color: 'green' });
+            fetchThreads();
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to create thread', color: 'red' });
+        }
     };
 
-    const handleReply = () => {
+    const handleReply = async () => {
         if (!replyText.trim() || !activeThread) return;
-        const reply: Reply = {
-            id: `r-${nextReplyId++}`,
-            author: 'You (Teacher)',
-            role: 'teacher',
-            content: replyText,
-            createdAt: new Date().toISOString(),
-        };
-        const updated = { ...activeThread, replies: [...activeThread.replies, reply] };
-        setActiveThread(updated);
-        setThreads(prev => prev.map(t => t.id === updated.id ? updated : t));
-        setReplyText('');
+        try {
+            await api.post(`/discussions/${activeThread.id}/replies`, { content: replyText });
+            setReplyText('');
+
+            // Refetch threads and update active thread
+            const { data } = await api.get('/discussions');
+            setThreads(data);
+            const updatedActive = data.find((t: Thread) => t.id === activeThread.id);
+            if (updatedActive) setActiveThread(updatedActive);
+
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to post reply', color: 'red' });
+        }
     };
 
-    const togglePin = (thread: Thread) => {
-        const updated = { ...thread, pinned: !thread.pinned };
-        setThreads(prev => prev.map(t => t.id === updated.id ? updated : t));
-        if (activeThread?.id === updated.id) setActiveThread(updated);
-        notifications.show({ id: 'pin', title: updated.pinned ? 'Pinned' : 'Unpinned', message: `Thread ${updated.pinned ? 'pinned' : 'unpinned'}`, color: 'blue' });
+    const togglePin = async (thread: Thread) => {
+        try {
+            const res = await api.put(`/discussions/${thread.id}/pin`);
+            fetchThreads();
+            if (activeThread?.id === thread.id && res.data) {
+                setActiveThread({ ...activeThread, pinned: res.data.pinned });
+            }
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to pin thread', color: 'red' });
+        }
     };
 
-    const toggleLock = (thread: Thread) => {
-        const updated = { ...thread, locked: !thread.locked };
-        setThreads(prev => prev.map(t => t.id === updated.id ? updated : t));
-        if (activeThread?.id === updated.id) setActiveThread(updated);
-        notifications.show({ id: 'lock', title: updated.locked ? 'Locked' : 'Unlocked', message: `Thread ${updated.locked ? 'locked' : 'unlocked'}`, color: 'orange' });
+    const toggleLock = async (thread: Thread) => {
+        try {
+            const res = await api.put(`/discussions/${thread.id}/lock`);
+            fetchThreads();
+            if (activeThread?.id === thread.id && res.data) {
+                setActiveThread({ ...activeThread, locked: res.data.locked });
+            }
+        } catch {
+            notifications.show({ title: 'Error', message: 'Failed to lock thread', color: 'red' });
+        }
     };
 
     const uniqueSubjects = [...new Set(threads.map(t => t.subject))];
@@ -221,7 +219,8 @@ export default function TeacherDiscussions() {
 
     // ─── Thread List ───
     return (
-        <div>
+        <div style={{ position: 'relative' }}>
+            {loading && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, background: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'center', paddingTop: 50 }}>Loading...</div>}
             <Group justify="space-between" mb="lg">
                 <div>
                     <Title order={2}>Discussions</Title>

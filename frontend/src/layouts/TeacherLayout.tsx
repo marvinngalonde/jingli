@@ -121,7 +121,7 @@ export function TeacherLayout() {
                 color={link.color}
                 py={8}
                 my={2}
-                style={{ borderRadius: 'var(--mantine-radius-md)' }}
+                style={{ borderRadius: 'var(--mantine-radius-md)',textDecoration: 'none' }}
             />
         );
     };

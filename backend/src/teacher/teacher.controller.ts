@@ -71,9 +71,9 @@ export class TeacherController {
 
     // --- GRADING ---
 
-    @Get('grading/pending')
-    getPendingSubmissions(@Req() req: any) {
-        return this.teacherService.getPendingSubmissions(req.user);
+    @Get('grading/dashboard-submissions')
+    getDashboardSubmissions(@Req() req: any) {
+        return this.teacherService.getDashboardSubmissions(req.user);
     }
 
     @Get('assignments/:assignmentId/submissions')
@@ -85,4 +85,14 @@ export class TeacherController {
     gradeSubmission(@Req() req: any, @Param('submissionId') submissionId: string, @Body() body: any) {
         return this.teacherService.gradeSubmission(req.user, submissionId, body);
     }
+    @Get('analytics')
+    getAnalytics(@Req() req: any) {
+        return this.teacherService.getAnalytics(req.user);
+    }
+
+    @Get('leaderboard')
+    getLeaderboard(@Req() req: any) {
+        return this.teacherService.getLeaderboard(req.user);
+    }
+
 }
