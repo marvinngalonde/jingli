@@ -21,6 +21,7 @@ import { academicsService, classesApi } from '../../services/academics';
 import type { AttendanceRecord, AttendanceStatus, CreateAttendanceDto } from '../../types/attendance';
 import type { Student } from '../../types/students';
 import { useAuth } from '../../context/AuthContext';
+import { isTeacherRole } from '../../utils/roles';
 
 interface AttendanceSheetProps {
     classId?: string; // Pre-selected class
@@ -54,9 +55,10 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
 
     const loadClasses = async () => {
         try {
+            const filters = isTeacherRole(user?.role || '') ? { teacherId: user?.id } : undefined;
             // Fetch all sections suitable for attendance
             // Assuming academicsService has a way to get all sections or we use classes endpoint
-            const data = await academicsService.getClasses();
+            const data = await academicsService.getClasses(filters);
             // Flatten to sections for the dropdown: "Grade 10 - A"
             const options = data.flatMap(cls =>
                 cls.sections?.map(sec => ({

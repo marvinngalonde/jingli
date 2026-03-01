@@ -73,8 +73,9 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         try {
             setLoading(true);
             setError(null);
+            const filters = isTeacher ? { teacherId: user?.id } : undefined;
             const [data, staffRes] = await Promise.all([
-                classesApi.getAll(),
+                classesApi.getAll(filters),
                 staffService.getAll()
             ]);
             setClassLevels(data);
@@ -106,14 +107,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     );
 
     const filteredSectionData = rows.filter(item => {
-        const matchesSearch = item.fullName.toLowerCase().includes(search.toLowerCase());
-
-        if (isTeacher) {
-            // Filter by class teacher (if assigned)
-            return matchesSearch && item.classTeacherId === user?.id;
-        }
-
-        return matchesSearch;
+        return item.fullName.toLowerCase().includes(search.toLowerCase());
     });
 
     const filteredClassData = classLevels.filter(item => {

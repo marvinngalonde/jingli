@@ -19,7 +19,7 @@ import Library from './pages/Library';
 import AttendancePage from './pages/Attendance';
 import CalendarPage from './pages/Calendar';
 
-// Teacher Portal
+// E-Learning Portal (Staff)
 import { TeacherLayout } from './layouts/TeacherLayout';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import { TeacherClasses } from './pages/teacher/TeacherClasses';

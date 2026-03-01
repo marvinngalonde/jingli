@@ -124,6 +124,46 @@ export class InvoicesService {
         });
     }
 
+    async getStats(schoolId: string) {
+        // Total collected revenue
+        const revenueAgg = await this.prisma.transaction.aggregate({
+            where: { schoolId },
+            _sum: { amount: true }
+        });
+        const totalRevenue = Number(revenueAgg._sum.amount || 0);
+
+        // Outstanding Pending
+        const pendingInvoices = await this.prisma.invoice.findMany({
+            where: { schoolId, status: { in: ['PENDING', 'PARTIAL'] } },
+            include: { transactions: true }
+        });
+
+        let outstandingPending = 0;
+        let totalBilled = 0;
+
+        // Billed total includes all invoices
+        const allInvoices = await this.prisma.invoice.findMany({
+            where: { schoolId }
+        });
+
+        allInvoices.forEach(inv => {
+            totalBilled += Number(inv.amount);
+        });
+
+        pendingInvoices.forEach(inv => {
+            const paid = inv.transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+            outstandingPending += (Number(inv.amount) - paid);
+        });
+
+        const collectionRate = totalBilled > 0 ? ((totalRevenue / totalBilled) * 100).toFixed(1) : 0;
+
+        return {
+            totalRevenue,
+            outstandingPending,
+            collectionRate: Number(collectionRate)
+        };
+    }
+
     async findAll(schoolId: string, studentId?: string) {
         const where: any = { schoolId };
         if (studentId) where.studentId = studentId;

@@ -16,9 +16,9 @@ import type {
 
 export const classesApi = {
     // Get all classes (levels with sections)
-    getAll: async (): Promise<ClassLevel[]> => {
+    getAll: async (filters?: { teacherId?: string }): Promise<ClassLevel[]> => {
         // schoolId is handled by backend token usually, but sometimes passed as param
-        const { data } = await api.get('/classes');
+        const { data } = await api.get('/classes', { params: filters });
         return data;
     },
 

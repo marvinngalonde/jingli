@@ -27,8 +27,11 @@ import {
 import { academicsService } from '../../services/academics';
 import { attendanceService } from '../../services/attendanceService';
 import type { AttendanceRecord } from '../../types/attendance';
+import { useAuth } from '../../context/AuthContext';
+import { isTeacherRole } from '../../utils/roles';
 
 export function AttendanceReports() {
+    const { user } = useAuth();
     // State
     const [classes, setClasses] = useState<{ value: string; label: string }[]>([]);
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
@@ -51,7 +54,8 @@ export function AttendanceReports() {
 
     const loadClasses = async () => {
         try {
-            const data = await academicsService.getClasses();
+            const filters = isTeacherRole(user?.role || '') ? { teacherId: user?.id } : undefined;
+            const data = await academicsService.getClasses(filters);
             const options = data.flatMap(cls =>
                 cls.sections?.map(sec => ({
                     value: sec.id,

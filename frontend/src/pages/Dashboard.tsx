@@ -157,15 +157,6 @@ function StudentDashboard({ role }: { role: string }) {
     );
 }
 
-const data = [
-    { name: 'Jan', uv: 200 },
-    { name: 'Feb', uv: 300 },
-    { name: 'Mar', uv: 200 },
-    { name: 'Apr', uv: 600 },
-    { name: 'May', uv: 500 },
-    { name: 'Jun', uv: 800 },
-];
-
 function AdminDashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
@@ -290,7 +281,6 @@ function AdminDashboard() {
                 </Grid.Col>
             </Grid>
 
-            {/* Quick Actions */}
             <Group mt="xl" grow>
                 <QuickAction title="Add Student" icon={IconPlus} color="blue" onClick={() => navigate('/students')} />
                 <QuickAction title="Create Invoice" icon={IconFileInvoice} color="indigo" onClick={() => navigate('/finance')} />
@@ -302,14 +292,14 @@ function AdminDashboard() {
             <Grid mt="xl" gutter="lg">
                 <Grid.Col span={{ base: 12, md: 8 }}>
                     <Paper p="lg" radius="md" shadow="sm" withBorder h={420}>
-                        <Title order={4} mb="md">Revenue Trend (Mock Data)</Title>
+                        <Title order={4} mb="md">Revenue Trend (6 Months)</Title>
                         <div style={{ width: '100%', height: 340 }}>
                             <ResponsiveContainer>
-                                <AreaChart data={data}>
+                                <AreaChart data={stats?.revenueTrend || []}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af' }} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip />
+                                    <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']} />
                                     <Area type="monotone" dataKey="uv" stroke="#3b82f6" fill="#eff6ff" strokeWidth={3} />
                                 </AreaChart>
                             </ResponsiveContainer>

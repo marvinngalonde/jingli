@@ -1,11 +1,17 @@
 import { api } from './api';
 import type { CreateFeeHeadDto, CreateFeeStructureDto, FeeHead, FeeStructure, Invoice } from '../types/finance';
 
+export interface FinanceStats {
+    totalRevenue: number;
+    outstandingPending: number;
+    collectionRate: number;
+}
+
 export const financeService = {
-    // --- Dashboard Stub ---
-    getAll: async (): Promise<any[]> => {
-        // Dashboard stub for aggregating all financials
-        return [];
+    // --- Stats ---
+    getStats: async (): Promise<FinanceStats> => {
+        const response = await api.get('/invoices/stats');
+        return response.data;
     },
 
     // --- Fee Heads ---

@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Center, Badge } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Badge, ThemeIcon, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
@@ -12,7 +12,6 @@ import {
     IconLogout,
     IconBell,
     IconChevronDown,
-
     IconHelp,
     IconCalendar,
     IconBook,
@@ -24,16 +23,13 @@ import {
     IconHeartbeat,
     IconShield,
     IconHome2,
-    IconBell as IconAlertBell,
     IconCalendarEvent,
     IconSchool,
     IconWallet,
     IconReceipt,
     IconClipboardCheck,
-    IconClipboardList,
 } from '@tabler/icons-react';
 
-// Import Logos
 import logoFull from '../assets/logos/logo-trans.png';
 import jaiLogo from '../assets/logos/jai-trans.png';
 import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
@@ -60,22 +56,17 @@ export function DashboardLayout() {
 
     useEffect(() => {
         fetchUnreadCount();
-        // Poll every 60 s so the badge stays fresh
         const interval = setInterval(fetchUnreadCount, 60_000);
         return () => clearInterval(interval);
     }, [fetchUnreadCount]);
 
     const handleCloseNotif = () => {
         closeNotif();
-        fetchUnreadCount(); // refresh badge after user has interacted
+        fetchUnreadCount();
     };
 
-
-
     const { user, logout } = useAuth();
-    const userRole = user?.role || 'admin'; // Default to admin if no user (dev fallback)
-
-    // Role-matching helper
+    const userRole = user?.role || 'admin';
     const r = userRole;
     const isAdmin = isAdminRole(r);
     const isTeacher = isTeacherRole(r);
@@ -89,7 +80,6 @@ export function DashboardLayout() {
     const isReception = r.toLowerCase() === 'reception' || isSeniorClerk;
 
     const hasRole = (check: string) => {
-        // Allow access if the user's map matches
         const lcCheck = check.toLowerCase();
         if (lcCheck === 'admin') return isAdmin;
         if (lcCheck === 'teacher') return isTeacher;
@@ -125,15 +115,14 @@ export function DashboardLayout() {
                 { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'teacher', 'student', 'parent'] },
                 { icon: IconClipboardCheck, label: 'Attendance', to: '/attendance', roles: ['admin', 'teacher'] },
                 { icon: IconCalendarEvent, label: 'Events', to: '/events', roles: ['admin', 'teacher', 'reception'] },
-
             ]
         },
         {
             title: 'Logistics',
-            roles: ['admin', 'teacher', 'reception', 'student', 'librarian', 'security'],
+            roles: ['admin', 'reception', 'student', 'librarian', 'security'],
             links: [
                 { icon: IconUsers, label: 'Visitors', to: '/reception/visitors', roles: ['admin', 'reception', 'security'] },
-                { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'teacher', 'student', 'librarian'] },
+                { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'student', 'librarian'] },
             ]
         },
         {
@@ -178,97 +167,97 @@ export function DashboardLayout() {
         links: group.links.filter(link => link.roles.some(r => hasRole(r)))
     })).filter(group => group.links.length > 0 && group.roles.some(r => hasRole(r)));
 
-    const renderLinks = (group: { title: string, links: any[] }, index: number) => (
-        <Box key={index} mb="md">
-            {/* Group Heading (Only visible if expanded) */}
-            {desktopOpened && (
-                <Group justify="space-between" px="md" mb="xs">
-                    <Text size="xs" fw={700} c="dimmed" tt="uppercase">
-                        {group.title}
-                    </Text>
-                    {/* Collapse Button: Opposite the FIRST heading */}
-                    {index === 0 && (
-                        <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            size="sm"
-                            onClick={toggleDesktop}
-                            visibleFrom="sm" // Desktop only
-                        >
-                            <IconLayoutSidebarLeftCollapse size={20} stroke={1.5} />
-                        </ActionIcon>
-                    )}
-                </Group>
-            )}
+    const renderNavLink = (link: any) => {
+        const isActive = location.pathname === link.to ||
+            (link.to !== '/dashboard' && location.pathname.startsWith(link.to));
 
-            {/* If collapsed, show the Toggle button centered at the top of the first group */}
-            {!desktopOpened && index === 0 && (
-                <Center mb="md" visibleFrom="sm">
-                    <ActionIcon variant="light" size="md" onClick={toggleDesktop} title="Expand Sidebar">
-                        <IconLayoutSidebarLeftExpand size={20} stroke={1.5} />
+        if (!desktopOpened) {
+            return (
+                <Tooltip label={link.label} key={link.label} position="right" withArrow>
+                    <ActionIcon
+                        size="xl"
+                        variant={isActive ? 'light' : 'subtle'}
+                        color={isActive ? 'brand' : 'gray'}
+                        onClick={() => navigate(link.to)}
+                        radius="md"
+                        my={2}
+                        mx="auto"
+                        style={{ display: 'flex' }}
+                    >
+                        <link.icon size={20} stroke={1.5} />
                     </ActionIcon>
-                </Center>
-            )}
+                </Tooltip>
+            );
+        }
 
-            {/* Links */}
-            {group.links.map((link) => {
-                const isActive = location.pathname.startsWith(link.to);
-                return activeNavLink(link, isActive, desktopOpened, navigate);
-            })}
-        </Box>
-    );
+        return (
+            <NavLink
+                key={link.label}
+                label={<Text size="sm" fw={isActive ? 600 : 400}>{link.label}</Text>}
+                leftSection={
+                    <ThemeIcon
+                        variant={isActive ? 'filled' : 'light'}
+                        color={isActive ? 'brand' : 'gray'}
+                        size="md"
+                        radius="md"
+                    >
+                        <link.icon size={16} stroke={1.5} />
+                    </ThemeIcon>
+                }
+                active={isActive}
+                onClick={() => navigate(link.to)}
+                variant="light"
+                color="brand"
+                py={8}
+                my={2}
+                style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
+            />
+        );
+    };
 
     return (
         <AppShell
-            header={{ height: 70 }}
+            header={{ height: 64 }}
             navbar={{
-                width: desktopOpened ? 240 : 80,
+                width: desktopOpened ? 260 : 80,
                 breakpoint: 'sm',
                 collapsed: { mobile: !mobileOpened },
             }}
             padding="md"
-            style={{
-                background: 'var(--app-surface-dim)',
+            styles={{
+                main: { background: 'var(--app-surface-dim)' },
             }}
         >
+            {/* ─── HEADER ─── */}
             <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
                 <Group h="100%" px="lg" justify="space-between">
                     <Group>
-                        {/* Mobile Burger */}
                         <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
-
-                        {/* LOGO IN HEADER */}
                         <img
                             src={logoFull}
                             alt="Jingli Logo"
-                            style={{
-                                height: 40,
-                                maxWidth: '100%',
-                                objectFit: 'contain'
-                            }}
+                            style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
                         />
                     </Group>
 
-                    <Group gap="md">
-                        {/* REPLACED SEARCH WITH CONTEXT INFO */}
-                        <Group visibleFrom="sm" gap="xs">
-                            <Badge
-                                variant="light"
-                                color="blue"
-                                size="lg"
-                                radius="md"
-                                leftSection={<IconCalendar size={14} />}
-                                styles={{ root: { textTransform: 'none' } }}
-                            >
-                                2026 - Term 1
-                            </Badge>
+                    <Group gap="sm">
+                        <Badge
+                            variant="light"
+                            color="blue"
+                            size="lg"
+                            radius="md"
+                            leftSection={<IconCalendar size={14} />}
+                            styles={{ root: { textTransform: 'none' } }}
+                            visibleFrom="md"
+                        >
+                            2026 - Term 1
+                        </Badge>
 
-                            <Tooltip label="Support & Documentation">
-                                <ActionIcon variant="subtle" color="gray" size="lg">
-                                    <IconHelp size={20} stroke={1.5} />
-                                </ActionIcon>
-                            </Tooltip>
-                        </Group>
+                        <Tooltip label="Support & Docs">
+                            <ActionIcon variant="subtle" color="gray" size="lg" visibleFrom="sm">
+                                <IconHelp size={20} stroke={1.5} />
+                            </ActionIcon>
+                        </Tooltip>
 
                         <Tooltip label="Notifications">
                             <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
@@ -285,7 +274,7 @@ export function DashboardLayout() {
                             </ActionIcon>
                         </Tooltip>
 
-                        <Tooltip label="Jingli 1.0 AI Assistant">
+                        <Tooltip label="AI Assistant">
                             <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
                                 <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
                             </ActionIcon>
@@ -295,11 +284,7 @@ export function DashboardLayout() {
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
-                                        <div style={{ flex: 1 }}>
-                                            <Text size="sm" fw={600} lh={1} visibleFrom="xs">{user?.email}</Text>
-                                            <Text size="xs" c="dimmed" visibleFrom="xs">{user?.role}</Text>
-                                        </div>
+                                        <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
                                         <Box visibleFrom="xs">
                                             <IconChevronDown size={14} color="gray" />
                                         </Box>
@@ -307,14 +292,13 @@ export function DashboardLayout() {
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
+                                <Menu.Label>{user?.email}</Menu.Label>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+                                <Menu.Divider />
                                 <Menu.Item
                                     color="red"
                                     leftSection={<IconLogout size={14} />}
-                                    onClick={() => {
-                                        logout();
-                                        navigate('/login');
-                                    }}
+                                    onClick={() => { logout(); navigate('/login'); }}
                                 >
                                     Logout
                                 </Menu.Item>
@@ -324,15 +308,51 @@ export function DashboardLayout() {
                 </Group>
             </AppShell.Header>
 
+            {/* ─── SIDEBAR ─── */}
             <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
-                {/* Sidebar content starts directly since Logo is moved to Header */}
+                {/* User Profile + Collapse Toggle */}
+                <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
+                    {desktopOpened ? (
+                        <Group justify="space-between">
+                            <Group>
+                                <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                <div>
+                                    <Text size="sm" fw={600} lh={1.2}>{user?.email?.split('@')[0]}</Text>
+                                    <Text size="xs" c="dimmed">{user?.role?.replace(/_/g, ' ')}</Text>
+                                </div>
+                            </Group>
+                            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm" title="Collapse sidebar">
+                                <IconLayoutSidebarLeftCollapse size={18} stroke={1.5} />
+                            </ActionIcon>
+                        </Group>
+                    ) : (
+                        <Tooltip label="Expand sidebar" position="right">
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleDesktop} mx="auto" style={{ display: 'flex' }}>
+                                <IconLayoutSidebarLeftExpand size={20} stroke={1.5} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
+                </AppShell.Section>
+
+                {/* Nav Links */}
                 <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
-                    <Box p="md">
-                        {linkGroups.map((group, i) => renderLinks(group, i))}
+                    <Box p="sm">
+                        {linkGroups.map((group, i) => (
+                            <Box key={i}>
+                                {i > 0 && <Divider my="sm" />}
+                                {desktopOpened && (
+                                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>
+                                        {group.title}
+                                    </Text>
+                                )}
+                                {group.links.map(renderNavLink)}
+                            </Box>
+                        ))}
                     </Box>
                 </AppShell.Section>
             </AppShell.Navbar>
 
+            {/* ─── MAIN CONTENT ─── */}
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
@@ -340,41 +360,5 @@ export function DashboardLayout() {
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
         </AppShell>
-    );
-}
-
-// Helper to render NavLink without cluttering main comp
-function activeNavLink(link: any, isActive: boolean, expanded: boolean, navigate: any) {
-    if (!expanded) {
-        return (
-            <Tooltip label={link.label} key={link.label} position="right" withArrow>
-                <Center my={4}>
-                    <ActionIcon
-                        size="xl"
-                        variant={isActive ? 'light' : 'subtle'}
-                        color="brand"
-                        onClick={() => navigate(link.to)}
-                        radius="md"
-                    >
-                        <link.icon size="1.2rem" stroke={1.5} />
-                    </ActionIcon>
-                </Center>
-            </Tooltip>
-        );
-    }
-
-    return (
-        <NavLink
-            key={link.label}
-            label={<Text size="sm" fw={500}>{link.label}</Text>}
-            leftSection={<link.icon size="1.1rem" stroke={1.5} />}
-            active={isActive}
-            onClick={() => navigate(link.to)}
-            variant="light"
-            color="brand"
-            py="xs"
-            my={2}
-            style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
-        />
     );
 }

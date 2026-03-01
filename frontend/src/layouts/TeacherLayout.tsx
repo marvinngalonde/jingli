@@ -32,6 +32,7 @@ import jaiLogo from '../assets/logos/jai-trans.png';
 import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
+import { isAdminRole, isTeacherRole } from '../utils/roles';
 import { useEffect, useState, useCallback } from 'react';
 
 export function TeacherLayout() {
@@ -43,6 +44,17 @@ export function TeacherLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
+
+    const userRole = user?.role || 'teacher';
+    const isAdmin = isAdminRole(userRole);
+    const isTeacher = isTeacherRole(userRole);
+
+    const hasRole = (check: string) => {
+        const lcCheck = check.toLowerCase();
+        if (lcCheck === 'admin') return isAdmin;
+        if (lcCheck === 'teacher') return isTeacher;
+        return userRole.toLowerCase() === lcCheck;
+    };
 
     const fetchUnreadCount = useCallback(async () => {
         try {
@@ -63,26 +75,26 @@ export function TeacherLayout() {
     };
 
     const mainNavLinks = [
-        { icon: IconLayoutDashboard, label: 'Dashboard', to: '/portal/dashboard', color: 'blue' },
-        { icon: IconChalkboard, label: 'My Classes', to: '/portal/classes', color: 'indigo' },
-        { icon: IconFiles, label: 'Content Library', to: '/portal/materials', color: 'teal' },
-        { icon: IconClipboardList, label: 'Assignments & CALA', to: '/portal/assignments', color: 'orange' },
-        { icon: IconPencil, label: 'CBT / Quizzes', to: '/portal/cbt', color: 'grape' },
-        { icon: IconBrandZoom, label: 'Live Classes', to: '/portal/live-classes', color: 'cyan' },
-        { icon: IconFileAnalytics, label: 'Grading', to: '/portal/grading', color: 'pink' },
-    ];
+        { icon: IconLayoutDashboard, label: 'Dashboard', to: '/portal/dashboard', color: 'blue', roles: ['admin', 'teacher'] },
+        { icon: IconChalkboard, label: 'My Classes', to: '/portal/classes', color: 'indigo', roles: ['admin', 'teacher'] },
+        { icon: IconFiles, label: 'Content Library', to: '/portal/materials', color: 'teal', roles: ['admin', 'teacher'] },
+        { icon: IconClipboardList, label: 'Assignments & CALA', to: '/portal/assignments', color: 'orange', roles: ['admin', 'teacher'] },
+        { icon: IconPencil, label: 'CBT / Quizzes', to: '/portal/cbt', color: 'grape', roles: ['admin', 'teacher'] },
+        { icon: IconBrandZoom, label: 'Live Classes', to: '/portal/live-classes', color: 'cyan', roles: ['admin', 'teacher'] },
+        { icon: IconFileAnalytics, label: 'Grading', to: '/portal/grading', color: 'pink', roles: ['admin', 'teacher'] },
+    ].filter(link => link.roles.some(r => hasRole(r)));
 
     const communityNavLinks = [
-        { icon: IconMessageCircle, label: 'Discussions', to: '/portal/discussions', color: 'violet' },
-        { icon: IconChartBar, label: 'Analytics', to: '/portal/analytics', color: 'green' },
-        { icon: IconTrophy, label: 'Leaderboard', to: '/portal/leaderboard', color: 'yellow' },
-    ];
+        { icon: IconMessageCircle, label: 'Discussions', to: '/portal/discussions', color: 'violet', roles: ['admin', 'teacher'] },
+        { icon: IconChartBar, label: 'Analytics', to: '/portal/analytics', color: 'green', roles: ['admin', 'teacher'] },
+        { icon: IconTrophy, label: 'Leaderboard', to: '/portal/leaderboard', color: 'yellow', roles: ['admin', 'teacher'] },
+    ].filter(link => link.roles.some(r => hasRole(r)));
 
     const utilityNavLinks = [
-        { icon: IconCalendar, label: 'Calendar', to: '/portal/calendar', color: 'blue' },
-        { icon: IconMessage, label: 'Inbox', to: '/portal/inbox', color: 'gray' },
-        { icon: IconBook, label: 'Library', to: '/portal/library', color: 'orange' },
-    ];
+        { icon: IconCalendar, label: 'Calendar', to: '/portal/calendar', color: 'blue', roles: ['admin', 'teacher'] },
+        { icon: IconMessage, label: 'Inbox', to: '/portal/inbox', color: 'gray', roles: ['admin', 'teacher'] },
+        { icon: IconBook, label: 'Library', to: '/portal/library', color: 'orange', roles: ['admin', 'teacher'] },
+    ].filter(link => link.roles.some(r => hasRole(r)));
 
     const renderNavLink = (link: any) => {
         const isActive = location.pathname === link.to || (link.to !== '/portal/dashboard' && location.pathname.startsWith(link.to));
@@ -121,7 +133,7 @@ export function TeacherLayout() {
                 color={link.color}
                 py={8}
                 my={2}
-                style={{ borderRadius: 'var(--mantine-radius-md)',textDecoration: 'none' }}
+                style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
             />
         );
     };
@@ -200,7 +212,7 @@ export function TeacherLayout() {
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                        <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
                                         <Box visibleFrom="xs">
                                             <IconChevronDown size={14} color="gray" />
                                         </Box>
@@ -231,7 +243,7 @@ export function TeacherLayout() {
                     {desktopOpened ? (
                         <Group justify="space-between">
                             <Group>
-                                <Avatar radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
                                 <div>
                                     <Text size="sm" fw={600} lh={1.2}>{user?.email?.split('@')[0]}</Text>
                                     <Text size="xs" c="dimmed">{user?.role?.replace('_', ' ')}</Text>

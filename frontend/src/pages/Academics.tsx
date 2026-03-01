@@ -8,10 +8,13 @@ import { TeacherAllocations } from '../components/academics/TeacherAllocations';
 import Classes from './Classes';
 import Subjects from './Subjects';
 
+import { isTeacherRole } from '../utils/roles';
+
 export default function Academics() {
     const { user } = useAuth();
     const upperRole = (user?.role || '').toUpperCase();
     const isStudentOrParent = upperRole === 'STUDENT' || upperRole === 'PARENT';
+    const isTeacher = isTeacherRole(upperRole);
 
     const [activeTab, setActiveTab] = useState<string | null>(isStudentOrParent ? 'timetable' : 'classes');
 
@@ -26,7 +29,7 @@ export default function Academics() {
                 <Tabs.List mb="md">
                     {!isStudentOrParent && <Tabs.Tab value="classes" leftSection={<IconSchool size={16} />}>Classes & Sections</Tabs.Tab>}
                     {!isStudentOrParent && <Tabs.Tab value="subjects" leftSection={<IconBook size={16} />}>Subjects Catalog</Tabs.Tab>}
-                    {!isStudentOrParent && <Tabs.Tab value="allocations" leftSection={<IconUsers size={16} />}>Teacher Allocations</Tabs.Tab>}
+                    {!isStudentOrParent && !isTeacher && <Tabs.Tab value="allocations" leftSection={<IconUsers size={16} />}>Teacher Allocations</Tabs.Tab>}
                     {isStudentOrParent && <Tabs.Tab value="subjects" leftSection={<IconBook size={16} />}>My Subjects</Tabs.Tab>}
                     <Tabs.Tab value="timetable" leftSection={<IconCalendar size={16} />}>Timetables</Tabs.Tab>
                 </Tabs.List>
@@ -41,7 +44,7 @@ export default function Academics() {
                     <Subjects asComponent />
                 </Tabs.Panel>
 
-                {!isStudentOrParent && (
+                {!isStudentOrParent && !isTeacher && (
                     <Tabs.Panel value="allocations">
                         <TeacherAllocations />
                     </Tabs.Panel>

@@ -34,6 +34,7 @@ export interface FeeStructureItem {
 export interface FeeStructure {
     id: string;
     schoolId: string;
+    currency?: string;
     academicYearId: string;
     classLevelId: string;
     feeHeadId?: string;
@@ -62,6 +63,7 @@ export interface Transaction {
 export interface Invoice {
     id: string;
     schoolId: string;
+    currency?: string;
     studentId: string;
     feeStructureId?: string;
     amount: number;

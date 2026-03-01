@@ -44,6 +44,8 @@ import { DataTable, type Column } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ActionMenu } from '../components/common/ActionMenu';
 import { useForm } from '@mantine/form';
+import { useAuth } from '../context/AuthContext';
+import { isTeacherRole } from '../utils/roles';
 
 export default function Students() {
     const navigate = useNavigate();
@@ -86,8 +88,10 @@ export default function Students() {
     const loadAllData = async () => {
         setLoading(true);
         try {
+            const filters = isTeacherRole(user?.role || '') ? { teacherId: user?.id } : undefined;
+
             const [students, late, passes] = await Promise.all([
-                studentService.getAll(),
+                studentService.getAll(filters as any),
                 logisticsService.getLateArrivals(),
                 logisticsService.getGatePasses()
             ]);

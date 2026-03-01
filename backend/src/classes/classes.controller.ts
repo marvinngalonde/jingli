@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ClassesService } from './classes.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -26,9 +26,14 @@ export class ClassesController {
     }
 
     @Get()
-    findAll(@Req() req: any) {
-        // All authenticated users can view classes
-        return this.classesService.findAll(req.user.schoolId);
+    @ApiQuery({ name: 'teacherId', required: false })
+    findAll(@Req() req: any, @Query('teacherId') teacherId?: string) {
+        // Enforce scope: if caller is a teacher, they can ONLY fetch their own classes
+        const role = req.user.role as UserRole;
+        const isTeacher = ([UserRole.SUBJECT_TEACHER, UserRole.CLASS_TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SEN_COORDINATOR] as UserRole[]).includes(role);
+        const enforcedTeacherId = isTeacher ? req.user.id : teacherId;
+
+        return this.classesService.findAll(req.user.schoolId, enforcedTeacherId);
     }
 
     @Get(':id')

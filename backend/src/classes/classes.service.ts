@@ -29,11 +29,32 @@ export class ClassesService {
         });
     }
 
-    async findAll(schoolId: string) {
-        return this.prisma.classLevel.findMany({
+    async findAll(schoolId: string, teacherId?: string) {
+        let sectionWhere: any = {};
+        if (teacherId) {
+            const staff = await this.prisma.staff.findUnique({ where: { userId: teacherId } });
+            if (!staff) return [];
+
+            const [subjectAllocs, classSections] = await Promise.all([
+                this.prisma.subjectAllocation.findMany({ where: { staffId: staff.id }, select: { sectionId: true } }),
+                this.prisma.classSection.findMany({ where: { classTeacherId: staff.id }, select: { id: true } })
+            ]);
+
+            const teacherSectionIds = new Set([
+                ...subjectAllocs.map(a => a.sectionId),
+                ...classSections.map(s => s.id)
+            ]);
+
+            if (teacherSectionIds.size === 0) return []; // No classes assigned
+
+            sectionWhere = { id: { in: Array.from(teacherSectionIds) } };
+        }
+
+        const classLevels = await this.prisma.classLevel.findMany({
             where: { schoolId },
             include: {
                 sections: {
+                    where: Object.keys(sectionWhere).length > 0 ? sectionWhere : undefined,
                     include: {
                         classTeacher: true,
                         _count: { select: { students: true } }
@@ -43,6 +64,11 @@ export class ClassesService {
             },
             orderBy: { level: 'asc' }
         });
+
+        if (teacherId) {
+            return classLevels.filter(cl => cl.sections.length > 0);
+        }
+        return classLevels;
     }
 
     async findOne(id: string, schoolId: string) {

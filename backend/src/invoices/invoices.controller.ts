@@ -37,6 +37,13 @@ export class InvoicesController {
         return this.invoicesService.collectPayment(createDto, req.user.schoolId, req.user.id);
     }
 
+    @Get('stats')
+    @ApiOperation({ summary: 'Get Financial Stats' })
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
+    getStats(@Req() req: any) {
+        return this.invoicesService.getStats(req.user.schoolId);
+    }
+
     @Get()
     @ApiOperation({ summary: 'List Invoices' })
     @ApiQuery({ name: 'studentId', required: false })

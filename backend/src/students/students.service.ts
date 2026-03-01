@@ -90,12 +90,39 @@ export class StudentsService {
         });
     }
 
-    async findAll(schoolId: string, sectionId?: string) {
+    async findAll(schoolId: string, sectionId?: string, teacherId?: string) {
         const where: any = {
             schoolId,
             user: { status: 'ACTIVE' }
         };
         if (sectionId) where.sectionId = sectionId;
+
+        if (teacherId) {
+            // Find staff record for this user
+            const staff = await this.prisma.staff.findUnique({ where: { userId: teacherId } });
+            if (!staff) return []; // No staff record found for this user
+
+            // Find all sections this teacher is assigned to (either as class teacher or subject teacher)
+            const [subjectAllocs, classSections] = await Promise.all([
+                this.prisma.subjectAllocation.findMany({ where: { staffId: staff.id }, select: { sectionId: true } }),
+                this.prisma.classSection.findMany({ where: { classTeacherId: staff.id }, select: { id: true } })
+            ]);
+
+            const teacherSectionIds = new Set([
+                ...subjectAllocs.map(a => a.sectionId),
+                ...classSections.map(s => s.id)
+            ]);
+
+            if (teacherSectionIds.size === 0) return []; // Teacher has no assigned sections
+
+            if (where.sectionId) {
+                // If they requested a specific section, check if they are authorized for it
+                if (!teacherSectionIds.has(where.sectionId)) return [];
+            } else {
+                // Otherwise, restrict to only their sections
+                where.sectionId = { in: Array.from(teacherSectionIds) };
+            }
+        }
 
         return this.prisma.student.findMany({
             where,

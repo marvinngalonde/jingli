@@ -9,8 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { financeService } from '../services/financeService';
 import { academicsService } from '../services/academics';
 import { FeeHeadManager, FeeStructureManager } from './finance/FeeComponents';
-// import { InvoiceActionMenu } from './finance/InvoiceActions'; // Removed import
 import type { Invoice, FeeStructure } from '../types/finance';
+import type { FinanceStats } from '../services/financeService';
 
 // Currency helper
 const CURRENCY_OPTIONS = [
@@ -105,7 +105,8 @@ export default function Finance() { // Modified to keep original export
     const [activeTab, setActiveTab] = useState<string | null>('structures');
 
     // Data State for Invoices
-    const [invoices, setInvoices] = useState<Invoice[]>([]); // Using Invoice type
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [stats, setStats] = useState<FinanceStats | null>(null);
     const [loading, setLoading] = useState(false);
 
     // Invoice Generation State
@@ -123,8 +124,12 @@ export default function Finance() { // Modified to keep original export
     const loadInvoices = async () => {
         setLoading(true);
         try {
-            const data = await financeService.getInvoices(user?.schoolId || '');
+            const [data, statsData] = await Promise.all([
+                financeService.getInvoices(user?.schoolId || ''),
+                financeService.getStats()
+            ]);
             setInvoices(data);
+            setStats(statsData);
         } catch (error) {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to load invoices', color: 'red' });
@@ -191,10 +196,10 @@ export default function Finance() { // Modified to keep original export
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <Card shadow="sm" radius="md" p="md" withBorder>
                         <Group justify="space-between" mb="xs">
-                            <Text fw={500} c="dimmed">Total Revenue (YTD)</Text>
+                            <Text fw={500} c="dimmed">Total Collected (YTD)</Text>
                             <ThemeIcon variant="light" color="green"><IconCurrencyDollar size={16} /></ThemeIcon>
                         </Group>
-                        <Text fw={700} size="xl">$0.00</Text>
+                        <Text fw={700} size="xl">${(stats?.totalRevenue || 0).toLocaleString()}</Text>
                     </Card>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
@@ -203,7 +208,7 @@ export default function Finance() { // Modified to keep original export
                             <Text fw={500} c="dimmed">Outstanding Pending</Text>
                             <ThemeIcon variant="light" color="orange"><IconReceipt size={16} /></ThemeIcon>
                         </Group>
-                        <Text fw={700} size="xl">$0.00</Text>
+                        <Text fw={700} size="xl">${(stats?.outstandingPending || 0).toLocaleString()}</Text>
                     </Card>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
@@ -212,7 +217,7 @@ export default function Finance() { // Modified to keep original export
                             <Text fw={500} c="dimmed">Collection Rate</Text>
                             <ThemeIcon variant="light" color="blue"><IconChartPie size={16} /></ThemeIcon>
                         </Group>
-                        <Text fw={700} size="xl">0%</Text>
+                        <Text fw={700} size="xl">{stats?.collectionRate || 0}%</Text>
                     </Card>
                 </Grid.Col>
             </Grid>
