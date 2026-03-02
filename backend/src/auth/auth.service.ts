@@ -8,7 +8,12 @@ export class AuthService {
 
     async resolveEmail(username: string) {
         const user = await this.prisma.user.findFirst({
-            where: { username },
+            where: {
+                OR: [
+                    { username },
+                    { email: username },
+                ]
+            },
             select: { email: true }
         });
 

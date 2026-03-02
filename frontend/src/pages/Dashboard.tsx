@@ -31,8 +31,6 @@ export function Dashboard() {
     const { user } = useAuth();
     const role = (user?.role || 'admin').toUpperCase();
 
-    if (isTeacherRole(role)) return <TeacherDashboard />;
-    if (role === 'STUDENT' || role === 'PARENT') return <StudentDashboard role={role.toLowerCase()} />;
     if (role === 'RECEPTION' || role === 'SENIOR_CLERK' || role === 'SECURITY_GUARD') return <ReceptionDashboard />;
 
     return <AdminDashboard />;
@@ -68,93 +66,6 @@ function ReceptionDashboard() {
             </Grid>
         </div>
     )
-}
-
-function TeacherDashboard() {
-    return (
-        <div>
-            <Title order={2} mb="lg">Teacher Dashboard</Title>
-            <Grid gutter="lg">
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="My Classes" value="5" subtext="Grade 9 & 10" icon={IconSchool} color="blue" iconBg="blue.1" />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Students" value="145" subtext="Total across classes" icon={IconUsers} color="teal" iconBg="teal.1" />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Pending Grading" value="3" subtext="Assignments to review" icon={IconBook} color="orange" iconBg="orange.1" />
-                </Grid.Col>
-            </Grid>
-
-            <Grid mt="xl" gutter="lg">
-                <Grid.Col span={{ base: 12, md: 7 }}>
-                    <Paper p="lg" radius="md" shadow="sm" withBorder>
-                        <Title order={4} mb="md">Today's Schedule</Title>
-                        <Timeline active={2} bulletSize={24} lineWidth={2}>
-                            <Timeline.Item bullet={<IconClock size={12} />} title="08:00 - 09:00">
-                                <Text size="sm">Mathematics - Grade 10A (Rm 101)</Text>
-                            </Timeline.Item>
-                            <Timeline.Item bullet={<IconClock size={12} />} title="09:00 - 10:00">
-                                <Text size="sm">Physics - Grade 10B (Lab 1)</Text>
-                            </Timeline.Item>
-                            <Timeline.Item bullet={<IconClock size={12} />} title="10:30 - 11:30" lineVariant="dashed">
-                                <Text size="sm">Free Period / Prep</Text>
-                            </Timeline.Item>
-                            <Timeline.Item bullet={<IconClock size={12} />} title="11:30 - 12:30">
-                                <Text size="sm">Mathematics - Grade 9A (Rm 201)</Text>
-                            </Timeline.Item>
-                        </Timeline>
-                    </Paper>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 5 }}>
-                    <Paper p="lg" radius="md" shadow="sm" withBorder h="100%">
-                        <Title order={4} mb="md">Quick Actions</Title>
-                        <SimpleGrid cols={1} spacing="xs">
-                            <QuickAction title="Mark Attendance" icon={IconCalendarStats} color="blue" />
-                            <QuickAction title="Upload Marks" icon={IconFileInvoice} color="indigo" />
-                            <QuickAction title="Create Assignment" icon={IconPlus} color="teal" />
-                        </SimpleGrid>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
-        </div>
-    );
-}
-
-function StudentDashboard({ role }: { role: string }) {
-    const navigate = useNavigate();
-    return (
-        <div>
-            <Title order={2} mb="lg">{role === 'parent' ? 'Parent Portal' : 'Student Dashboard'}</Title>
-            <Grid gutter="lg">
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Attendance" value="92%" subtext="Present 45/49 days" icon={IconCalendarStats} color="green" iconBg="green.1" isProgress />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Avg. Grade" value="A-" subtext="GPA: 3.8" icon={IconBook} color="violet" iconBg="violet.1" />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Fees Due" value="$0" subtext="All paid" icon={IconCurrencyDollar} color="blue" iconBg="blue.1" />
-                </Grid.Col>
-            </Grid>
-
-            {/* Timetable or Notices for Students */}
-            <Paper p="lg" radius="md" shadow="sm" withBorder mt="xl">
-                <Group justify="space-between" mb="md">
-                    <Title order={4}>Notice Board</Title>
-                    <Button
-                        variant="subtle"
-                        size="xs"
-                        rightSection={<IconArrowRight size={14} />}
-                        onClick={() => navigate('/communication')}
-                    >
-                        View All
-                    </Button>
-                </Group>
-                <RecentNotices />
-            </Paper>
-        </div>
-    );
 }
 
 function AdminDashboard() {

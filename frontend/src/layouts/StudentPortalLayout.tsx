@@ -1,41 +1,45 @@
-import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Badge, TextInput, ThemeIcon, Divider } from '@mantine/core';
+import {
+    AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu,
+    UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Badge, TextInput,
+    ThemeIcon, Divider
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
-    IconLayoutDashboard,
-    IconChalkboard,
-    IconCalendar,
-    IconClipboardList,
-    IconFiles,
-    IconFileAnalytics,
-    IconBell,
-    IconChevronDown,
-    IconLogout,
-    IconSettings,
-    IconSearch,
-    IconMessage,
-    IconBrandZoom,
-    IconPencil,
-    IconTrophy,
-    IconChartBar,
-    IconArrowLeft,
-    IconSchool,
-    IconMessageCircle,
-    IconBook,
-    IconLayoutSidebarLeftCollapse,
-    IconLayoutSidebarLeftExpand,
+    IconLayoutDashboard, IconBook, IconClipboardList, IconFiles,
+    IconBell, IconChevronDown, IconLogout, IconSettings, IconSearch,
+    IconMessage, IconBrandZoom, IconTrophy, IconArrowLeft, IconSchool,
+    IconMessageCircle, IconCalendar, IconBrain,
+    IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
-
-import logoFull from '../assets/logos/logo-trans.png';
 import jaiLogo from '../assets/logos/jai-trans.png';
 import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
-import { isAdminRole, isTeacherRole } from '../utils/roles';
 import { useEffect, useState, useCallback } from 'react';
 
-export function TeacherLayout() {
+const mainNavLinks = [
+    { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
+    { icon: IconBook, label: 'My Subjects', to: '/student-portal/classes', color: 'teal' },
+    { icon: IconFiles, label: 'Course Materials', to: '/student-portal/materials', color: 'indigo' },
+    { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
+    { icon: IconBrain, label: 'CBT Quizzes', to: '/student-portal/cbt', color: 'grape' },
+    { icon: IconBrandZoom, label: 'Live Classes', to: '/student-portal/live-classes', color: 'cyan' },
+];
+
+const communityNavLinks = [
+    { icon: IconMessageCircle, label: 'Discussions', to: '/student-portal/discussions', color: 'violet' },
+    { icon: IconTrophy, label: 'Leaderboard', to: '/student-portal/leaderboard', color: 'yellow' },
+];
+
+const utilityNavLinks = [
+    { icon: IconCalendar, label: 'Calendar', to: '/student-portal/calendar', color: 'blue' },
+    { icon: IconMessage, label: 'Inbox', to: '/student-portal/inbox', color: 'gray' },
+    { icon: IconBook, label: 'Library', to: '/student-portal/library', color: 'orange' },
+];
+
+export function StudentPortalLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
     const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
     const [aiOpened, { open: openAi, close: closeAi }] = useDisclosure(false);
@@ -44,17 +48,6 @@ export function TeacherLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
-
-    const userRole = user?.role || 'teacher';
-    const isAdmin = isAdminRole(userRole);
-    const isTeacher = isTeacherRole(userRole);
-
-    const hasRole = (check: string) => {
-        const lcCheck = check.toLowerCase();
-        if (lcCheck === 'admin') return isAdmin;
-        if (lcCheck === 'teacher') return isTeacher;
-        return userRole.toLowerCase() === lcCheck;
-    };
 
     const fetchUnreadCount = useCallback(async () => {
         try {
@@ -69,70 +62,42 @@ export function TeacherLayout() {
         return () => clearInterval(interval);
     }, [fetchUnreadCount]);
 
-    const handleCloseNotif = () => {
-        closeNotif();
-        fetchUnreadCount();
-    };
+    const isActive = (to: string) =>
+        to === '/student-portal/dashboard'
+            ? location.pathname === to
+            : location.pathname.startsWith(to);
 
-    const mainNavLinks = [
-        { icon: IconLayoutDashboard, label: 'Dashboard', to: '/portal/dashboard', color: 'blue', roles: ['admin', 'teacher'] },
-        { icon: IconChalkboard, label: 'My Classes', to: '/portal/classes', color: 'indigo', roles: ['admin', 'teacher'] },
-        { icon: IconFiles, label: 'Content Library', to: '/portal/materials', color: 'teal', roles: ['admin', 'teacher'] },
-        { icon: IconClipboardList, label: 'Assignments & CALA', to: '/portal/assignments', color: 'orange', roles: ['admin', 'teacher'] },
-        { icon: IconPencil, label: 'CBT / Quizzes', to: '/portal/cbt', color: 'grape', roles: ['admin', 'teacher'] },
-        { icon: IconBrandZoom, label: 'Live Classes', to: '/portal/live-classes', color: 'cyan', roles: ['admin', 'teacher'] },
-        { icon: IconFileAnalytics, label: 'Grading', to: '/portal/grading', color: 'pink', roles: ['admin', 'teacher'] },
-    ].filter(link => link.roles.some(r => hasRole(r)));
-
-    const communityNavLinks = [
-        { icon: IconMessageCircle, label: 'Discussions', to: '/portal/discussions', color: 'violet', roles: ['admin', 'teacher'] },
-        { icon: IconChartBar, label: 'Analytics', to: '/portal/analytics', color: 'green', roles: ['admin', 'teacher'] },
-        { icon: IconTrophy, label: 'Leaderboard', to: '/portal/leaderboard', color: 'yellow', roles: ['admin', 'teacher'] },
-    ].filter(link => link.roles.some(r => hasRole(r)));
-
-    const utilityNavLinks = [
-        { icon: IconCalendar, label: 'Calendar', to: '/portal/calendar', color: 'blue', roles: ['admin', 'teacher'] },
-        { icon: IconMessage, label: 'Inbox', to: '/portal/inbox', color: 'gray', roles: ['admin', 'teacher'] },
-        { icon: IconBook, label: 'Library', to: '/portal/library', color: 'orange', roles: ['admin', 'teacher'] },
-    ].filter(link => link.roles.some(r => hasRole(r)));
-
-    const renderNavLink = (link: any) => {
-        const isActive = location.pathname === link.to || (link.to !== '/portal/dashboard' && location.pathname.startsWith(link.to));
-
+    const renderNavLink = (link: { icon: any; label: string; to: string; color: string }) => {
+        const active = isActive(link.to);
         if (!desktopOpened) {
             return (
                 <Tooltip label={link.label} key={link.label} position="right" withArrow>
                     <ActionIcon
                         size="xl"
-                        variant={isActive ? 'light' : 'subtle'}
+                        variant={active ? 'light' : 'subtle'}
                         color={link.color}
                         onClick={() => { navigate(link.to); if (mobileOpened) toggleMobile(); }}
-                        radius="md"
-                        my={2}
-                        mx="auto"
-                        style={{ display: 'flex' }}
+                        radius="md" my={2} mx="auto" style={{ display: 'flex' }}
                     >
                         <link.icon size={20} stroke={1.5} />
                     </ActionIcon>
                 </Tooltip>
             );
         }
-
         return (
             <NavLink
                 key={link.label}
-                label={<Text size="sm" fw={isActive ? 600 : 400}>{link.label}</Text>}
+                label={<Text size="sm" fw={active ? 600 : 400}>{link.label}</Text>}
                 leftSection={
-                    <ThemeIcon variant={isActive ? 'filled' : 'light'} color={link.color} size="md" radius="md">
+                    <ThemeIcon variant={active ? 'filled' : 'light'} color={link.color} size="md" radius="md">
                         <link.icon size={16} stroke={1.5} />
                     </ThemeIcon>
                 }
-                active={isActive}
+                active={active}
                 onClick={() => { navigate(link.to); if (mobileOpened) toggleMobile(); }}
                 variant="light"
                 color={link.color}
-                py={8}
-                my={2}
+                py={8} my={2}
                 style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
             />
         );
@@ -147,26 +112,24 @@ export function TeacherLayout() {
                 collapsed: { mobile: !mobileOpened },
             }}
             padding="md"
-            styles={{
-                main: { background: 'var(--app-surface-dim)' },
-            }}
+            styles={{ main: { background: 'var(--app-surface-dim)' } }}
         >
-            {/* ─── HEADER ─── */}
+            {/* HEADER */}
             <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
                 <Group h="100%" px="lg" justify="space-between">
                     <Group>
                         <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
                         <Group gap="xs" visibleFrom="sm">
-                            <IconSchool size={24} color="var(--mantine-color-brand-6)" />
+                            <IconSchool size={24} color="var(--mantine-color-teal-6)" />
                             <Text fw={700} size="lg" style={{ letterSpacing: '-0.02em' }}>
-                                <Text span c="brand" inherit>Jingli-Learning</Text> Portal
+                                <Text span c="teal" inherit>Student</Text> Learning Portal
                             </Text>
                         </Group>
                     </Group>
 
                     <Group gap="sm" visibleFrom="sm" style={{ flex: 1, maxWidth: 400, margin: '0 auto' }}>
                         <TextInput
-                            placeholder="Search courses, materials, students..."
+                            placeholder="Search subjects, materials, quizzes..."
                             leftSection={<IconSearch size={16} />}
                             radius="xl"
                             style={{ width: '100%' }}
@@ -175,18 +138,6 @@ export function TeacherLayout() {
                     </Group>
 
                     <Group gap="sm">
-                        <Badge
-                            variant="light"
-                            color="blue"
-                            size="lg"
-                            radius="md"
-                            leftSection={<IconCalendar size={14} />}
-                            styles={{ root: { textTransform: 'none' } }}
-                            visibleFrom="md"
-                        >
-                            2026 - Term 1
-                        </Badge>
-
                         <Tooltip label="Notifications">
                             <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
                                 <Indicator
@@ -212,7 +163,9 @@ export function TeacherLayout() {
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                        <Avatar radius="md" color="teal" size={34}>
+                                            {user?.profile?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+                                        </Avatar>
                                         <Box visibleFrom="xs">
                                             <IconChevronDown size={14} color="gray" />
                                         </Box>
@@ -220,14 +173,13 @@ export function TeacherLayout() {
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
-                                <Menu.Label>{user?.email}</Menu.Label>
-                                <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+                                <Menu.Label>
+                                    <Text size="sm" fw={500}>{user?.profile?.firstName} {user?.profile?.lastName}</Text>
+                                    <Text size="xs" c="dimmed">{user?.email}</Text>
+                                </Menu.Label>
                                 <Menu.Divider />
-                                <Menu.Item
-                                    color="red"
-                                    leftSection={<IconLogout size={14} />}
-                                    onClick={() => { logout(); navigate('/login'); }}
-                                >
+                                <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+                                <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={() => { logout(); navigate('/login'); }}>
                                     Logout
                                 </Menu.Item>
                             </Menu.Dropdown>
@@ -236,20 +188,21 @@ export function TeacherLayout() {
                 </Group>
             </AppShell.Header>
 
-            {/* ─── SIDEBAR ─── */}
+            {/* SIDEBAR */}
             <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
-                {/* User Profile + Collapse Toggle */}
                 <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
                     {desktopOpened ? (
                         <Group justify="space-between">
                             <Group>
-                                <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                <Avatar radius="md" color="teal" size={36}>
+                                    {user?.profile?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+                                </Avatar>
                                 <div>
-                                    <Text size="sm" fw={600} lh={1.2}>{user?.email?.split('@')[0]}</Text>
-                                    <Text size="xs" c="dimmed">{user?.role?.replace('_', ' ')}</Text>
+                                    <Text size="sm" fw={600} lh={1.2}>{user?.profile?.firstName} {user?.profile?.lastName}</Text>
+                                    <Text size="xs" c="dimmed">Student</Text>
                                 </div>
                             </Group>
-                            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm" title="Collapse sidebar">
+                            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm">
                                 <IconLayoutSidebarLeftCollapse size={18} stroke={1.5} />
                             </ActionIcon>
                         </Group>
@@ -264,7 +217,7 @@ export function TeacherLayout() {
 
                 <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
                     <Box p="sm">
-                        {desktopOpened && <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>Teaching</Text>}
+                        {desktopOpened && <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>Learning</Text>}
                         {mainNavLinks.map(renderNavLink)}
 
                         <Divider my="sm" />
@@ -282,19 +235,19 @@ export function TeacherLayout() {
                 <AppShell.Section p="sm" style={{ borderTop: '1px solid var(--app-border-light)' }}>
                     {desktopOpened ? (
                         <NavLink
-                            label={<Text size="sm" fw={500}>Back to Admin</Text>}
+                            label={<Text size="sm" fw={500}>Back to Dashboard</Text>}
                             leftSection={
                                 <ThemeIcon variant="light" color="gray" size="md" radius="md">
                                     <IconArrowLeft size={16} stroke={1.5} />
                                 </ThemeIcon>
                             }
-                            onClick={() => navigate('/teacher/dashboard')}
+                            onClick={() => navigate('/student/dashboard')}
                             py={8}
                             style={{ borderRadius: 'var(--mantine-radius-md)' }}
                         />
                     ) : (
-                        <Tooltip label="Back to Admin" position="right">
-                            <ActionIcon variant="subtle" color="gray" size="xl" onClick={() => navigate('/teacher/dashboard')} mx="auto" style={{ display: 'flex' }}>
+                        <Tooltip label="Back to Dashboard" position="right">
+                            <ActionIcon variant="subtle" color="gray" size="xl" onClick={() => navigate('/student/dashboard')} mx="auto" style={{ display: 'flex' }}>
                                 <IconArrowLeft size={20} stroke={1.5} />
                             </ActionIcon>
                         </Tooltip>
@@ -302,13 +255,14 @@ export function TeacherLayout() {
                 </AppShell.Section>
             </AppShell.Navbar>
 
-            {/* ─── MAIN CONTENT ─── */}
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
 
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
-            <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
+            <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
         </AppShell>
     );
 }
+
+export default StudentPortalLayout;

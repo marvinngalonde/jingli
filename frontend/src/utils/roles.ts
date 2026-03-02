@@ -45,7 +45,7 @@ export function getDashboardPath(role: string): string {
     const upper = role?.toUpperCase() || '';
 
     if (TEACHER_ROLES.map(r => r.toUpperCase()).includes(upper)) {
-        return '/dashboard';
+        return '/teacher/dashboard';
     }
     if (upper === 'STUDENT') {
         return '/student/dashboard';

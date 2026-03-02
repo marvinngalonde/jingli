@@ -7,8 +7,10 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { notifications } from '@mantine/notifications';
-import { IconCalendar, IconPlus } from '@tabler/icons-react';
+import { IconPlus } from '@tabler/icons-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { isAdminRole } from '../utils/roles';
 
 interface SchoolEvent {
     id: string;
@@ -22,6 +24,8 @@ interface SchoolEvent {
 }
 
 const CalendarPage = () => {
+    const { user } = useAuth();
+    const isAdmin = isAdminRole(user?.role);
     const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [opened, setOpened] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<SchoolEvent | null>(null);
@@ -91,6 +95,7 @@ const CalendarPage = () => {
     };
 
     const handleDateClick = (arg: any) => {
+        if (!isAdmin) return;
         form.reset();
         form.setValues({
             ...form.values,
@@ -102,6 +107,7 @@ const CalendarPage = () => {
     };
 
     const handleEventClick = (arg: any) => {
+        if (!isAdmin) return;
         const eventData = arg.event.extendedProps;
         setSelectedEvent(eventData);
         form.setValues({
@@ -118,14 +124,30 @@ const CalendarPage = () => {
 
     return (
         <Stack gap="lg">
+            <style>{`
+                .fc .fc-button-primary {
+                    background-color: var(--mantine-color-brand-6) !important;
+                    border-color: var(--mantine-color-brand-6) !important;
+                }
+                .fc .fc-button-primary:hover {
+                    background-color: var(--mantine-color-brand-7) !important;
+                    border-color: var(--mantine-color-brand-7) !important;
+                }
+                .fc .fc-button-primary:not(:disabled):active, .fc .fc-button-primary:not(:disabled).fc-button-active {
+                    background-color: var(--mantine-color-brand-8) !important;
+                    border-color: var(--mantine-color-brand-8) !important;
+                }
+            `}</style>
             <Group justify="space-between">
                 <div>
                     <Title order={2}>School Calendar</Title>
                     <Text c="dimmed">Manage school events, holidays, and exam schedules</Text>
                 </div>
-                <Button leftSection={<IconPlus size={18} />} onClick={() => { form.reset(); setSelectedEvent(null); setOpened(true); }}>
-                    Add Event
-                </Button>
+                {isAdmin && (
+                    <Button leftSection={<IconPlus size={18} />} onClick={() => { form.reset(); setSelectedEvent(null); setOpened(true); }}>
+                        Add Event
+                    </Button>
+                )}
             </Group>
 
             <Card withBorder radius="md" p="md">

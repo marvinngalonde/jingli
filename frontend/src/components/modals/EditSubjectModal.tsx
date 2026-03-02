@@ -34,7 +34,10 @@ export function EditSubjectModal({ opened, onClose, onSuccess, subject }: EditSu
     useEffect(() => {
         if (opened) {
             Promise.all([classesApi.getAll(), staffService.getAll()]).then(([clsData, staffData]) => {
-                setClasses(clsData.map(c => ({ value: c.id, label: c.name })));
+                setClasses(clsData.map(c => ({
+                    value: c.id,
+                    label: `${c.name} ${c.level || ''}`.trim()
+                })));
                 setTeachers(staffData
                     .filter(s => s.designation?.toLowerCase().includes('teacher') || ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'].includes(s.user?.role || ''))
                     .map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))

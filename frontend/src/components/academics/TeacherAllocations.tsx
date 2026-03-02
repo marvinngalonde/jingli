@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Group, Text, Select, Modal, Stack } from '@mantine/core';
+import { Button, Group, Text, Select, Drawer, Stack, Box } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { DataTable, type Column } from '../common/DataTable';
 import { ActionMenu } from '../common/ActionMenu';
@@ -156,37 +156,39 @@ export function TeacherAllocations() {
                 pagination={{ total: 1, page: 1, onChange: () => { } }}
             />
 
-            <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title="Assign Teacher to Subject" centered>
-                <form onSubmit={form.onSubmit(handleSubmit)}>
-                    <Stack gap="md">
-                        <Select
-                            label="Teacher"
-                            placeholder="Select a teacher"
-                            data={teachers}
-                            searchable
-                            {...form.getInputProps('staffId')}
-                        />
-                        <Select
-                            label="Subject"
-                            placeholder="Select a subject"
-                            data={subjects}
-                            searchable
-                            {...form.getInputProps('subjectId')}
-                        />
-                        <Select
-                            label="Class Section"
-                            placeholder="Select a class section"
-                            data={classes}
-                            searchable
-                            {...form.getInputProps('sectionId')}
-                        />
-                        <Group justify="flex-end" mt="md">
-                            <Button variant="default" onClick={() => setModalOpened(false)}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Assign</Button>
-                        </Group>
-                    </Stack>
-                </form>
-            </Modal>
+            <Drawer opened={modalOpened} onClose={() => setModalOpened(false)} title="Assign Teacher to Subject" position="right" size="md">
+                <Box p={0}>
+                    <form onSubmit={form.onSubmit(handleSubmit)}>
+                        <Stack gap="md">
+                            <Select
+                                label="Teacher"
+                                placeholder="Select a teacher"
+                                data={teachers}
+                                searchable
+                                {...form.getInputProps('staffId')}
+                            />
+                            <Select
+                                label="Subject"
+                                placeholder="Select a subject"
+                                data={subjects}
+                                searchable
+                                {...form.getInputProps('subjectId')}
+                            />
+                            <Select
+                                label="Class Section"
+                                placeholder="Select a class section"
+                                data={classes}
+                                searchable
+                                {...form.getInputProps('sectionId')}
+                            />
+                            <Group justify="flex-end" mt="md">
+                                <Button variant="subtle" onClick={() => setModalOpened(false)}>Cancel</Button>
+                                <Button type="submit" loading={submitting}>Assign</Button>
+                            </Group>
+                        </Stack>
+                    </form>
+                </Box>
+            </Drawer>
         </>
     );
 }

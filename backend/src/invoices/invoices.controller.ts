@@ -47,14 +47,14 @@ export class InvoicesController {
     @Get()
     @ApiOperation({ summary: 'List Invoices' })
     @ApiQuery({ name: 'studentId', required: false })
-    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT)
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
     findAll(@Req() req: any, @Query('studentId') studentId?: string) {
         return this.invoicesService.findAll(req.user.schoolId, studentId);
     }
 
     @Get(':id')
     @ApiOperation({ summary: 'Get Invoice Details' })
-    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT)
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
     findOne(@Req() req: any, @Param('id') id: string) {
         return this.invoicesService.findOne(id, req.user.schoolId);
     }
