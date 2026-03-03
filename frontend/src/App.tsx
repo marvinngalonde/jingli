@@ -76,6 +76,7 @@ import ParentFees from './pages/parent/admin/ParentFees';
 
 // Admin Pages
 import Users from './pages/admin/Users';
+import AcademicYears from './pages/admin/AcademicYears';
 import Settings from './pages/admin/Settings';
 import Reports from './pages/Reports';
 
@@ -145,6 +146,7 @@ function AppContent() {
 
           {/* Admin Routes */}
           <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/academic-years" element={<AcademicYears />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/reports" element={<Reports />} />
 

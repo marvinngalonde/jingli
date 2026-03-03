@@ -174,6 +174,7 @@ export function DashboardLayout() {
             roles: ['admin', 'finance'],
             links: [
                 { icon: IconUsers, label: 'Users', to: '/admin/users', roles: ['admin'] },
+                { icon: IconCalendar, label: 'Academic Years', to: '/admin/academic-years', roles: ['admin'] },
                 { icon: IconSettings, label: 'Settings', to: '/settings', roles: ['admin'] },
             ]
         }
