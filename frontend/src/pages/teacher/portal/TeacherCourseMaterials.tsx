@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, TextInput, Select, Drawer, Textarea, ScrollArea, SimpleGrid, Paper, ThemeIcon, Modal, FileInput } from '@mantine/core';
 import { IconUpload, IconFile, IconTrash, IconDownload, IconEdit, IconSearch, IconFileText, IconPhoto, IconVideo, IconFileSpreadsheet, IconCloudDownload, IconFileCheck } from '@tabler/icons-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { storageService } from '../../../services/storageService';
 
@@ -35,17 +36,14 @@ function getFileLabel(fileType: string | null) {
 }
 
 export function TeacherCourseMaterials() {
+    const queryClient = useQueryClient();
     const { sectionId } = useParams();
     const navigate = useNavigate();
-    const [materials, setMaterials] = useState<CourseMaterial[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-    const [deleting, setDeleting] = useState(false);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -54,51 +52,40 @@ export function TeacherCourseMaterials() {
     const [file, setFile] = useState<File | null>(null);
     const [subjectId, setSubjectId] = useState('');
     const [selectedGlobalSectionId, setSelectedGlobalSectionId] = useState<string | null>(null);
-    const [availableSubjects, setAvailableSubjects] = useState<{ value: string; label: string }[]>([]);
-    const [availableClasses, setAvailableClasses] = useState<{ value: string; label: string }[]>([]);
+    const { data: classesData = [], isLoading: loadingClasses } = useQuery({
+        queryKey: ['teacherClasses'],
+        queryFn: () => api.get('/teacher/classes').then(res => res.data)
+    });
 
-    const fetchMaterials = useCallback(async () => {
-        setLoading(true);
-        try {
-            if (sectionId) {
-                const [matsRes, classesRes] = await Promise.all([
-                    api.get(`/teacher/classes/${sectionId}/materials`),
-                    api.get('/teacher/classes'),
-                ]);
-                setMaterials(matsRes.data);
-                const cls = classesRes.data.find((c: any) => c.section.id === sectionId);
-                if (cls) {
-                    setAvailableSubjects(cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
-                    if (cls.subjects.length > 0 && !subjectId) setSubjectId(cls.subjects[0].id);
-                }
-            } else {
-                const [matsRes, classesRes] = await Promise.all([
-                    api.get('/teacher/materials'),
-                    api.get('/teacher/classes'),
-                ]);
-                setMaterials(matsRes.data);
-                setAvailableClasses(classesRes.data.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` })));
-            }
-        } catch { notifications.show({ title: 'Error', message: 'Failed to load materials', color: 'red' }); }
-        finally { setLoading(false); }
-    }, [sectionId]);
+    const { data: materialsData = [], isLoading: loadingMaterials } = useQuery({
+        queryKey: ['teacherMaterials', sectionId],
+        queryFn: () => {
+            if (sectionId) return api.get(`/teacher/classes/${sectionId}/materials`).then(res => res.data);
+            return api.get('/teacher/materials').then(res => res.data);
+        }
+    });
 
-    useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+    const materials = materialsData as CourseMaterial[];
+    const loading = loadingClasses || loadingMaterials;
 
-    // Fetch subjects when global section changes
+    const availableClasses = useMemo(() => {
+        if (sectionId) return [];
+        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` }));
+    }, [classesData, sectionId]);
+
+    const availableSubjects = useMemo(() => {
+        const targetId = sectionId || selectedGlobalSectionId;
+        if (!targetId) return [];
+        const cls = classesData.find((c: any) => c.section.id === targetId);
+        if (cls) return cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` }));
+        return [];
+    }, [classesData, sectionId, selectedGlobalSectionId]);
+
     useEffect(() => {
-        if (sectionId || !selectedGlobalSectionId) return;
-        (async () => {
-            try {
-                const { data } = await api.get('/teacher/classes');
-                const cls = data.find((c: any) => c.section.id === selectedGlobalSectionId);
-                if (cls) {
-                    setAvailableSubjects(cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
-                    if (cls.subjects.length > 0) setSubjectId(cls.subjects[0].id);
-                }
-            } catch { /* ignore */ }
-        })();
-    }, [selectedGlobalSectionId, sectionId]);
+        if (availableSubjects.length > 0 && !subjectId && !editingId) {
+            setSubjectId(availableSubjects[0].value);
+        }
+    }, [availableSubjects, subjectId, editingId]);
 
     const resetForm = () => { setTitle(''); setDescription(''); setFileUrl(''); setFile(null); setSubjectId(''); setEditingId(null); if (!sectionId) setSelectedGlobalSectionId(null); };
 
@@ -112,11 +99,9 @@ export function TeacherCourseMaterials() {
         openDrawer();
     };
 
-    const handleSave = async () => {
-        const targetSectionId = sectionId || selectedGlobalSectionId;
-        if (!title || (!fileUrl && !file)) return;
-        setSaving(true);
-        try {
+    const saveMutation = useMutation({
+        mutationFn: async () => {
+            const targetSectionId = sectionId || selectedGlobalSectionId;
             let uploadedUrl = fileUrl;
             let fileType = fileUrl ? fileUrl.split('.').pop() || 'unknown' : 'unknown';
 
@@ -129,39 +114,53 @@ export function TeacherCourseMaterials() {
             if (editingId) {
                 await api.delete(`/teacher/materials/${editingId}`);
                 if (targetSectionId && subjectId) {
-                    await api.post(`/teacher/classes/${targetSectionId}/materials`, {
+                    return api.post(`/teacher/classes/${targetSectionId}/materials`, {
                         title, description, fileUrl: uploadedUrl,
                         fileType,
                         subjectId,
                     });
                 }
-                notifications.show({ title: 'Updated', message: `"${title}" updated successfully`, color: 'green' });
             } else {
-                if (!subjectId || !targetSectionId) return;
-                await api.post(`/teacher/classes/${targetSectionId}/materials`, {
+                if (!subjectId || !targetSectionId) throw new Error('Missing target section or subject');
+                return api.post(`/teacher/classes/${targetSectionId}/materials`, {
                     title, description, fileUrl: uploadedUrl,
                     fileType,
                     subjectId,
                 });
-                notifications.show({ title: 'Uploaded', message: `"${title}" uploaded successfully`, color: 'green' });
             }
+        },
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: `Material ${editingId ? 'updated' : 'uploaded'}`, color: 'green' });
             closeDrawer();
             resetForm();
-            fetchMaterials();
-        } catch { notifications.show({ title: 'Error', message: 'Failed to save material', color: 'red' }); }
-        finally { setSaving(false); }
+            queryClient.invalidateQueries({ queryKey: ['teacherMaterials'] });
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to save material', color: 'red' });
+        }
+    });
+
+    const handleSave = () => {
+        if (!title || (!fileUrl && !file)) return;
+        saveMutation.mutate();
     };
 
-    const handleDelete = async () => {
-        if (!deleteTarget) return;
-        setDeleting(true);
-        try {
-            await api.delete(`/teacher/materials/${deleteTarget.id}`);
-            setMaterials(prev => prev.filter(m => m.id !== deleteTarget.id));
-            notifications.show({ title: 'Deleted', message: `"${deleteTarget.title}" deleted`, color: 'orange' });
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/teacher/materials/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: `"${deleteTarget?.title}" deleted`, color: 'orange' });
+            queryClient.invalidateQueries({ queryKey: ['teacherMaterials'] });
             setDeleteTarget(null);
-        } catch { notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' }); }
-        finally { setDeleting(false); }
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+            setDeleteTarget(null);
+        }
+    });
+
+    const handleDelete = () => {
+        if (!deleteTarget) return;
+        deleteMutation.mutate(deleteTarget.id);
     };
 
     const filtered = materials.filter(m => m.title.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -318,7 +317,7 @@ export function TeacherCourseMaterials() {
                     />
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={closeDrawer}>Cancel</Button>
-                        <Button onClick={handleSave} loading={saving} disabled={!title || (!fileUrl && !file)}>
+                        <Button onClick={handleSave} loading={saveMutation.isPending} disabled={!title || (!fileUrl && !file)}>
                             {editingId ? 'Update' : 'Upload'}
                         </Button>
                     </Group>
@@ -330,7 +329,7 @@ export function TeacherCourseMaterials() {
                 <Text size="sm">Are you sure you want to delete <b>"{deleteTarget?.title}"</b>? This cannot be undone.</Text>
                 <Group justify="flex-end" mt="lg">
                     <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-                    <Button color="red" onClick={handleDelete} loading={deleting}>Delete</Button>
+                    <Button color="red" onClick={handleDelete} loading={deleteMutation.isPending}>Delete</Button>
                 </Group>
             </Modal>
         </Stack>

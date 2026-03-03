@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Loader, Center, Badge, Group, Paper, Table, ThemeIcon, SimpleGrid, Progress, Accordion, Avatar } from '@mantine/core';
 import { IconCurrencyDollar, IconFileInvoice, IconAlertCircle, IconCheck, IconUser } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { notifications } from '@mantine/notifications';
@@ -26,28 +27,18 @@ interface ChildData {
 
 export default function ParentFees() {
     const { user } = useAuth();
-    const [children, setChildren] = useState<ChildData[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadChildrenFees();
-    }, [user]);
-
-    const loadChildrenFees = async () => {
-        try {
-            setLoading(true);
+    const { data: childrenData = [], isLoading: loading } = useQuery({
+        queryKey: ['parentChildrenFinances', user?.profile?.id],
+        queryFn: async () => {
             const parentId = user?.profile?.id;
-            if (parentId) {
-                const res = await api.get(`/parent/children/finances`);
-                setChildren(res.data);
-            }
-        } catch (error) {
-            console.error('Failed to load children fees', error);
-            notifications.show({ title: 'Error', message: 'Failed to load fee information', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (!parentId) return [];
+            const res = await api.get(`/parent/children/finances`);
+            return res.data;
+        },
+        enabled: !!user?.profile?.id
+    });
+
+    const children = childrenData as ChildData[];
 
     const grandTotalDue = children.reduce((sum, child) =>
         sum + child.invoices.reduce((s, i) => s + (i.totalAmount - i.paidAmount), 0), 0

@@ -12,6 +12,9 @@ export class SalariesService {
                 schoolId,
                 staffId: dto.staffId,
                 amount: dto.amount,
+                baseSalary: dto.baseSalary || dto.amount,
+                allowances: dto.allowances || 0,
+                deductions: dto.deductions || 0,
                 currency: dto.currency || 'USD',
                 month: dto.month,
                 year: dto.year,
@@ -22,6 +25,9 @@ export class SalariesService {
     }
 
     async runPayroll(dto: RunPayrollDto, schoolId: string, processedByUserId: string) {
+        const month = parseInt(dto.month as any);
+        const year = parseInt(dto.year as any);
+
         // Get all active staff
         const allStaff = await this.prisma.staff.findMany({
             where: { schoolId },
@@ -32,7 +38,7 @@ export class SalariesService {
 
         // Check for existing payroll entries this month
         const existing = await this.prisma.salaryPayment.findMany({
-            where: { schoolId, month: dto.month, year: dto.year },
+            where: { schoolId, month, year },
             select: { staffId: true },
         });
         const existingStaffIds = new Set(existing.map(e => e.staffId));
@@ -41,14 +47,17 @@ export class SalariesService {
         for (const staff of activeStaff) {
             if (existingStaffIds.has(staff.id)) continue; // Skip duplicates
 
+            const baseSalary = Number(staff.baseSalary || 0);
+
             await this.prisma.salaryPayment.create({
                 data: {
                     schoolId,
                     staffId: staff.id,
-                    amount: 0, // To be filled manually or from salary scale
+                    baseSalary,
+                    amount: baseSalary, // Net amount is same as base if no allowances/deductions
                     currency: dto.currency || 'USD',
-                    month: dto.month,
-                    year: dto.year,
+                    month,
+                    year,
                     status: 'PENDING',
                     processedBy: processedByUserId,
                 },
@@ -56,7 +65,7 @@ export class SalariesService {
             count++;
         }
 
-        return { count, message: `Created ${count} payroll entries for ${dto.month}/${dto.year}` };
+        return { count, message: `Created ${count} payroll entries for ${month}/${year}` };
     }
 
     async findAll(schoolId: string, month?: number, year?: number) {
@@ -85,11 +94,31 @@ export class SalariesService {
     }
 
     async update(id: string, dto: UpdateSalaryPaymentDto, schoolId: string) {
-        const { status, method, ...rest } = dto;
+        const { status, method, amount, baseSalary, allowances, deductions, ...rest } = dto;
+
+        // Fetch current calculation if only partial data provided
+        const current = await this.prisma.salaryPayment.findUnique({
+            where: { id },
+            select: { baseSalary: true, allowances: true, deductions: true, amount: true }
+        });
+
+        if (!current) return null;
+
+        const newBase = baseSalary !== undefined ? baseSalary : Number(current.baseSalary);
+        const newAllowances = allowances !== undefined ? allowances : Number(current.allowances);
+        const newDeductions = deductions !== undefined ? deductions : Number(current.deductions);
+
+        // Calculate net amount automate
+        const netAmount = amount !== undefined ? amount : (newBase + newAllowances - newDeductions);
+
         return this.prisma.salaryPayment.update({
             where: { id, schoolId },
             data: {
                 ...rest,
+                baseSalary: newBase,
+                allowances: newAllowances,
+                deductions: newDeductions,
+                amount: netAmount,
                 ...(status && { status: status as any }),
                 ...(method && { method: method as any }),
             },

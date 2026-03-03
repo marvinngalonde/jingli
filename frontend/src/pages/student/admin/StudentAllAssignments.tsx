@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, Table, Avatar, ActionIcon, SimpleGrid } from '@mantine/core';
+import { useAuth } from '../../../context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { IconClipboardList, IconClock, IconCheck, IconAlertCircle, IconChevronRight } from '@tabler/icons-react';
 import { api } from '../../../services/api';
-import { useAuth } from '../../../context/AuthContext';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { notifications } from '@mantine/notifications';
+import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, Table, Avatar, ActionIcon, SimpleGrid } from '@mantine/core';
 import { format } from 'date-fns';
 
 interface Assignment {
@@ -25,17 +24,9 @@ interface Assignment {
 
 export default function StudentAllAssignments() {
     const { user } = useAuth();
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadAssignments();
-    }, []);
-
-    const loadAssignments = async () => {
-        try {
-            setLoading(true);
-            // Load assignments from all enrolled subjects
+    const { data: assignmentsData = [], isLoading: loading } = useQuery({
+        queryKey: ['studentAllAssignments'],
+        queryFn: async () => {
             const classesRes = await api.get('/student/classes');
             const subjects = classesRes.data || [];
             const allAssignments: Assignment[] = [];
@@ -49,14 +40,11 @@ export default function StudentAllAssignments() {
                 } catch { /* skip subjects with no assignments */ }
             }
 
-            setAssignments(allAssignments);
-        } catch (error) {
-            console.error('Failed to load assignments', error);
-            notifications.show({ title: 'Error', message: 'Failed to load assignments', color: 'red' });
-        } finally {
-            setLoading(false);
+            return allAssignments;
         }
-    };
+    });
+
+    const assignments = assignmentsData;
 
     if (loading) return <Center h={400}><Loader /></Center>;
 

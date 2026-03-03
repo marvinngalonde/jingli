@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Grid, Paper, Title, Stack, Text, Center, Loader, ActionIcon, Tooltip, Group, Modal, Select } from '@mantine/core';
 import { IconMessagePlus } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
@@ -10,46 +11,38 @@ import { api } from '../../services/api';
 
 export function Messenger() {
     const { user } = useAuth();
-    const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedPartner, setSelectedPartner] = useState<Conversation['partner'] | null>(null);
 
     // New Chat Modal
     const [modalOpened, setModalOpened] = useState(false);
-    const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
-    const [searchingUsers, setSearchingUsers] = useState(false);
 
-    useEffect(() => {
-        loadConversations();
-    }, []);
+    const { data: conversationsData, isLoading: loading } = useQuery({
+        queryKey: ['conversations', user?.id],
+        queryFn: async () => {
+            if (!user) return [];
+            return await messagesService.getConversations(user.id);
+        },
+        enabled: !!user?.id
+    });
 
-    const loadConversations = async () => {
-        if (!user) return;
-        try {
-            const data = await messagesService.getConversations(user.id);
-            setConversations(data);
-        } catch (error) {
-            console.error("Failed to load conversations", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const conversations = conversationsData || [];
 
-    const handleNewChat = async () => {
-        setModalOpened(true);
-        setSearchingUsers(true);
-        try {
-            const resp = await api.get('/users/search'); // I assuming such endpoint exists based on usual patterns or I'll need to check
-            const userList = resp.data.filter((u: any) => u.id !== user?.id).map((u: any) => ({
+    const { data: usersData, isLoading: searchingUsers } = useQuery({
+        queryKey: ['usersSearch'],
+        queryFn: async () => {
+            const resp = await api.get('/users/search');
+            return resp.data.filter((u: any) => u.id !== user?.id).map((u: any) => ({
                 value: u.id,
                 label: `${u.email} (${u.role})`
             }));
-            setUsers(userList);
-        } catch (error) {
-            console.error("Failed to search users", error);
-        } finally {
-            setSearchingUsers(false);
-        }
+        },
+        enabled: modalOpened
+    });
+
+    const users = usersData || [];
+
+    const handleNewChat = () => {
+        setModalOpened(true);
     };
 
     const startConversation = (userId: string) => {
@@ -59,7 +52,7 @@ export function Messenger() {
             setSelectedPartner(existing.partner);
         } else {
             // Mock a partner object if starting fresh
-            const selectedUser = users.find(u => u.value === userId);
+            const selectedUser = users.find((u: { value: string; label: string }) => u.value === userId);
             if (selectedUser) {
                 // This is a bit hacky since we don't have the full partner profile yet
                 setSelectedPartner({

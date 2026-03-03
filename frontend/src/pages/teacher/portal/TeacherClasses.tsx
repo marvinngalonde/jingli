@@ -1,6 +1,6 @@
 import { Title, Text, Stack, Card, Button, SimpleGrid, Group, ThemeIcon, Badge, LoadingOverlay, Menu, ActionIcon } from '@mantine/core';
 import { IconBooks, IconUsers, IconDotsVertical, IconEye, IconMessageDots, IconFileDescription, IconClipboardList } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -16,25 +16,14 @@ interface TeacherClass {
 }
 
 export function TeacherClasses() {
-    const [classes, setClasses] = useState<TeacherClass[]>([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
     const basePath = location.pathname.startsWith('/teacher') ? '/teacher' : '/portal';
 
-    useEffect(() => {
-        const fetchClasses = async () => {
-            try {
-                const { data } = await api.get('/teacher/classes');
-                setClasses(data);
-            } catch (error) {
-                console.error("Failed to fetch classes", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchClasses();
-    }, []);
+    const { data: classes = [], isLoading: loading } = useQuery({
+        queryKey: ['teacherClasses'],
+        queryFn: () => api.get('/teacher/classes').then(res => res.data)
+    });
 
     return (
         <Stack gap="lg" pos="relative">

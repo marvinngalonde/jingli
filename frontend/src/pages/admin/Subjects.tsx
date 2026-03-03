@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Button,
     Group,
@@ -31,37 +32,22 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Subjects({ asComponent }: { asComponent?: boolean }) {
     const [search, setSearch] = useState('');
-    const { user } = useAuth();
-
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [page, setPage] = useState(1);
     const [createModalOpened, setCreateModalOpened] = useState(false);
     const [editModalOpened, setEditModalOpened] = useState(false);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-    const [page, setPage] = useState(1);
+    const { user } = useAuth();
 
-    // Fetch subjects on mount
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
+    const { data: subjects = [], isLoading: loading, error: queryError, refetch: fetchSubjects } = useQuery({
+        queryKey: ['subjects'],
+        queryFn: () => subjectsApi.getAll()
+    });
 
-    const fetchSubjects = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await subjectsApi.getAll();
-            setSubjects(data);
-        } catch (err: any) {
-            console.error('Failed to fetch subjects:', err);
-            setError(err.response?.data?.message || 'Failed to load subjects');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const errorObj = queryError as any;
+    const error = errorObj ? errorObj.message : null;
 
-    const filteredData = subjects.filter(item => {
+    const filteredData = subjects.filter((item: Subject) => {
         const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
             item.code.toLowerCase().includes(search.toLowerCase()) ||
             (item.department?.toLowerCase().includes(search.toLowerCase()) || false);

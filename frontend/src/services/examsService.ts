@@ -33,6 +33,11 @@ export const examsService = {
         return response.data;
     },
 
+    createTerm: async (data: any) => {
+        const response = await api.post<ExamTerm>('/exams/terms', data);
+        return response.data;
+    },
+
     // Results
     submitBulkResults: async (examId: string, results: { studentId: string, marksObtained: number, remarks?: string, gradedBy: string }[]) => {
         const response = await api.post('/exam-results/bulk', { examId, results });

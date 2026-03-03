@@ -12,68 +12,58 @@ import {
     Button
 } from '@mantine/core';
 import { Search, Bell, ChevronDown, LogOut, User, Settings, Check } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/authService';
-import { notificationsService, type Notification } from '../services/notificationsService';
-import { showSuccessNotification, showErrorNotification } from '../utils/notifications';
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { authService } from '../../services/authService';
+import { notificationsService, type Notification } from '../../services/notificationsService';
+import { showSuccessNotification, showErrorNotification } from '../../utils/notifications';
 
 export default function DashboardHeader() {
     const navigate = useNavigate();
-    const [userProfile, setUserProfile] = useState<any>(null);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        loadUserProfile();
-        loadNotifications();
+    const { data: userProfile } = useQuery({
+        queryKey: ['userProfile'],
+        queryFn: () => authService.getCurrentProfile(),
+        staleTime: 5 * 60 * 1000, // Cache profile for 5 minutes
+    });
 
-        // Polling for new notifications every minute
-        const interval = setInterval(loadNotifications, 60000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const loadUserProfile = async () => {
-        try {
-            const profile = await authService.getCurrentProfile();
-            setUserProfile(profile);
-        } catch (error) {
-            console.error('Failed to load user profile:', error);
-        }
-    };
-
-    const loadNotifications = async () => {
-        try {
+    const { data: notificationData } = useQuery({
+        queryKey: ['notifications'],
+        queryFn: async () => {
             const [notifs, count] = await Promise.all([
                 notificationsService.getAll(),
                 notificationsService.getUnreadCount()
             ]);
-            setNotifications(notifs);
-            setUnreadCount(count.count);
-        } catch (error) {
-            console.error('Failed to load notifications:', error);
+            return { notifications: notifs, unreadCount: count.count };
+        },
+        refetchInterval: 60000, // Poll every minute replacing setInterval
+    });
+
+    const notifications = notificationData?.notifications || [];
+    const unreadCount = notificationData?.unreadCount || 0;
+
+    const markAsReadMutation = useMutation({
+        mutationFn: (id: string) => notificationsService.markAsRead(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         }
+    });
+
+    const markAllAsReadMutation = useMutation({
+        mutationFn: () => notificationsService.markAllAsRead(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+    });
+
+    const handleMarkAsRead = (id: string) => {
+        markAsReadMutation.mutate(id);
     };
 
-    const handleMarkAsRead = async (id: string) => {
-        try {
-            await notificationsService.markAsRead(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, readStatus: true } : n));
-            setUnreadCount(prev => Math.max(0, prev - 1));
-        } catch (error) {
-            console.error('Failed to mark notification as read:', error);
-        }
-    };
-
-    const handleMarkAllAsRead = async () => {
-        try {
-            await notificationsService.markAllAsRead();
-            setNotifications(prev => prev.map(n => ({ ...n, readStatus: true })));
-            setUnreadCount(0);
-        } catch (error) {
-            console.error('Failed to mark all as read:', error);
-        }
+    const handleMarkAllAsRead = () => {
+        markAllAsReadMutation.mutate();
     };
 
     const handleLogout = async () => {
@@ -156,7 +146,7 @@ export default function DashboardHeader() {
                             {notifications.length === 0 ? (
                                 <Text c="dimmed" size="sm" ta="center" py="xl">No notifications yet</Text>
                             ) : (
-                                notifications.map(notif => (
+                                notifications.map((notif: Notification) => (
                                     <Menu.Item
                                         key={notif.id}
                                         onClick={() => !notif.readStatus && handleMarkAsRead(notif.id)}

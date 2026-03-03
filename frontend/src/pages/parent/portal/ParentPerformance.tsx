@@ -2,6 +2,7 @@ import { Title, Text, Stack, Card, Group, Select, LoadingOverlay, Table, Badge, 
 import { IconUsers, IconAward } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { format } from 'date-fns';
 
@@ -31,44 +32,35 @@ interface PerformanceData {
 
 export function ParentPerformance() {
     const { } = useAuth();
-    const [children, setChildren] = useState<Child[]>([]);
     const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-    const [data, setData] = useState<PerformanceData>({ attendancePercentage: 0, totalClasses: 0, attendedClasses: 0, recentGrades: [] });
-    const [loading, setLoading] = useState(true);
+
+    const { data: childrenData, isLoading: loadingChildren } = useQuery({
+        queryKey: ['parentChildren'],
+        queryFn: async () => {
+            const res = await api.get('/parent/children');
+            return res.data as Child[];
+        }
+    });
+
+    const children = childrenData || [];
 
     useEffect(() => {
-        const fetchChildren = async () => {
-            try {
-                const res = await api.get('/parent/children');
-                setChildren(res.data);
-                if (res.data.length > 0) {
-                    setSelectedChildId(res.data[0].id);
-                } else {
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Failed to fetch children", error);
-                setLoading(false);
-            }
-        };
-        fetchChildren();
-    }, []);
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
+        }
+    }, [children, selectedChildId]);
 
-    useEffect(() => {
-        if (!selectedChildId) return;
-        const fetchPerformance = async () => {
-            setLoading(true);
-            try {
-                const res = await api.get(`/parent/performance/${selectedChildId}`);
-                setData(res.data);
-            } catch (error) {
-                console.error("Failed to fetch performance stats", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPerformance();
-    }, [selectedChildId]);
+    const { data: performanceData, isLoading: loadingPerformance } = useQuery({
+        queryKey: ['parentPerformance', selectedChildId],
+        queryFn: async () => {
+            const res = await api.get(`/parent/performance/${selectedChildId}`);
+            return res.data as PerformanceData;
+        },
+        enabled: !!selectedChildId
+    });
+
+    const data = performanceData || { attendancePercentage: 0, totalClasses: 0, attendedClasses: 0, recentGrades: [] };
+    const loading = loadingChildren || (!!selectedChildId && loadingPerformance);
 
     return (
         <Stack gap="lg" pos="relative">

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Table,
     Group,
@@ -35,66 +36,53 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
     // Data
     const [students, setStudents] = useState<Student[]>([]);
     const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceRecord | null>>({});
-    const [classes, setClasses] = useState<{ value: string; label: string }[]>([]);
+    const [modifiedRecords, setModifiedRecords] = useState<Set<string>>(new Set());
+    const queryClient = useQueryClient();
 
-    // Loading states
-    const [loadingData, setLoadingData] = useState(false);
-    const [saving, setSaving] = useState(false);
-
-    // Load classes for dropdown
-    useEffect(() => {
-        loadClasses();
-    }, []);
-
-    // Load students and existing attendance when class/date changes
-    useEffect(() => {
-        if (selectedClassId && selectedDate) {
-            loadSheetData();
-        }
-    }, [selectedClassId, selectedDate]);
-
-    const loadClasses = async () => {
-        try {
+    const { data: classesRaw = [], isLoading: classesLoading } = useQuery({
+        queryKey: ['attendanceClasses', user?.id],
+        queryFn: () => {
             const filters = isTeacherRole(user?.role || '') ? { teacherId: user?.id } : undefined;
-            // Fetch all sections suitable for attendance
-            // Assuming academicsService has a way to get all sections or we use classes endpoint
-            const data = await academicsService.getClasses(filters);
-            // Flatten to sections for the dropdown: "Grade 10 - A"
-            const options = data.flatMap(cls =>
-                cls.sections?.map(sec => ({
-                    value: sec.id,
-                    label: `${cls.name} - ${sec.name}`
-                })) || []
-            );
-            setClasses(options);
-        } catch (error) {
-            console.error("Failed to load classes", error);
+            return academicsService.getClasses(filters);
         }
-    };
+    });
 
-    const loadSheetData = async () => {
-        if (!selectedClassId) return;
-        setLoadingData(true);
-        try {
-            // 1. Get Students in Section
-            // Direct use of classesApi to avoid stale service object issues in HMR
-            const studentList = await classesApi.getStudents(selectedClassId);
-            setStudents(studentList.sort((a: any, b: any) => a.lastName.localeCompare(b.lastName)));
+    const classes = useMemo(() => {
+        return classesRaw.flatMap((cls: any) =>
+            cls.sections?.map((sec: any) => ({
+                value: sec.id,
+                label: `${cls.name} - ${sec.name}`.trim()
+            })) || []
+        );
+    }, [classesRaw]);
 
-            // 2. Get Existing Attendance
-            const records = await attendanceService.getClassAttendance(selectedClassId, selectedDate);
+    const { data: sheetData, isLoading: sheetLoading } = useQuery({
+        queryKey: ['attendanceSheet', selectedClassId, selectedDate.toISOString().split('T')[0]],
+        queryFn: async () => {
+            if (!selectedClassId) return null;
+            const [studentList, records] = await Promise.all([
+                classesApi.getStudents(selectedClassId),
+                attendanceService.getClassAttendance(selectedClassId, selectedDate)
+            ]);
+
+            const sortedStudents = studentList.sort((a: any, b: any) => a.lastName.localeCompare(b.lastName));
             const map: Record<string, AttendanceRecord> = {};
-            records.forEach(r => {
+            records.forEach((r: any) => {
                 map[r.studentId] = r;
             });
-            setAttendanceMap(map);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' });
-        } finally {
-            setLoadingData(false);
+
+            return { students: sortedStudents, attendanceMap: map };
+        },
+        enabled: !!selectedClassId
+    });
+
+    useEffect(() => {
+        if (sheetData) {
+            setStudents(sheetData.students);
+            setAttendanceMap(sheetData.attendanceMap as any);
+            setModifiedRecords(new Set());
         }
-    };
+    }, [sheetData]);
 
     const handleStatusChange = (studentId: string, status: string) => {
         // Optimistic update map
@@ -107,36 +95,38 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
                 date: selectedDate.toISOString()
             } as any
         }));
+        setModifiedRecords(prev => new Set(prev).add(studentId));
     };
 
-    const handleSave = async () => {
-        if (!selectedClassId || !user?.id) return;
-        setSaving(true);
-        try {
-            const records: CreateAttendanceDto[] = students.map(student => {
-                const current = attendanceMap[student.id];
-                return {
-                    studentId: student.id,
-                    date: selectedDate,
-                    status: current?.status || 'PRESENT', // Default to present if not marked? Or PENDING? Common pattern is default present.
-                    remarks: current?.remarks,
-                    recordedBy: user.id
-                };
-            });
-
-            await attendanceService.bulkCreate({ records });
+    const saveMutation = useMutation({
+        mutationFn: (records: CreateAttendanceDto[]) => attendanceService.bulkCreate({ records }),
+        onSuccess: () => {
             notifications.show({ title: 'Saved', message: 'Attendance recorded successfully', color: 'green' });
-            loadSheetData(); // Refresh to get IDs etc
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to save attendance', color: 'red' });
-        } finally {
-            setSaving(false);
-        }
+            setModifiedRecords(new Set());
+            queryClient.invalidateQueries({ queryKey: ['attendanceSheet'] });
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to save attendance', color: 'red' })
+    });
+
+    const handleSave = () => {
+        if (!selectedClassId || !user?.id) return;
+        const records: CreateAttendanceDto[] = students.map(student => {
+            const current = attendanceMap[student.id];
+            return {
+                studentId: student.id,
+                date: selectedDate,
+                status: current?.status || 'PRESENT',
+                remarks: current?.remarks,
+                recordedBy: user.id
+            };
+        });
+
+        saveMutation.mutate(records);
     };
 
     const markAll = (status: AttendanceStatus) => {
         const newMap = { ...attendanceMap };
+        const newModified = new Set(modifiedRecords);
         students.forEach(s => {
             newMap[s.id] = {
                 ...newMap[s.id],
@@ -144,8 +134,10 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
                 status: status,
                 date: selectedDate.toISOString()
             } as any;
+            newModified.add(s.id);
         });
         setAttendanceMap(newMap);
+        setModifiedRecords(newModified);
     };
 
     if (classes.length === 0 && !selectedClassId) {
@@ -175,7 +167,7 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
                     <Button variant="default" size="xs" onClick={() => markAll('PRESENT')}>All Present</Button>
                     <Button
                         leftSection={<IconDeviceFloppy size={16} />}
-                        loading={saving}
+                        loading={saveMutation.isPending}
                         onClick={handleSave}
                         disabled={!selectedClassId || students.length === 0}
                     >
@@ -184,7 +176,7 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
                 </Group>
             </Group>
 
-            {loadingData ? (
+            {sheetLoading || classesLoading ? (
                 <Center p="xl"><Loader /></Center>
             ) : !selectedClassId ? (
                 <Center p="xl"><Text c="dimmed">Select a class to mark attendance</Text></Center>
@@ -237,7 +229,9 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
                                         />
                                     </Table.Td>
                                     <Table.Td>
-                                        {record ? (
+                                        {modifiedRecords.has(student.id) ? (
+                                            <Badge color="yellow" variant="light">Pending</Badge>
+                                        ) : record ? (
                                             <Badge
                                                 color={record.status === 'PRESENT' ? 'green' : record.status === 'ABSENT' ? 'red' : 'yellow'}
                                                 variant="light"

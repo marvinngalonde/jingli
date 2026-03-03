@@ -15,7 +15,7 @@ export class QuizzesController {
     async createQuiz(@Request() req: any, @Body() data: any) {
         const schoolId = req.user.schoolId;
         // Assuming staffProfile exists to get teacherId, otherwise use userId depending on how other routes do it
-        const teacherId = req.user.staffProfile?.id || req.user.userId;
+        const teacherId = req.user.staffProfile?.id || req.user.id;
         return this.quizzesService.createQuiz(schoolId, teacherId, data);
     }
 
@@ -23,7 +23,7 @@ export class QuizzesController {
     @Roles(UserRole.SUBJECT_TEACHER, UserRole.CLASS_TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     async getMyQuizzes(@Request() req: any) {
         const schoolId = req.user.schoolId;
-        const teacherId = req.user.staffProfile?.id || req.user.userId;
+        const teacherId = req.user.staffProfile?.id || req.user.id;
         return this.quizzesService.getQuizzesByTeacher(schoolId, teacherId);
     }
 

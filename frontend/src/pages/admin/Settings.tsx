@@ -1,13 +1,13 @@
 import { Button, Paper, Title, Text, Switch, Group, Stack, TextInput, Select, Textarea, Loader, Center } from '@mantine/core';
 import { PageHeader } from '../../components/common/PageHeader';
 import { settingsService } from '../../services/settingsService';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 
 export default function Settings() {
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const queryClient = useQueryClient();
 
     const form = useForm({
         initialValues: {
@@ -20,48 +20,46 @@ export default function Settings() {
         },
     });
 
-    useEffect(() => {
-        loadSettings();
-    }, []);
+    const { data: settingsData, isLoading: loading } = useQuery({
+        queryKey: ['settings'],
+        queryFn: async () => await settingsService.getSettings()
+    });
 
-    const loadSettings = async () => {
-        setLoading(true);
-        try {
-            const data = await settingsService.getSettings();
+    useEffect(() => {
+        if (settingsData) {
             form.setValues({
-                name: data.name,
-                contactEmail: data.config?.contactEmail || '',
-                address: data.config?.address || '',
-                notifications: data.config?.notifications ?? true,
-                darkMode: data.config?.darkMode ?? false,
-                language: data.config?.language || 'English',
+                name: settingsData.name,
+                contactEmail: settingsData.config?.contactEmail || '',
+                address: settingsData.config?.address || '',
+                notifications: settingsData.config?.notifications ?? true,
+                darkMode: settingsData.config?.darkMode ?? false,
+                language: settingsData.config?.language || 'English',
             });
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to load settings', color: 'red' });
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [settingsData]);
+
+    const saveMutation = useMutation({
+        mutationFn: (values: typeof form.values) => settingsService.updateSettings({
+            name: values.name,
+            config: {
+                contactEmail: values.contactEmail,
+                address: values.address,
+                notifications: values.notifications,
+                darkMode: values.darkMode,
+                language: values.language,
+            }
+        }),
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Settings updated successfully', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to update settings', color: 'red' });
+        }
+    });
 
     const handleSave = async (values: typeof form.values) => {
-        setSaving(true);
-        try {
-            await settingsService.updateSettings({
-                name: values.name,
-                config: {
-                    contactEmail: values.contactEmail,
-                    address: values.address,
-                    notifications: values.notifications,
-                    darkMode: values.darkMode,
-                    language: values.language,
-                }
-            });
-            notifications.show({ title: 'Success', message: 'Settings updated successfully', color: 'green' });
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to update settings', color: 'red' });
-        } finally {
-            setSaving(false);
-        }
+        saveMutation.mutate(values);
     };
 
     if (loading) {
@@ -73,7 +71,6 @@ export default function Settings() {
             <PageHeader
                 title="System Settings"
                 subtitle="Configure application preferences"
-                actions={<Button variant="light" onClick={loadSettings}>Refresh</Button>}
             />
 
             <form onSubmit={form.onSubmit(handleSave)}>
@@ -115,7 +112,7 @@ export default function Settings() {
                     </Paper>
 
                     <Group justify="flex-end">
-                        <Button type="submit" loading={saving}>Save Changes</Button>
+                        <Button type="submit" loading={saveMutation.isPending}>Save Changes</Button>
                     </Group>
                 </Stack>
             </form>

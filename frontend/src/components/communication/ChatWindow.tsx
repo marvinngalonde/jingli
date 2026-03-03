@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Paper, Stack, ScrollArea, Text, TextInput, ActionIcon, Group, Avatar, Center, Loader } from '@mantine/core';
 import { IconSend } from '@tabler/icons-react';
 import { messagesService } from '../../services/messagesService';
@@ -12,50 +13,46 @@ interface ChatWindowProps {
 
 export function ChatWindow({ partnerId, partnerName }: ChatWindowProps) {
     const { user } = useAuth();
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [newMessage, setNewMessage] = useState('');
     const viewport = useRef<HTMLDivElement>(null);
+
+    const { data: messagesData, isLoading: loading } = useQuery({
+        queryKey: ['chatMessages', user?.id, partnerId],
+        queryFn: async () => {
+            if (!user) return [];
+            return await messagesService.getConversation(user.id, partnerId);
+        },
+        enabled: !!user?.id && !!partnerId,
+        refetchInterval: 5000,
+    });
+
+    const messages = messagesData || [];
 
     const scrollToBottom = () => {
         viewport.current?.scrollTo({ top: viewport.current.scrollHeight, behavior: 'smooth' });
     };
 
     useEffect(() => {
-        loadMessages();
-        const interval = setInterval(loadMessages, 5000); // Poll every 5 seconds for basic "real-time"
-        return () => clearInterval(interval);
-    }, [partnerId]);
-
-    useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    const loadMessages = async () => {
-        if (!user) return;
-        try {
-            const data = await messagesService.getConversation(user.id, partnerId);
-            setMessages(data);
-        } catch (error) {
-            console.error("Failed to load messages", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSend = async () => {
-        if (!newMessage.trim() || !user) return;
-        try {
-            const sent = await messagesService.sendMessage({
-                senderId: user.id,
-                receiverId: partnerId,
-                content: newMessage.trim(),
-            });
-            setMessages([...messages, sent]);
+    const sendMutation = useMutation({
+        mutationFn: (msg: any) => messagesService.sendMessage(msg),
+        onSuccess: () => {
             setNewMessage('');
-        } catch (error) {
-            console.error("Failed to send message", error);
+            queryClient.invalidateQueries({ queryKey: ['chatMessages', user?.id, partnerId] });
+            queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
         }
+    });
+
+    const handleSend = () => {
+        if (!newMessage.trim() || !user) return;
+        sendMutation.mutate({
+            senderId: user.id,
+            receiverId: partnerId,
+            content: newMessage.trim(),
+        });
     };
 
     if (loading) return <Center h="100%"><Loader size="sm" /></Center>;

@@ -61,11 +61,13 @@ export class AssetsService {
     }
 
     async update(id: string, dto: UpdateAssetDto, schoolId: string) {
-        const { condition, ...rest } = dto;
+        const { condition, purchaseDate, categoryId, ...rest } = dto;
         return this.prisma.asset.update({
             where: { id, schoolId },
             data: {
                 ...rest,
+                ...(categoryId && { category: { connect: { id: categoryId } } }),
+                ...(purchaseDate && { purchaseDate: new Date(purchaseDate) }),
                 ...(condition && { condition: condition as any }),
             },
         });

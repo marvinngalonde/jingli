@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Loader, Center, Badge, Group, Paper, Table, ThemeIcon, SimpleGrid, Progress } from '@mantine/core';
 import { IconCurrencyDollar, IconFileInvoice, IconAlertCircle, IconCheck } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { notifications } from '@mantine/notifications';
@@ -18,28 +19,18 @@ interface Invoice {
 
 export default function StudentFees() {
     const { user } = useAuth();
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadInvoices();
-    }, [user]);
-
-    const loadInvoices = async () => {
-        try {
-            setLoading(true);
+    const { data: invoicesData = [], isLoading: loading } = useQuery({
+        queryKey: ['studentInvoices', user?.profile?.id],
+        queryFn: async () => {
             const studentId = user?.profile?.id;
-            if (studentId) {
-                const res = await api.get(`/invoices?studentId=${studentId}`);
-                setInvoices(res.data);
-            }
-        } catch (error) {
-            console.error('Failed to load invoices', error);
-            notifications.show({ title: 'Error', message: 'Failed to load fee information', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (!studentId) return [];
+            const res = await api.get(`/invoices?studentId=${studentId}`);
+            return res.data;
+        },
+        enabled: !!user?.profile?.id
+    });
+
+    const invoices = invoicesData as Invoice[];
 
     const totalDue = invoices.reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0);
     const totalPaid = invoices.reduce((sum, i) => sum + i.paidAmount, 0);

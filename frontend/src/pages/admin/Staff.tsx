@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Button,
     Group,
@@ -24,20 +25,20 @@ import { ActionMenu } from '../../components/common/ActionMenu';
 
 export default function StaffPage() {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<Staff[]>([]);
-    const [filteredData, setFilteredData] = useState<Staff[]>([]);
     const [search, setSearch] = useState('');
+    const [filteredData, setFilteredData] = useState<Staff[]>([]);
     const [deptFilter, setDeptFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
     const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+    const queryClient = useQueryClient();
+
+    const { data: staffList = [], isLoading } = useQuery({
+        queryKey: ['staff'],
+        queryFn: staffService.getAll,
+    });
 
     useEffect(() => {
-        loadStaff();
-    }, []);
-
-    useEffect(() => {
-        let result = data;
+        let result = staffList;
         if (search) {
             const lowerSearch = search.toLowerCase();
             result = result.filter(item =>
@@ -50,63 +51,42 @@ export default function StaffPage() {
             result = result.filter(item => item.department === deptFilter);
         }
         setFilteredData(result);
-    }, [data, search, deptFilter]);
+    }, [staffList, search, deptFilter]);
 
-    const loadStaff = async () => {
-        setLoading(true);
-        try {
-            const staffList = await staffService.getAll();
-            setData(staffList);
-            setFilteredData(staffList);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load staff', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCreate = async (values: any) => {
-        setLoading(true);
-        try {
-            await staffService.create(values);
+    const createMutation = useMutation({
+        mutationFn: staffService.create,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staff'] });
             notifications.show({ message: 'Staff added successfully', color: 'green' });
             closeDrawer();
-            loadStaff();
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to add staff', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to add staff', color: 'red' })
+    });
 
-    const handleUpdate = async (values: any) => {
-        if (!selectedStaff) return;
-        setLoading(true);
-        try {
-            await staffService.update(selectedStaff.id, values);
+    const updateMutation = useMutation({
+        mutationFn: (values: any) => staffService.update(selectedStaff!.id, values),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staff'] });
             notifications.show({ message: 'Staff updated successfully', color: 'green' });
             closeDrawer();
-            loadStaff();
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to update staff', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to update staff', color: 'red' })
+    });
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure? This action is irreversible.')) return;
-        try {
-            await staffService.delete(id);
+    const deleteMutation = useMutation({
+        mutationFn: staffService.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staff'] });
             notifications.show({ message: 'Staff deleted', color: 'green' });
-            loadStaff();
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to delete staff', color: 'red' });
-        }
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to delete staff', color: 'red' })
+    });
+
+    const handleCreate = (values: any) => createMutation.mutate(values);
+    const handleUpdate = (values: any) => updateMutation.mutate(values);
+    const handleDelete = (id: string) => {
+        if (!window.confirm('Are you sure? This action is irreversible.')) return;
+        deleteMutation.mutate(id);
     };
 
     const openEditDrawer = (staff: Staff) => {
@@ -204,7 +184,7 @@ export default function StaffPage() {
             <DataTable
                 data={filteredData}
                 columns={columns}
-                loading={loading}
+                loading={isLoading || createMutation.isPending || updateMutation.isPending}
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{
@@ -236,7 +216,7 @@ export default function StaffPage() {
                         } : undefined}
                         onSubmit={selectedStaff ? handleUpdate : handleCreate}
                         onCancel={closeDrawer}
-                        loading={loading}
+                        loading={createMutation.isPending || updateMutation.isPending}
                         isEditing={!!selectedStaff}
                     />
                 </Box>

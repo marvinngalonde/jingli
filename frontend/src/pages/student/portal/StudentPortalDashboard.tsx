@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     SimpleGrid, Paper, Text, Group, ThemeIcon, Badge, Card, Stack,
     Loader, Center, Progress, Divider, Button, Table
@@ -48,17 +48,9 @@ interface LiveClass {
 export default function StudentPortalDashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState<DashboardStats>({ totalSubjects: 0, pendingAssignments: 0, availableQuizzes: 0, upcomingLiveClasses: 0 });
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [grades, setGrades] = useState<GradeEntry[]>([]);
-    const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => { loadAll(); }, []);
-
-    const loadAll = async () => {
-        try {
-            setLoading(true);
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['studentPortalDashboard'],
+        queryFn: async () => {
             const [classesRes, assignRes, quizRes, liveRes, gradesRes] = await Promise.allSettled([
                 api.get('/student/classes'),
                 api.get('/student/assignments'),
@@ -77,21 +69,24 @@ export default function StudentPortalDashboard() {
             const upcoming = allLive.filter((l: any) => l.status === 'SCHEDULED' || l.status === 'LIVE');
             const published = allQuizzes.filter((q: any) => q.isPublished);
 
-            setStats({
-                totalSubjects: subjects.length,
-                pendingAssignments: pending.length,
-                availableQuizzes: published.length,
-                upcomingLiveClasses: upcoming.length,
-            });
-            setAssignments(pending.slice(0, 5));
-            setLiveClasses(upcoming.slice(0, 3));
-            setGrades(Array.isArray(allGrades) ? allGrades.slice(0, 5) : []);
-        } catch (e) {
-            notifications.show({ title: 'Error', message: 'Failed to load portal data', color: 'red' });
-        } finally {
-            setLoading(false);
+            return {
+                stats: {
+                    totalSubjects: subjects.length,
+                    pendingAssignments: pending.length,
+                    availableQuizzes: published.length,
+                    upcomingLiveClasses: upcoming.length,
+                },
+                assignments: pending.slice(0, 5),
+                liveClasses: upcoming.slice(0, 3),
+                grades: Array.isArray(allGrades) ? allGrades.slice(0, 5) : []
+            };
         }
-    };
+    });
+
+    const stats = data?.stats || { totalSubjects: 0, pendingAssignments: 0, availableQuizzes: 0, upcomingLiveClasses: 0 };
+    const assignments = data?.assignments || [];
+    const liveClasses = data?.liveClasses || [];
+    const grades = data?.grades || [];
 
     if (loading) return <Center h={400}><Loader /></Center>;
 

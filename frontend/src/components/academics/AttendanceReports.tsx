@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Paper,
     Group,
@@ -10,10 +11,12 @@ import {
     Stack,
     Center,
     Table,
-    Badge
+    Badge,
+    Button
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
+import { IconPrinter } from '@tabler/icons-react';
 import {
     BarChart,
     Bar,
@@ -33,54 +36,34 @@ import { isTeacherRole } from '../../utils/roles';
 export function AttendanceReports() {
     const { user } = useAuth();
     // State
-    const [classes, setClasses] = useState<{ value: string; label: string }[]>([]);
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
         new Date(new Date().setDate(new Date().getDate() - 7)), // 7 days ago
         new Date()
     ]);
-    const [loading, setLoading] = useState(false);
-    const [records, setRecords] = useState<AttendanceRecord[]>([]);
 
-    useEffect(() => {
-        loadClasses();
-    }, []);
-
-    useEffect(() => {
-        if (selectedClassId && dateRange[0] && dateRange[1]) {
-            loadReport();
-        }
-    }, [selectedClassId, dateRange]);
-
-    const loadClasses = async () => {
-        try {
+    const { data: classesRaw = [] } = useQuery({
+        queryKey: ['attendanceClasses', user?.id],
+        queryFn: () => {
             const filters = isTeacherRole(user?.role || '') ? { teacherId: user?.id } : undefined;
-            const data = await academicsService.getClasses(filters);
-            const options = data.flatMap(cls =>
-                cls.sections?.map(sec => ({
-                    value: sec.id,
-                    label: `${cls.name} - ${sec.name}`
-                })) || []
-            );
-            setClasses(options);
-        } catch (error) {
-            console.error("Failed to load classes", error);
+            return academicsService.getClasses(filters);
         }
-    };
+    });
 
-    const loadReport = async () => {
-        if (!selectedClassId || !dateRange[0] || !dateRange[1]) return;
-        setLoading(true);
-        try {
-            const data = await attendanceService.getAttendanceReport(selectedClassId, dateRange[0], dateRange[1]);
-            setRecords(data);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load report', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const classes = useMemo(() => {
+        return classesRaw.flatMap((cls: any) =>
+            cls.sections?.map((sec: any) => ({
+                value: sec.id,
+                label: `${cls.name} ${cls.level || ''} - ${sec.name}`.trim()
+            })) || []
+        );
+    }, [classesRaw]);
+
+    const { data: records = [], isLoading: loading } = useQuery({
+        queryKey: ['attendanceReport', selectedClassId, dateRange[0]?.toISOString(), dateRange[1]?.toISOString()],
+        queryFn: () => attendanceService.getAttendanceReport(selectedClassId!, dateRange[0]!, dateRange[1]!),
+        enabled: !!selectedClassId && !!dateRange[0] && !!dateRange[1]
+    });
 
     // --- Statistics Calculations ---
     const totalRecords = records.length;
@@ -134,22 +117,39 @@ export function AttendanceReports() {
 
     return (
         <Stack gap="md">
-            <Group>
-                <Select
-                    placeholder="Select Class"
-                    data={classes}
-                    value={selectedClassId}
-                    onChange={setSelectedClassId}
-                    searchable
-                    w={250}
-                />
-                <DatePickerInput
-                    type="range"
-                    placeholder="Pick dates range"
-                    value={dateRange}
-                    onChange={setDateRange}
-                    w={300}
-                />
+            <style>{`
+                @media print {
+                    .no-print { display: none !important; }
+                    .mantine-Paper-root { border: none !important; box-shadow: none !important; }
+                }
+            `}</style>
+
+            <Group justify="space-between" className="no-print">
+                <Group>
+                    <Select
+                        placeholder="Select Class"
+                        data={classes}
+                        value={selectedClassId}
+                        onChange={setSelectedClassId}
+                        searchable
+                        w={250}
+                    />
+                    <DatePickerInput
+                        type="range"
+                        placeholder="Pick dates range"
+                        value={dateRange}
+                        onChange={setDateRange}
+                        w={300}
+                    />
+                </Group>
+                <Button
+                    leftSection={<IconPrinter size={16} />}
+                    variant="outline"
+                    onClick={() => window.print()}
+                    disabled={!selectedClassId || records.length === 0}
+                >
+                    Print Report
+                </Button>
             </Group>
 
             {!selectedClassId ? (

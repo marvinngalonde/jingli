@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Group, Text, Select, Drawer, Stack, Box } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { DataTable, type Column } from '../common/DataTable';
@@ -9,16 +10,9 @@ import { staffService } from '../../services/staffService';
 import { notifications } from '@mantine/notifications';
 
 export function TeacherAllocations() {
-    const [allocations, setAllocations] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [modalOpened, setModalOpened] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-
-    // Form data sources
-    const [subjects, setSubjects] = useState<any[]>([]);
-    const [classes, setClasses] = useState<any[]>([]);
-    const [teachers, setTeachers] = useState<any[]>([]);
+    const queryClient = useQueryClient();
 
     const form = useForm({
         initialValues: {
@@ -33,67 +27,51 @@ export function TeacherAllocations() {
         }
     });
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    const { data: allocations = [], isLoading: allocLoading } = useQuery({ queryKey: ['allocations'], queryFn: () => subjectsApi.getAllAllocations() });
+    const { data: subjectsRaw = [], isLoading: subLoading } = useQuery({ queryKey: ['subjects'], queryFn: () => subjectsApi.getAll() });
+    const { data: classesRaw = [], isLoading: clsLoading } = useQuery({ queryKey: ['classes'], queryFn: () => classesApi.getAll() });
+    const { data: staffRaw = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => staffService.getAll() });
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const [allocData, subsData, clsData, staffData] = await Promise.all([
-                subjectsApi.getAllAllocations(),
-                subjectsApi.getAll(),
-                classesApi.getAll(),
-                staffService.getAll()
-            ]);
+    const loading = allocLoading || subLoading || clsLoading || staffLoading;
 
-            setAllocations(allocData);
-            setSubjects(subsData.map(s => ({ value: s.id, label: s.name })));
-
-            // Flatten class sections
-            const sectionOpts: any[] = [];
-            clsData.forEach(lvl => {
-                lvl.sections?.forEach(sec => {
-                    sectionOpts.push({ value: sec.id, label: `${lvl.name} - ${sec.name}` });
-                });
+    const subjects = useMemo(() => subjectsRaw.map((s: any) => ({ value: s.id, label: s.name })), [subjectsRaw]);
+    const classes = useMemo(() => {
+        const sectionOpts: any[] = [];
+        classesRaw.forEach((lvl: any) => {
+            lvl.sections?.forEach((sec: any) => {
+                sectionOpts.push({ value: sec.id, label: `${lvl.name} - ${sec.name}`.trim() });
             });
-            setClasses(sectionOpts);
+        });
+        return sectionOpts;
+    }, [classesRaw]);
+    const teachers = useMemo(() => staffRaw.filter((s: any) => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
+        .map((s: any) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })), [staffRaw]);
 
-            const teacherOpts = staffData.filter(s => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
-                .map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }));
-            setTeachers(teacherOpts);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load allocations', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = async (values: typeof form.values) => {
-        setSubmitting(true);
-        try {
-            await subjectsApi.allocate(values);
+    const allocateMutation = useMutation({
+        mutationFn: subjectsApi.allocate,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['allocations'] });
             notifications.show({ title: 'Success', message: 'Teacher allocated successfully', color: 'green' });
             setModalOpened(false);
             form.reset();
-            loadData();
-        } catch (error: any) {
-            notifications.show({ title: 'Error', message: error.response?.data?.message || 'Failed to allocate', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        },
+        onError: (error: any) => notifications.show({ title: 'Error', message: error.response?.data?.message || 'Failed to allocate', color: 'red' })
+    });
 
-    const handleDelete = async (item: any) => {
-        if (!window.confirm('Are you sure you want to remove this allocation?')) return;
-        try {
-            await subjectsApi.removeAllocation(item.id);
+    const removeMutation = useMutation({
+        mutationFn: subjectsApi.removeAllocation,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['allocations'] });
             notifications.show({ title: 'Success', message: 'Allocation removed', color: 'green' });
-            loadData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to remove allocation', color: 'red' });
-        }
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to remove allocation', color: 'red' })
+    });
+
+    const handleSubmit = (values: typeof form.values) => allocateMutation.mutate(values);
+
+    const handleDelete = (item: any) => {
+        if (!window.confirm('Are you sure you want to remove this allocation?')) return;
+        removeMutation.mutate(item.id);
     };
 
     const columns: Column<any>[] = [
@@ -110,7 +88,7 @@ export function TeacherAllocations() {
         {
             accessor: 'class',
             header: 'Class & Section',
-            render: (item) => <Text>{item.section?.classLevel?.name} - {item.section?.name}</Text>
+            render: (item) => <Text>{item.section ? `${item.section.classLevel?.name || ''} - ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
         },
         {
             accessor: 'actions',
@@ -125,7 +103,7 @@ export function TeacherAllocations() {
         }
     ];
 
-    const filtered = allocations.filter(a =>
+    const filtered = allocations.filter((a: any) =>
         a.subject?.name.toLowerCase().includes(search.toLowerCase()) ||
         a.staff?.firstName.toLowerCase().includes(search.toLowerCase()) ||
         a.staff?.lastName.toLowerCase().includes(search.toLowerCase())
@@ -151,6 +129,7 @@ export function TeacherAllocations() {
             <DataTable
                 data={filtered}
                 columns={columns}
+                loading={loading || allocateMutation.isPending || removeMutation.isPending}
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{ total: 1, page: 1, onChange: () => { } }}
@@ -183,7 +162,7 @@ export function TeacherAllocations() {
                             />
                             <Group justify="flex-end" mt="md">
                                 <Button variant="subtle" onClick={() => setModalOpened(false)}>Cancel</Button>
-                                <Button type="submit" loading={submitting}>Assign</Button>
+                                <Button type="submit" loading={allocateMutation.isPending}>Assign</Button>
                             </Group>
                         </Stack>
                     </form>

@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, Textarea, NumberInput, Tabs, Select, SimpleGrid, Paper, ThemeIcon, Drawer, ScrollArea } from '@mantine/core';
 import { IconCheck, IconFileDescription, IconUser, IconChartBar, IconDownload, IconSearch, IconPrinter } from '@tabler/icons-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
@@ -34,18 +35,13 @@ interface AssignmentOption {
     label: string;
 }
 
-export function TeacherGrading() {
+function TeacherGrading() {
+    const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const assignmentQuery = searchParams.get('assignment');
 
-    const [pendingSubmissions, setPendingSubmissions] = useState<Submission[]>([]);
-    const [assignmentSubmissions, setAssignmentSubmissions] = useState<Submission[]>([]);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<string | null>(assignmentQuery ? 'assignment' : 'pending');
-
-    // Assignment selector
-    const [assignmentOptions, setAssignmentOptions] = useState<AssignmentOption[]>([]);
     const [selectedAssignment, setSelectedAssignment] = useState<string | null>(assignmentQuery);
 
     // Grading Drawer
@@ -53,48 +49,40 @@ export function TeacherGrading() {
     const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
     const [marks, setMarks] = useState<number | ''>('');
     const [feedback, setFeedback] = useState('');
-    const [submitting, setSubmitting] = useState(false);
 
-    const fetchPending = useCallback(async () => {
-        try {
-            const { data } = await api.get('/teacher/grading/pending');
-            setPendingSubmissions(Array.isArray(data) ? data : []);
-        } catch { /* ignore */ }
-    }, []);
+    const { data: rawPending = [], isLoading: loadingPending } = useQuery({
+        queryKey: ['teacherPendingGrading'],
+        queryFn: () => api.get('/teacher/grading/pending').then(res => Array.isArray(res.data) ? res.data : [])
+    });
 
-    const fetchAssignments = useCallback(async () => {
-        try {
-            const { data } = await api.get('/teacher/assignments');
-            setAssignmentOptions((Array.isArray(data) ? data : []).map((a: any) => ({
-                value: a.id,
-                label: `${a.title} — ${a.subject?.name || ''} (${a.section?.name || ''})`,
-            })));
-        } catch { /* ignore */ }
-    }, []);
+    const { data: rawAssignments = [], isLoading: loadingAssignments } = useQuery({
+        queryKey: ['teacherAssignments'],
+        queryFn: () => api.get('/teacher/assignments').then(res => Array.isArray(res.data) ? res.data : [])
+    });
 
-    const fetchAssignmentSubs = useCallback(async (assignmentId: string) => {
-        try {
-            const { data } = await api.get(`/teacher/assignments/${assignmentId}/submissions`);
-            setAssignmentSubmissions(Array.isArray(data) ? data : []);
-        } catch { notifications.show({ title: 'Error', message: 'Failed to load submissions', color: 'red' }); }
-    }, []);
+    const { data: rawAssignmentSubs = [], isLoading: loadingSubs, isFetching: fetchingSubs } = useQuery({
+        queryKey: ['teacherAssignmentSubmissions', selectedAssignment],
+        queryFn: () => api.get(`/teacher/assignments/${selectedAssignment}/submissions`).then(res => Array.isArray(res.data) ? res.data : []),
+        enabled: !!selectedAssignment && activeTab === 'assignment'
+    });
 
-    useEffect(() => {
-        (async () => {
-            setLoading(true);
-            await Promise.all([fetchPending(), fetchAssignments()]);
-            if (assignmentQuery) await fetchAssignmentSubs(assignmentQuery);
-            setLoading(false);
-        })();
-    }, []);
+    const pendingSubmissions = rawPending as Submission[];
+    const assignmentSubmissions = rawAssignmentSubs as Submission[];
+    const loading = loadingPending || loadingAssignments || (fetchingSubs && !assignmentSubmissions.length);
 
-    // When assignment selection changes
+    const assignmentOptions = useMemo(() => {
+        return rawAssignments.map((a: any) => ({
+            value: a.id,
+            label: `${a.title} — ${a.subject?.name || ''} (${a.section?.name || ''})`,
+        }));
+    }, [rawAssignments]);
+
+    // When assignment selection changes, update query param
     useEffect(() => {
         if (selectedAssignment && activeTab === 'assignment') {
-            fetchAssignmentSubs(selectedAssignment);
             setSearchParams({ assignment: selectedAssignment });
         }
-    }, [selectedAssignment, activeTab]);
+    }, [selectedAssignment, activeTab, setSearchParams]);
 
     const openGrading = (sub: Submission) => {
         setSelectedSub(sub);
@@ -103,20 +91,24 @@ export function TeacherGrading() {
         openDrawer();
     };
 
-    const handleGrade = async () => {
-        if (!selectedSub || marks === '') return;
-        setSubmitting(true);
-        try {
-            await api.post(`/teacher/submissions/${selectedSub.id}/grade`, { marks, feedback });
-            notifications.show({ title: 'Graded', message: `${selectedSub.student.firstName}'s submission graded`, color: 'green' });
-
-            setPendingSubmissions(prev => prev.filter(s => s.id !== selectedSub.id));
-            setAssignmentSubmissions(prev => prev.map(s =>
-                s.id === selectedSub.id ? { ...s, marks: Number(marks), feedback } : s
-            ));
+    const gradeMutation = useMutation({
+        mutationFn: async ({ id, marks, feedback }: { id: string, marks: number, feedback: string }) => {
+            return api.post(`/teacher/submissions/${id}/grade`, { marks, feedback });
+        },
+        onSuccess: () => {
+            notifications.show({ title: 'Graded', message: `Submission graded`, color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['teacherPendingGrading'] });
+            queryClient.invalidateQueries({ queryKey: ['teacherAssignmentSubmissions', selectedAssignment] });
             closeDrawer();
-        } catch { notifications.show({ title: 'Error', message: 'Failed to save grade', color: 'red' }); }
-        finally { setSubmitting(false); }
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to save grade', color: 'red' });
+        }
+    });
+
+    const handleGrade = () => {
+        if (!selectedSub || marks === '') return;
+        gradeMutation.mutate({ id: selectedSub.id, marks: Number(marks), feedback });
     };
 
     // ─── Stats calculations ───
@@ -417,7 +409,7 @@ export function TeacherGrading() {
 
                         <Group justify="flex-end" mt="md">
                             <Button variant="default" onClick={closeDrawer}>Cancel</Button>
-                            <Button color="green" onClick={handleGrade} loading={submitting} disabled={marks === ''}>
+                            <Button color="green" onClick={handleGrade} loading={gradeMutation.isPending} disabled={marks === ''}>
                                 {selectedSub.marks !== null ? 'Update Grade' : 'Submit Grade'}
                             </Button>
                         </Group>

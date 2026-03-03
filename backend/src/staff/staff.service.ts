@@ -46,6 +46,7 @@ export class StaffService {
                 department: createDto.department,
                 joinDate: new Date(createDto.joinDate),
                 phone: createDto.phone,
+                baseSalary: createDto.baseSalary || 0,
             },
             include: {
                 user: true
@@ -101,6 +102,7 @@ export class StaffService {
         if (updateDto.designation !== undefined) data.designation = updateDto.designation;
         if (updateDto.department !== undefined) data.department = updateDto.department;
         if (updateDto.joinDate !== undefined) data.joinDate = new Date(updateDto.joinDate);
+        if (updateDto.baseSalary !== undefined) data.baseSalary = updateDto.baseSalary;
 
         return this.prisma.staff.update({
             where: { id },

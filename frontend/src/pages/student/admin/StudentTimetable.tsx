@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Loader, Center, Badge, Group, Paper, Table, ThemeIcon } from '@mantine/core';
 import { IconCalendar, IconClock } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { timetableApi } from '../../../services/academics';
 import { TimetableGrid } from '../../../components/timetable/TimetableGrid';
@@ -9,29 +10,18 @@ import type { TimetableEntry } from '../../../types/academics';
 
 export default function StudentTimetable() {
     const { user } = useAuth();
-    const [entries, setEntries] = useState<TimetableEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadTimetable();
-    }, [user]);
-
-    const loadTimetable = async () => {
-        try {
-            setLoading(true);
-            // Student timetable is based on their enrolled section
+    const { data: entriesData = [], isLoading: loading } = useQuery({
+        queryKey: ['studentTimetable', user?.profile?.sectionId],
+        queryFn: async () => {
             const sectionId = user?.profile?.sectionId;
-            if (sectionId) {
-                const data = await timetableApi.getAll({ sectionId });
-                setEntries(data);
-            }
-        } catch (error) {
-            console.error('Failed to load timetable', error);
-            notifications.show({ title: 'Error', message: 'Failed to load your timetable', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (!sectionId) return [];
+            const data = await timetableApi.getAll({ sectionId });
+            return data;
+        },
+        enabled: !!user?.profile?.sectionId
+    });
+
+    const entries = entriesData as TimetableEntry[];
 
     if (loading) {
         return (

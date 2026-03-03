@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Card, Group, Avatar, Table, Badge, ActionIcon, LoadingOverlay, Button } from '@mantine/core';
 import { IconArrowLeft, IconMessage, IconPrinter } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -17,31 +18,26 @@ interface StudentRosterItem {
 export function TeacherClassStudents() {
     const { sectionId } = useParams();
     const navigate = useNavigate();
-    const [students, setStudents] = useState<StudentRosterItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [className, setClassName] = useState<string>('');
+    const { data: students = [], isLoading: loadingStudents } = useQuery({
+        queryKey: ['teacherClassStudents', sectionId],
+        queryFn: async () => {
+            const { data } = await api.get(`/teacher/classes/${sectionId}/students`);
+            return data;
+        },
+        enabled: !!sectionId
+    });
 
-    useEffect(() => {
-        const fetchStudents = async () => {
-            if (!sectionId) return;
-            try {
-                const { data } = await api.get(`/teacher/classes/${sectionId}/students`);
-                setStudents(data);
+    const { data: classesData = [], isLoading: loadingClasses } = useQuery({
+        queryKey: ['teacherClasses'],
+        queryFn: () => api.get('/teacher/classes').then(res => res.data)
+    });
 
-                // Fetch class details for title
-                const classData = await api.get('/teacher/classes');
-                const thisClass = classData.data.find((c: any) => c.section.id === sectionId);
-                if (thisClass) {
-                    setClassName(`${thisClass.section.classLevel.name} ${thisClass.section.name}`);
-                }
-            } catch (error) {
-                console.error("Failed to fetch class students", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStudents();
-    }, [sectionId]);
+    const loading = loadingStudents || loadingClasses;
+
+    const className = useMemo(() => {
+        const thisClass = classesData.find((c: any) => c.section.id === sectionId);
+        return thisClass ? `${thisClass.section.classLevel.name} ${thisClass.section.name}` : '';
+    }, [classesData, sectionId]);
 
     const handlePrint = () => {
         window.print();

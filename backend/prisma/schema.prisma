@@ -368,6 +368,7 @@ model Staff {
   firstName String  @map("first_name")
   lastName  String  @map("last_name")
   phone     String?
+  baseSalary Decimal @default(0) @map("base_salary")
 
   school School @relation(fields: [schoolId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
@@ -955,6 +956,9 @@ model SalaryPayment {
   referenceNo String?        @map("reference_no")
   processedBy String?        @map("processed_by")
   processedAt DateTime?      @map("processed_at")
+  baseSalary  Decimal        @default(0) @map("base_salary")
+  allowances  Decimal        @default(0)
+  deductions  Decimal        @default(0)
   notes       String?
   createdAt   DateTime       @default(now()) @map("created_at")
 

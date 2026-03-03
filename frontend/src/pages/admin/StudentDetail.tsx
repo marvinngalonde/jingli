@@ -190,7 +190,7 @@ export default function StudentDetail() {
                             </ThemeIcon>
                             <div>
                                 <Text size="xs" c="dimmed">Class</Text>
-                                <Text size="sm" fw={600}>{student.section?.classLevel?.name} - {student.section?.name}</Text>
+                                <Text size="sm" fw={600}>{student.section ? `${student.section.classLevel?.name || ''} ${student.section.name || ''}`.trim() : 'Unassigned'}</Text>
                             </div>
                         </Group>
                         <Group gap="sm" mb="sm">

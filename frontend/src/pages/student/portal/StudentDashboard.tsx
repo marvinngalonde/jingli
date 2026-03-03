@@ -1,40 +1,29 @@
 import { Title, Text, Stack, Card, SimpleGrid, Group, ThemeIcon, LoadingOverlay, Badge, Timeline } from '@mantine/core';
 import { IconCalendarEvent, IconBook, IconFileDescription, IconSchool } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { format } from 'date-fns';
 
 export function StudentDashboard() {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['studentDashboardStats'],
+        queryFn: async () => {
+            const [statsRes, scheduleRes] = await Promise.all([
+                api.get('/student/dashboard-stats'),
+                api.get('/student/schedule')
+            ]);
+            return { stats: statsRes.data, schedule: scheduleRes.data };
+        }
+    });
+
+    const stats = data?.stats || {
         classesToday: 0,
         pendingAssignmentsCount: 0,
         gradedSubmissionsCount: 0
-    });
-    const [schedule, setSchedule] = useState<any[]>([]);
-
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const [statsRes, scheduleRes] = await Promise.all([
-                    api.get('/student/dashboard-stats'),
-                    api.get('/student/schedule')
-                ]);
-                setStats(statsRes.data);
-                setSchedule(scheduleRes.data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, []);
-
-
+    };
+    const schedule = data?.schedule || [];
 
     return (
         <Stack gap="lg" pos="relative">

@@ -26,6 +26,14 @@ export class ReportsDataService {
     private money(n: any) {
         return Number(n || 0).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
     }
+    private classFmt(classLevel: any) {
+        if (!classLevel) return '—';
+        const name = classLevel.name || '';
+        const level = classLevel.level || '';
+        // If name already contains the level, just uppercase it
+        if (name.includes(String(level))) return name.toUpperCase();
+        return `${name} ${level}`.trim().toUpperCase() || '—';
+    }
 
     // ============================================================
     // 1. ALL STUDENTS
@@ -72,7 +80,7 @@ export class ReportsDataService {
                 firstName: s.firstName,
                 lastName: s.lastName,
                 gender: s.gender || '—',
-                class: s.section?.classLevel?.name || '—',
+                class: this.classFmt(s.section?.classLevel),
                 section: s.section?.name || '—',
                 email: s.user?.email || '—',
                 enrolled: this.fmt(s.enrollmentDate),
@@ -115,7 +123,7 @@ export class ReportsDataService {
             rows: filtered.map(i => ({
                 admissionNo: i.student?.admissionNo || '—',
                 name: i.student ? `${i.student.firstName} ${i.student.lastName}` : '—',
-                class: i.student?.section?.classLevel?.name || '—',
+                class: this.classFmt(i.student?.section?.classLevel),
                 feeType: i.feeStructure?.name || 'General Fee',
                 amount: this.money(i.amount),
                 dueDate: this.fmt(i.dueDate),
@@ -157,7 +165,7 @@ export class ReportsDataService {
                 time: new Date(l.arrivalTime).toLocaleString(),
                 admissionNo: l.student?.admissionNo || '—',
                 name: l.student ? `${l.student.firstName} ${l.student.lastName}` : '—',
-                class: l.student?.section?.classLevel?.name || '—',
+                class: this.classFmt(l.student?.section?.classLevel),
                 reason: l.reason || '—',
                 reportedBy: l.reportedBy || '—',
             })),
@@ -197,7 +205,7 @@ export class ReportsDataService {
                 issuedAt: new Date(p.issuedAt).toLocaleString(),
                 admissionNo: p.student?.admissionNo || '—',
                 name: p.student ? `${p.student.firstName} ${p.student.lastName}` : '—',
-                class: p.student?.section?.classLevel?.name || '—',
+                class: this.classFmt(p.student?.section?.classLevel),
                 guardian: p.guardianName || '—',
                 reason: p.reason || '—',
             })),

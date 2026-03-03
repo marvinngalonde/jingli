@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Select, Stack, LoadingOverlay, ActionIcon, NumberInput } from '@mantine/core'; // Added ActionIcon, NumberInput
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Select, Stack, LoadingOverlay, ActionIcon, NumberInput } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
@@ -21,18 +22,36 @@ const currencySymbol = (c: string) => c === 'ZiG' ? 'ZiG ' : '$';
 
 function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: () => void }) {
     const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
-    const [loading, setLoading] = useState(false);
+    const queryClient = useQueryClient();
 
-    const handleDelete = async () => {
-        if (!window.confirm('Are you sure you want to delete this invoice?')) return;
-        try {
-            await financeService.deleteInvoice(invoice.id);
+    const deleteMutation = useMutation({
+        mutationFn: () => financeService.deleteInvoice(invoice.id),
+        onSuccess: () => {
             notifications.show({ title: 'Deleted', message: 'Invoice deleted', color: 'blue' });
-            onUpdate();
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: ['financeInvoices'] });
+        },
+        onError: (error) => {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to delete invoice', color: 'red' });
         }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: (values: any) => financeService.updateInvoice(invoice.id, values),
+        onSuccess: () => {
+            notifications.show({ title: 'Updated', message: 'Invoice updated', color: 'green' });
+            closeEdit();
+            queryClient.invalidateQueries({ queryKey: ['financeInvoices'] });
+        },
+        onError: (error) => {
+            console.error(error);
+            notifications.show({ title: 'Error', message: 'Failed to update invoice', color: 'red' });
+        }
+    });
+
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+        deleteMutation.mutate();
     };
 
     const form = useForm({
@@ -44,18 +63,7 @@ function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: 
     });
 
     const handleEdit = async (values: typeof form.values) => {
-        setLoading(true);
-        try {
-            await financeService.updateInvoice(invoice.id, values);
-            notifications.show({ title: 'Updated', message: 'Invoice updated', color: 'green' });
-            closeEdit();
-            onUpdate();
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to update invoice', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
+        updateMutation.mutate(values);
     };
 
     return (
@@ -63,7 +71,7 @@ function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: 
             <ActionIcon variant="subtle" color="blue" onClick={openEdit}>
                 <IconPencil size={16} />
             </ActionIcon>
-            <ActionIcon variant="subtle" color="red" onClick={handleDelete} ml="xs">
+            <ActionIcon variant="subtle" color="red" onClick={handleDelete} ml="xs" loading={deleteMutation.isPending}>
                 <IconTrash size={16} />
             </ActionIcon>
 
@@ -74,7 +82,7 @@ function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: 
                 position="right"
                 padding="md"
             >
-                <LoadingOverlay visible={loading} />
+                <LoadingOverlay visible={updateMutation.isPending} />
                 <form onSubmit={form.onSubmit(handleEdit)}>
                     <Stack>
                         <NumberInput
@@ -99,62 +107,47 @@ function InvoiceActionMenu({ invoice, onUpdate }: { invoice: Invoice, onUpdate: 
     );
 }
 
-export default function Finance() { // Modified to keep original export
+export default function Finance() {
 
     const { user } = useAuth();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<string | null>('structures');
 
     // Data State for Invoices
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [stats, setStats] = useState<FinanceStats | null>(null);
-    const [loading, setLoading] = useState(false);
-
-    // Invoice Generation State
-    const [genOpened, { open: openGen, close: closeGen }] = useDisclosure(false);
-    const [genLoading, setGenLoading] = useState(false);
-    const [classes, setClasses] = useState<any[]>([]);
-    const [structures, setStructures] = useState<FeeStructure[]>([]);
-
-    useEffect(() => {
-        if (user?.schoolId && activeTab === 'invoices') {
-            loadInvoices();
-        }
-    }, [user?.schoolId, activeTab]);
-
-    const loadInvoices = async () => {
-        setLoading(true);
-        try {
+    const { data: financeData, isLoading: loading } = useQuery({
+        queryKey: ['financeInvoices', user?.schoolId],
+        queryFn: async () => {
             const [data, statsData] = await Promise.all([
                 financeService.getInvoices(user?.schoolId || ''),
                 financeService.getStats()
             ]);
-            setInvoices(data);
-            setStats(statsData);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load invoices', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+            return { invoices: data, stats: statsData };
+        },
+        enabled: !!user?.schoolId && activeTab === 'invoices'
+    });
 
-    // Helper to load dropdown data for generator
-    const loadGenData = async () => {
-        try {
+    const invoices = financeData?.invoices || [];
+    const stats = financeData?.stats || null;
+
+    // Invoice Generation State
+    const [genOpened, { open: openGen, close: closeGen }] = useDisclosure(false);
+
+    const { data: genData } = useQuery({
+        queryKey: ['financeGenData'],
+        queryFn: async () => {
             const [classesData, structuresData] = await Promise.all([
                 academicsService.getClasses(),
                 financeService.getFeeStructures()
             ]);
-            setClasses(classesData);
-            setStructures(structuresData);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load form data', color: 'red' });
-        }
-    };
+            return { classes: classesData, structures: structuresData };
+        },
+        enabled: genOpened
+    });
+
+    const classes = genData?.classes || [];
+    const structures = genData?.structures || [];
 
     const handleOpenGen = () => {
-        loadGenData();
         openGen();
     };
 
@@ -162,7 +155,8 @@ export default function Finance() { // Modified to keep original export
         initialValues: {
             classLevelId: '',
             feeStructureId: '',
-            dueDate: new Date()
+            dueDate: new Date(),
+            currency: 'USD'
         },
         validate: {
             classLevelId: (v) => (!v ? 'Class is required' : null),
@@ -171,20 +165,22 @@ export default function Finance() { // Modified to keep original export
         }
     });
 
-    const handleGenerate = async (values: typeof genForm.values) => {
-        setGenLoading(true);
-        try {
-            const res = await financeService.generateBulkInvoices(values);
+    const generateMutation = useMutation({
+        mutationFn: (values: typeof genForm.values) => financeService.generateBulkInvoices(values),
+        onSuccess: (res) => {
             notifications.show({ title: 'Success', message: res.message, color: 'green' });
             closeGen();
             genForm.reset();
-            loadInvoices(); // Refresh list
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: ['financeInvoices'] });
+        },
+        onError: (error) => {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to generate invoices', color: 'red' });
-        } finally {
-            setGenLoading(false);
         }
+    });
+
+    const handleGenerate = async (values: typeof genForm.values) => {
+        generateMutation.mutate(values);
     };
 
     return (
@@ -271,7 +267,7 @@ export default function Finance() { // Modified to keep original export
                                                 <Table.Td>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
                                                 <Table.Td>
                                                     <Group gap="xs">
-                                                        <InvoiceActionMenu invoice={inv} onUpdate={loadInvoices} />
+                                                        <InvoiceActionMenu invoice={inv} onUpdate={() => { }} />
                                                     </Group>
                                                 </Table.Td>
                                             </Table.Tr>
@@ -292,7 +288,7 @@ export default function Finance() { // Modified to keep original export
                 size="md"
                 padding="md"
             >
-                <LoadingOverlay visible={genLoading} />
+                <LoadingOverlay visible={generateMutation.isPending} />
                 <form onSubmit={genForm.onSubmit(handleGenerate)}>
                     <Stack>
                         <Text size="sm" c="dimmed">
@@ -323,7 +319,7 @@ export default function Finance() { // Modified to keep original export
                             minDate={new Date()}
                             {...genForm.getInputProps('dueDate')}
                         />
-                        <Button type="submit" mt="md" loading={genLoading}>Generate Invoices</Button>
+                        <Button type="submit" mt="md" loading={generateMutation.isPending}>Generate Invoices</Button>
                     </Stack>
                 </form>
             </Drawer>

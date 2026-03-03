@@ -2,6 +2,7 @@ import { Title, Text, Stack, Card, SimpleGrid, Group, ThemeIcon, Select, Loading
 import { IconChartBar, IconCalendarEvent, IconUsers } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
 interface Child {
@@ -17,51 +18,42 @@ interface Child {
 
 export function ParentDashboard() {
     const { user } = useAuth();
-    const [children, setChildren] = useState<Child[]>([]);
     const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-    const [stats, setStats] = useState({ upcomingEvents: 0, pendingFees: '$0', unreadMessages: 0, classesToday: 0, pendingAssignments: 0, gradedSubmissions: 0 });
-    const [loading, setLoading] = useState(true);
+
+    const { data: childrenData, isLoading: loadingChildren } = useQuery({
+        queryKey: ['parentChildren'],
+        queryFn: async () => {
+            const { data } = await api.get('/parent/children');
+            return data as Child[];
+        }
+    });
+
+    const children = childrenData || [];
 
     useEffect(() => {
-        const fetchChildren = async () => {
-            try {
-                const { data } = await api.get('/parent/children');
-                setChildren(data);
-                if (data.length > 0) {
-                    setSelectedChildId(data[0].id);
-                } else {
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Failed to fetch children", error);
-                setLoading(false);
-            }
-        };
-        fetchChildren();
-    }, []);
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
+        }
+    }, [children, selectedChildId]);
 
-    useEffect(() => {
-        if (!selectedChildId) return;
-        const fetchStats = async () => {
-            setLoading(true);
-            try {
-                const { data } = await api.get(`/parent/dashboard-stats/${selectedChildId}`);
-                setStats({
-                    upcomingEvents: 0, // Mock
-                    pendingFees: '$0', // Mock
-                    unreadMessages: 0, // Mock
-                    classesToday: data.classesToday || 0,
-                    pendingAssignments: data.pendingAssignmentsCount || 0,
-                    gradedSubmissions: data.gradedSubmissionsCount || 0
-                });
-            } catch (error) {
-                console.error("Failed to fetch dashboard stats", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-    }, [selectedChildId]);
+    const { data: statsData, isLoading: loadingStats } = useQuery({
+        queryKey: ['parentDashboardStats', selectedChildId],
+        queryFn: async () => {
+            const { data } = await api.get(`/parent/dashboard-stats/${selectedChildId}`);
+            return {
+                upcomingEvents: 0,
+                pendingFees: '$0',
+                unreadMessages: 0,
+                classesToday: data.classesToday || 0,
+                pendingAssignments: data.pendingAssignmentsCount || 0,
+                gradedSubmissions: data.gradedSubmissionsCount || 0
+            };
+        },
+        enabled: !!selectedChildId
+    });
+
+    const stats = statsData || { upcomingEvents: 0, pendingFees: '$0', unreadMessages: 0, classesToday: 0, pendingAssignments: 0, gradedSubmissions: 0 };
+    const loading = loadingChildren || (!!selectedChildId && loadingStats);
 
     const activeChild = children.find(c => c.id === selectedChildId);
 

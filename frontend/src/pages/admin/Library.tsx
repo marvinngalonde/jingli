@@ -2,8 +2,9 @@ import { Tabs, Button, Group, Text, Badge, ActionIcon, Modal, TextInput, Stack, 
 import { useDisclosure } from '@mantine/hooks';
 import { IconBook, IconExchange, IconPlus, IconTrash } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
-import { DataTable } from '../../components/common/DataTable';
-import { useState, useEffect } from 'react';
+import { DataTable, type Column } from '../../components/common/DataTable';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { libraryService, BookStatus, CirculationStatus } from '../../services/libraryService';
 import type { Book, CirculationRecord } from '../../services/libraryService';
@@ -15,15 +16,77 @@ import { DateInput } from '@mantine/dates';
 export default function Library() {
     const [activeTab, setActiveTab] = useState<string | null>('books');
     const [search, setSearch] = useState('');
-    const [books, setBooks] = useState<Book[]>([]);
-    const [circulation, setCirculation] = useState<CirculationRecord[]>([]);
-    const [students, setStudents] = useState<{ value: string; label: string }[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
+    const queryClient = useQueryClient();
 
     // Modals
     const [bookOpened, { open: openBook, close: closeBook }] = useDisclosure(false);
     const [issueOpened, { open: openIssue, close: closeIssue }] = useDisclosure(false);
+
+    // Queries
+    const { data: books = [], isLoading: booksLoading } = useQuery({
+        queryKey: ['libraryBooks'],
+        queryFn: libraryService.getAllBooks
+    });
+
+    const { data: circulation = [], isLoading: circLoading } = useQuery({
+        queryKey: ['libraryCirculation'],
+        queryFn: libraryService.getCirculation
+    });
+
+    const { data: studentsRaw = [], isLoading: studentsLoading } = useQuery({
+        queryKey: ['libraryStudents'],
+        queryFn: () => studentService.getAll()
+    });
+
+    const students = useMemo(() => studentsRaw.map(s => ({
+        value: s.id,
+        label: `${s.firstName} ${s.lastName} (${s.admissionNo})`
+    })), [studentsRaw]);
+
+    const loading = booksLoading || circLoading || studentsLoading;
+
+    // Mutations
+    const addBookMutation = useMutation({
+        mutationFn: libraryService.createBook,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Book added to inventory', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['libraryBooks'] });
+            bookForm.reset();
+            closeBook();
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to add book', color: 'red' })
+    });
+
+    const issueBookMutation = useMutation({
+        mutationFn: libraryService.issueBook,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Book issued successfully', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['libraryCirculation'] });
+            queryClient.invalidateQueries({ queryKey: ['libraryBooks'] });
+            issueForm.reset();
+            closeIssue();
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to issue book', color: 'red' })
+    });
+
+    const returnBookMutation = useMutation({
+        mutationFn: libraryService.returnBook,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Book returned', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['libraryCirculation'] });
+            queryClient.invalidateQueries({ queryKey: ['libraryBooks'] });
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to return book', color: 'red' })
+    });
+
+    const deleteBookMutation = useMutation({
+        mutationFn: libraryService.deleteBook,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Book removed', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['libraryBooks'] });
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to delete book', color: 'red' })
+    });
 
     // Forms
     const bookForm = useForm({
@@ -43,80 +106,12 @@ export default function Library() {
         }
     });
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const [booksData, circData, studentsData] = await Promise.all([
-                libraryService.getAllBooks(),
-                libraryService.getCirculation(),
-                studentService.getAll()
-            ]);
-            setBooks(booksData);
-            setCirculation(circData);
-            setStudents(studentsData.map(s => ({
-                value: s.id,
-                label: `${s.firstName} ${s.lastName} (${s.admissionNo})`
-            })));
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to load library data', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddBook = async (values: typeof bookForm.values) => {
-        setSubmitting(true);
-        try {
-            await libraryService.createBook(values);
-            notifications.show({ title: 'Success', message: 'Book added to inventory', color: 'green' });
-            bookForm.reset();
-            closeBook();
-            loadData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to add book', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleIssueBook = async (values: typeof issueForm.values) => {
-        setSubmitting(true);
-        try {
-            await libraryService.issueBook(values);
-            notifications.show({ title: 'Success', message: 'Book issued successfully', color: 'green' });
-            issueForm.reset();
-            closeIssue();
-            loadData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to issue book', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleReturnBook = async (id: string) => {
-        try {
-            await libraryService.returnBook(id);
-            notifications.show({ title: 'Success', message: 'Book returned', color: 'green' });
-            loadData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to return book', color: 'red' });
-        }
-    };
-
-    const handleDeleteBook = async (id: string) => {
+    const handleAddBook = (values: typeof bookForm.values) => addBookMutation.mutate(values);
+    const handleIssueBook = (values: typeof issueForm.values) => issueBookMutation.mutate(values);
+    const handleReturnBook = (id: string) => returnBookMutation.mutate(id);
+    const handleDeleteBook = (id: string) => {
         if (!window.confirm('Are you sure you want to delete this book?')) return;
-        try {
-            await libraryService.deleteBook(id);
-            notifications.show({ title: 'Success', message: 'Book removed', color: 'green' });
-            loadData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to delete book', color: 'red' });
-        }
+        deleteBookMutation.mutate(id);
     };
 
     const filteredBooks = books.filter(item =>
@@ -157,7 +152,7 @@ export default function Library() {
                         header: '',
                         width: 80,
                         render: (item) => (
-                            <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteBook(item.id)}><IconTrash size={16} /></ActionIcon>
+                            <ActionIcon variant="subtle" color="red" loading={deleteBookMutation.isPending && deleteBookMutation.variables === item.id} onClick={() => handleDeleteBook(item.id)}><IconTrash size={16} /></ActionIcon>
                         )
                     }
                 ]}
@@ -204,6 +199,7 @@ export default function Library() {
                             <Button
                                 size="compact-xs"
                                 variant="light"
+                                loading={returnBookMutation.isPending && returnBookMutation.variables === item.id}
                                 disabled={item.status === CirculationStatus.RETURNED}
                                 onClick={() => handleReturnBook(item.id)}
                             >
@@ -255,7 +251,7 @@ export default function Library() {
                         <TextInput label="Accession No" placeholder="Library Reference" {...bookForm.getInputProps('accessionNo')} />
                         <Group justify="flex-end">
                             <Button variant="default" onClick={closeBook}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Add Book</Button>
+                            <Button type="submit" loading={addBookMutation.isPending}>Add Book</Button>
                         </Group>
                     </Stack>
                 </form>
@@ -284,7 +280,7 @@ export default function Library() {
                         <TextInput label="Remarks" placeholder="Optional notes" {...issueForm.getInputProps('remarks')} />
                         <Group justify="flex-end">
                             <Button variant="default" onClick={closeIssue}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Issue Book</Button>
+                            <Button type="submit" loading={issueBookMutation.isPending}>Issue Book</Button>
                         </Group>
                     </Stack>
                 </form>

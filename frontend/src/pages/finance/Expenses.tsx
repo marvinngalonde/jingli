@@ -1,8 +1,8 @@
-import { Title, Paper, Text, Group, Button, Card, ThemeIcon, Grid, Stack, Table, Badge, Drawer, TextInput, NumberInput, Select, ActionIcon, LoadingOverlay, Modal, Tabs, ScrollArea, Textarea } from '@mantine/core';
+import { Title, Paper, Text, Group, Button, Card, ThemeIcon, Grid, Stack, Table, Badge, Drawer, TextInput, NumberInput, Select, ActionIcon, LoadingOverlay, Modal, Tabs, ScrollArea, Textarea, FileInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconReceipt, IconPlus, IconTrash, IconEdit, IconSearch, IconCheck, IconCash, IconFilter } from '@tabler/icons-react';
+import { IconReceipt, IconPlus, IconTrash, IconEdit, IconSearch, IconCheck, IconCash, IconFilter, IconUpload } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 
@@ -21,7 +21,15 @@ export default function Expenses() {
     const [filterStatus, setFilterStatus] = useState<string | null>(null);
     const [search, setSearch] = useState('');
 
-    const form = useForm({
+    const form = useForm<{
+        description: string;
+        category: string;
+        amount: number;
+        currency: string;
+        date: string;
+        notes: string;
+        receiptUrl?: string | File;
+    }>({
         initialValues: { description: '', category: 'Operations', amount: 0, currency: 'USD', date: new Date().toISOString().slice(0, 10), notes: '', receiptUrl: '' },
         validate: {
             description: (v) => (!v ? 'Description required' : null),
@@ -208,7 +216,7 @@ export default function Expenses() {
                         </Group>
                         <TextInput label="Date" type="date" required {...form.getInputProps('date')} />
                         <Textarea label="Notes" autosize minRows={2} {...form.getInputProps('notes')} />
-                        <TextInput label="Receipt URL (optional)" placeholder="https://..." {...form.getInputProps('receiptUrl')} />
+                        <FileInput label="Receipt / Invoice (optional)" placeholder="Upload file" leftSection={<IconUpload size={14} />} {...form.getInputProps('receiptUrl')} />
                         <Group justify="flex-end" mt="md">
                             <Button variant="default" onClick={closeDrawer}>Cancel</Button>
                             <Button type="submit" loading={submitting}>{editingId ? 'Update' : 'Save'}</Button>

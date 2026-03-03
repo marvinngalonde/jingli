@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Button,
     Group,
@@ -50,64 +51,46 @@ export default function Students() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<string | null>('list');
-    const [data, setData] = useState<Student[]>([]);
     const [filteredData, setFilteredData] = useState<Student[]>([]);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
-    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    // Logistics State
-    const [lateArrivals, setLateArrivals] = useState<LateArrival[]>([]);
-    const [gatePasses, setGatePasses] = useState<GatePass[]>([]);
     const [lateOpened, { open: openLate, close: closeLate }] = useDisclosure(false);
     const [passOpened, { open: openPass, close: closePass }] = useDisclosure(false);
-    const [submitting, setSubmitting] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+    const queryClient = useQueryClient();
 
-    // Forms
     const lateForm = useForm({
-        initialValues: { studentId: '', reason: 'Traffic', reportedBy: 'Parent' },
-        validate: { studentId: (v) => (!v ? 'Required' : null) }
+        initialValues: { studentId: '', reason: '', reportedBy: user?.firstName || '' },
+        validate: { studentId: (v) => (!v ? 'Student is required' : null), reason: (v) => (!v ? 'Reason is required' : null) }
     });
 
     const passForm = useForm({
         initialValues: { studentId: '', reason: '', guardianName: '' },
-        validate: {
-            studentId: (v) => (!v ? 'Required' : null),
-            reason: (v) => (!v ? 'Required' : null),
-            guardianName: (v) => (!v ? 'Required' : null)
-        }
+        validate: { studentId: (v) => (!v ? 'Student is required' : null), reason: (v) => (!v ? 'Reason is required' : null) }
     });
 
-    useEffect(() => {
-        loadAllData();
-    }, []);
+    const { data: students = [], isLoading: studentsLoading } = useQuery({
+        queryKey: ['students'],
+        queryFn: () => studentService.getAll()
+    });
 
-    const loadAllData = async () => {
-        setLoading(true);
-        try {
-            const [students, late, passes] = await Promise.all([
-                studentService.getAll(),
-                logisticsService.getLateArrivals(),
-                logisticsService.getGatePasses()
-            ]);
-            setData(students);
-            setFilteredData(students);
-            setLateArrivals(late);
-            setGatePasses(passes);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load student data', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: lateArrivals = [], isLoading: lateLoading } = useQuery({
+        queryKey: ['lateArrivals'],
+        queryFn: () => logisticsService.getLateArrivals()
+    });
+
+    const { data: gatePasses = [], isLoading: passesLoading } = useQuery({
+        queryKey: ['gatePasses'],
+        queryFn: () => logisticsService.getGatePasses()
+    });
+    const loading = studentsLoading || lateLoading || passesLoading;
+
 
     // Filter logic for Student List
     useEffect(() => {
-        let result = data;
+        let result = students;
         if (search) {
             const lowerSearch = search.toLowerCase();
             result = result.filter(item =>
@@ -121,84 +104,69 @@ export default function Students() {
             result = result.filter(item => item.status === statusFilter);
         }
         setFilteredData(result);
-    }, [data, search, statusFilter]);
+    }, [students, search, statusFilter]);
 
-    const handleCreate = async (values: any) => {
-        setLoading(true);
-        try {
-            await studentService.create(values);
+    const createMutation = useMutation({
+        mutationFn: studentService.create,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['students'] });
             notifications.show({ message: 'Student created successfully', color: 'green' });
             closeDrawer();
-            loadAllData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to create student', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to create student', color: 'red' })
+    });
 
-    const handleUpdate = async (values: any) => {
-        if (!selectedStudent) return;
-        setLoading(true);
-        try {
-            await studentService.update(selectedStudent.id, values);
+    const updateMutation = useMutation({
+        mutationFn: (values: any) => studentService.update(selectedStudent!.id, values),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['students'] });
             notifications.show({ message: 'Student updated successfully', color: 'green' });
             closeDrawer();
-            loadAllData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to update student', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to update student', color: 'red' })
+    });
 
-    const confirmDelete = async () => {
-        if (!studentToDelete) return;
-        try {
-            await studentService.delete(studentToDelete.id);
+    const deleteMutation = useMutation({
+        mutationFn: studentService.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['students'] });
             notifications.show({ message: 'Student deleted successfully', color: 'green' });
-            loadAllData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to delete student', color: 'red' });
-        } finally {
             setStudentToDelete(null);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to delete student', color: 'red' })
+    });
 
-    const handleDeleteClick = (student: Student) => {
-        setStudentToDelete(student);
-    };
-
-    const handleLogLate = async (values: typeof lateForm.values) => {
-        setSubmitting(true);
-        try {
-            await logisticsService.logLateArrival(values);
+    const lateMutation = useMutation({
+        mutationFn: logisticsService.logLateArrival,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lateArrivals'] });
             notifications.show({ title: 'Success', message: 'Late arrival recorded', color: 'green' });
             lateForm.reset();
             closeLate();
-            loadAllData();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to record arrival', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to record arrival', color: 'red' })
+    });
 
-    const handleIssuePass = async (values: typeof passForm.values) => {
-        setSubmitting(true);
-        try {
-            const pass = await logisticsService.issueGatePass(values);
+    const passMutation = useMutation({
+        mutationFn: logisticsService.issueGatePass,
+        onSuccess: (pass: any) => {
+            queryClient.invalidateQueries({ queryKey: ['gatePasses'] });
             notifications.show({ title: 'Success', message: 'Gate pass issued', color: 'green' });
             passForm.reset();
             closePass();
-            loadAllData();
             alert(`Printing Gate Pass\nStudent: ${pass.student.firstName} ${pass.student.lastName}\nTime Out: ${new Date(pass.issuedAt).toLocaleTimeString()}\nReason: ${pass.reason}`);
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to issue pass', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to issue pass', color: 'red' })
+    });
+    const handleCreate = (values: any) => createMutation.mutate(values);
+    const handleUpdate = (values: any) => updateMutation.mutate(values);
+    const confirmDelete = () => { if (studentToDelete) deleteMutation.mutate(studentToDelete.id); };
+    const handleLogLate = (values: typeof lateForm.values) => lateMutation.mutate(values);
+    const handleIssuePass = (values: typeof passForm.values) => passMutation.mutate(values);
+    const handleDeleteClick = (student: Student) => setStudentToDelete(student);
+    const submitting = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || lateMutation.isPending || passMutation.isPending;
+
+
 
     const openEditDrawer = (student: Student) => {
         setSelectedStudent(student);
@@ -213,7 +181,7 @@ export default function Students() {
     // Stats calculation
     const today = new Date().toDateString();
     const stats = [
-        { title: 'Total Students', value: data.length, icon: IconUsers, color: 'blue' },
+        { title: 'Total Students', value: students.length, icon: IconUsers, color: 'blue' },
         { title: 'Late Today', value: lateArrivals.filter(l => new Date(l.arrivalTime).toDateString() === today).length, icon: IconClock, color: 'orange' },
         { title: 'Gate Passes Issued', value: gatePasses.filter(p => new Date(p.issuedAt).toDateString() === today).length, icon: IconDoorExit, color: 'teal' },
     ];
@@ -237,7 +205,7 @@ export default function Students() {
         {
             accessor: 'class',
             header: 'Class/Grade',
-            render: (item) => <Text size="sm">{item.section?.classLevel?.name || ''} - {item.section?.name || 'Unassigned'}</Text>
+            render: (item) => <Text size="sm">{item.section ? `${item.section.classLevel?.name || ''} ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
         },
         {
             accessor: 'status',
@@ -282,7 +250,7 @@ export default function Students() {
             'Gender': s.gender,
             'DOB': s.dob ? new Date(s.dob).toLocaleDateString() : 'N/A',
             'Status': s.status,
-            'Class/Grade': `${s.section?.classLevel?.name || ''} - ${s.section?.name || 'Unassigned'}`,
+            'Class/Grade': s.section ? `${s.section.classLevel?.name || ''} ${s.section.name || ''}`.trim() : 'Unassigned',
             'Enrolled': new Date(s.enrollmentDate).toLocaleDateString()
         }));
         exportToCsv(exportData, 'Jingli_Student_Directory');
@@ -502,7 +470,7 @@ export default function Students() {
                 onClose={closeLate}
                 form={lateForm}
                 onSubmit={handleLogLate}
-                studentOptions={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                studentOptions={students.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
                 submitting={submitting}
             />
 
@@ -511,7 +479,7 @@ export default function Students() {
                 onClose={closePass}
                 form={passForm}
                 onSubmit={handleIssuePass}
-                studentOptions={data.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
+                studentOptions={students.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` }))}
                 submitting={submitting}
             />
         </>

@@ -1,4 +1,4 @@
-import { Drawer, TextInput, Select, NumberInput, Group, Button, LoadingOverlay, Stack } from '@mantine/core';
+import { Drawer, TextInput, Select, NumberInput, Group, Button, LoadingOverlay, Stack, Autocomplete } from '@mantine/core';
 import { DatePickerInput, TimeInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { useEffect, useState } from 'react';
@@ -65,7 +65,7 @@ export function EditExamModal({ opened, onClose, onSuccess, exam }: EditExamModa
                 (examsService as any).getTerms(),
             ]);
             setSubjects(subjectsData.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
-            setClasses(classesData.map((c: any) => ({ value: c.id, label: c.name })));
+            setClasses(classesData.map((c: any) => ({ value: c.id, label: `${c.name} ${c.level || ''}`.trim() })));
             setTerms(termsData.map((t: any) => ({ value: t.id, label: t.name })));
         } catch (error) {
             console.error(error);
@@ -91,8 +91,26 @@ export function EditExamModal({ opened, onClose, onSuccess, exam }: EditExamModa
                 startTime = new Date(values.date);
             }
 
+            let finalTermId = values.termId;
+
+            const existingTerm = terms.find(t => t.value === values.termId);
+            if (!existingTerm && values.termId) {
+                try {
+                    const newTerm = await (examsService as any).createTerm({
+                        name: values.termId,
+                        schoolId: user?.schoolId || '',
+                        startDate: examDate,
+                        endDate: new Date(examDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+                    });
+                    finalTermId = newTerm.id;
+                } catch (e) {
+                    console.error('Failed to create custom term', e);
+                }
+            }
+
             await examsService.updateExam(exam.id, {
                 ...values,
+                termId: finalTermId,
                 date: examDate,
                 startTime: startTime
             });
@@ -123,7 +141,7 @@ export function EditExamModal({ opened, onClose, onSuccess, exam }: EditExamModa
                     <TextInput label="Exam Name" placeholder="e.g. Mid-Term Mathematics" required {...form.getInputProps('name')} />
                     <Select label="Class" placeholder="Select Class" data={classes} required searchable {...form.getInputProps('classLevelId')} />
                     <Select label="Subject" placeholder="Select Subject" data={subjects} required searchable {...form.getInputProps('subjectId')} />
-                    <Select label="Term" placeholder="Select Term" data={terms} required searchable {...form.getInputProps('termId')} />
+                    <Autocomplete label="Term" placeholder="Select or type term" data={terms} required {...form.getInputProps('termId')} />
 
                     <Group grow>
                         <DatePickerInput label="Date" placeholder="Pick date" required {...form.getInputProps('date')} />

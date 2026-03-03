@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Box,
     Card,
@@ -12,31 +13,22 @@ import {
     Pagination,
     rem,
 } from '@mantine/core';
-import { useEffect } from 'react';
 import { visitorService } from '../../services/visitorService';
+import { notifications } from '@mantine/notifications';
 import { showErrorNotification } from '../../utils/notifications';
 
 
 
 export default function VisitorLog() {
     const [activeTab, setActiveTab] = useState('new');
-    const [visitors, setVisitors] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: visitors = [], isLoading: loading } = useQuery({
+        queryKey: ['visitors'],
+        queryFn: visitorService.getAll
+    });
 
-    useEffect(() => {
-        fetchVisitors();
-    }, []);
-
-    const fetchVisitors = async () => {
-        try {
-            setLoading(true);
-            const data = await visitorService.getAll();
-            setVisitors(data || []);
-        } catch (error: any) {
-            showErrorNotification(error.message || 'Failed to fetch visitors');
-        } finally {
-            setLoading(false);
-        }
+    const handleCheckOut = (id: string) => {
+        // Implementation for checkout mutation if needed
+        notifications.show({ title: 'Info', message: 'Check-out logic would go here, consistent with Visitors page.', color: 'blue' });
     };
 
     return (
@@ -113,7 +105,7 @@ export default function VisitorLog() {
                                                     </Text>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Button size="xs" color="red" radius={2}>
+                                                    <Button size="xs" color="red" radius={2} onClick={() => handleCheckOut(visitor.id)}>
                                                         Check-Out
                                                     </Button>
                                                 </Table.Td>

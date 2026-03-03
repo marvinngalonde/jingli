@@ -10,7 +10,8 @@ import {
     IconChevronRight,
     IconCalendarEvent,
 } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -33,56 +34,43 @@ interface PendingSub {
 }
 
 export function TeacherDashboard() {
-    const [stats, setStats] = useState<DashboardStats>({ classesToday: 0, totalStudents: 0, activeAssignments: 0, ungraded: 0 });
-    const [schedule, setSchedule] = useState<any[]>([]);
-    const [pendingSubs, setPendingSubs] = useState<PendingSub[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
-    const navigate = useNavigate();
+    const { data: stats = { classesToday: 0, totalStudents: 0, activeAssignments: 0, ungraded: 0 }, isLoading: statsLoading } = useQuery({
+        queryKey: ['teacherStats'],
+        queryFn: () => api.get('/teacher/dashboard-stats').then(res => res.data)
+    });
 
-    const teacherName = user?.firstName || user?.email?.split('@')[0] || 'Teacher';
-    const today = new Date();
-    const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
+    const { data: schedule = [], isLoading: scheduleLoading } = useQuery({
+        queryKey: ['teacherScheduleToday'],
+        queryFn: () => api.get('/teacher/schedule/today').then(res => res.data || [])
+    });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [statsRes, scheduleRes, pendingRes] = await Promise.allSettled([
-                    api.get('/teacher/dashboard-stats'),
-                    api.get('/teacher/schedule/today'),
-                    api.get('/teacher/grading/dashboard-submissions'),
-                ]);
-                if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-                if (scheduleRes.status === 'fulfilled') setSchedule(scheduleRes.value.data || []);
-                if (pendingRes.status === 'fulfilled') setPendingSubs(Array.isArray(pendingRes.value.data) ? pendingRes.value.data : []);
-            } catch { /* ignore */ }
-            finally { setLoading(false); }
-        };
-        fetchData();
-    }, []);
+    const { data: pendingSubsRaw = [], isLoading: pendingLoading } = useQuery({
+        queryKey: ['teacherPendingSubs'],
+        queryFn: () => api.get('/teacher/grading/dashboard-submissions').then(res => Array.isArray(res.data) ? res.data : [])
+    });
+
+    const pendingSubs = pendingSubsRaw as PendingSub[];
+
+    const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+        queryKey: ['teacherAnalytics'],
+        queryFn: () => api.get('/teacher/analytics').then(res => res.data)
+    });
+
+    const loading = statsLoading || scheduleLoading || pendingLoading || analyticsLoading;
 
     // Split into pending (ungraded) and recently graded
     const ungradedSubs = pendingSubs.filter(s => s.marks === null).slice(0, 5);
     const gradedSubs = pendingSubs.filter(s => s.marks !== null).slice(0, 5);
 
     // Subject progress from API
-    const [subjectProgress, setSubjectProgress] = useState<{ name: string, progress: number, color: string }[]>([]);
-    useEffect(() => {
-        const fetchSubjectProgress = async () => {
-            try {
-                const { data } = await api.get('/teacher/analytics');
-                if (data?.classSyllabus) {
-                    const colors = ['blue', 'green', 'orange', 'grape', 'teal', 'cyan', 'red', 'indigo'];
-                    setSubjectProgress(data.classSyllabus.map((s: any, i: number) => ({
-                        name: s.name,
-                        progress: s.progress || 0,
-                        color: colors[i % colors.length],
-                    })));
-                }
-            } catch { /* analytics unavailable */ }
-        };
-        fetchSubjectProgress();
-    }, []);
+    const subjectProgress = analyticsData?.classSyllabus ? (() => {
+        const colors = ['blue', 'green', 'orange', 'grape', 'teal', 'cyan', 'red', 'indigo'];
+        return analyticsData.classSyllabus.map((s: any, i: number) => ({
+            name: s.name,
+            progress: s.progress || 0,
+            color: colors[i % colors.length],
+        }));
+    })() : [];
     const overallProgress = subjectProgress.length > 0
         ? Math.round(subjectProgress.reduce((a, s) => a + s.progress, 0) / subjectProgress.length)
         : 0;

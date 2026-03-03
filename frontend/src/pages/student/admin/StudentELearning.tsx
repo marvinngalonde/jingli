@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor } from '@mantine/core';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { IconSchool, IconBook, IconFileDescription, IconClipboardList, IconDownload, IconFile, IconPlayerPlay, IconNotes, IconChevronRight } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { notifications } from '@mantine/notifications';
-import { useNavigate } from 'react-router-dom';
+import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor } from '@mantine/core';
 
 interface SubjectInfo {
     id: string;
@@ -27,20 +26,11 @@ interface Material {
 export default function StudentELearning() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
-    const [materials, setMaterials] = useState<Material[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['studentELearning'],
+        queryFn: async () => {
             const classesRes = await api.get('/student/classes');
             const subjectsList = classesRes.data || [];
-            setSubjects(subjectsList);
 
             // Load materials from all subjects
             const allMaterials: Material[] = [];
@@ -55,14 +45,12 @@ export default function StudentELearning() {
                     }
                 } catch { /* skip subjects with no materials */ }
             }
-            setMaterials(allMaterials);
-        } catch (error) {
-            console.error('Failed to load e-learning data', error);
-            notifications.show({ title: 'Error', message: 'Failed to load learning resources', color: 'red' });
-        } finally {
-            setLoading(false);
+            return { subjectsList, allMaterials };
         }
-    };
+    });
+
+    const subjects = data?.subjectsList || [];
+    const materials = data?.allMaterials || [];
 
     const getTypeIcon = (type: string) => {
         switch (type?.toLowerCase()) {

@@ -23,28 +23,18 @@ export class PdfService {
                 // Pipe the PDF output to the Express response
                 doc.pipe(res);
 
+                // --- School Config Extraction ---
+                const schoolName = report.school?.name || 'Jingli International School';
+                const schoolConfig = report.school?.config ? (typeof report.school.config === 'string' ? JSON.parse(report.school.config) : report.school.config) : {};
+                const schoolEmail = schoolConfig.contactEmail || 'info@jingli.ac.zw';
+                const schoolAddress = schoolConfig.address || '123 School Lane, Harare';
+
                 // --- Colors & Branding ---
-                const primaryColor = '#1d4ed8'; // Deeper Blue
+                const primaryColor = schoolConfig.primaryColor || '#1d4ed8'; // Deeper Blue
                 const secondaryColor = '#f8fafc'; // Slate 50
                 const borderColor = '#e2e8f0'; // Slate 200
                 const textColor = '#0f172a'; // Slate 900
                 const lightText = '#64748b'; // Slate 500
-
-                // --- School Config Extraction ---
-                const schoolName = report.school?.name || 'Jingli International School';
-                let schoolEmail = 'contact@jingli.edu';
-                let schoolPhone = '+1 (555) 123-4567';
-                let schoolAddress = '123 Education Lane, Tech District';
-
-                if (report.school?.config) {
-                    try {
-                        const config = typeof report.school.config === 'string' ? JSON.parse(report.school.config) : report.school.config;
-                        if (config.contactEmail) schoolEmail = config.contactEmail;
-                        if (config.phone) schoolPhone = config.phone;
-                    } catch (e) {
-                        // ignore parse errors
-                    }
-                }
 
                 // --- 1. Header Area ---
                 // Add Jingli Logo if exists
@@ -57,7 +47,7 @@ export class PdfService {
 
                 // Header Details (Right Aligned)
                 doc.fillColor(textColor).fontSize(14).font('Helvetica-Bold').text(schoolName, 200, 50, { align: 'right' });
-                doc.fillColor(lightText).fontSize(10).font('Helvetica').text(`${schoolAddress}\n${schoolEmail}  |  ${schoolPhone}`, 200, 68, { align: 'right' });
+                doc.fillColor(lightText).fontSize(10).font('Helvetica').text(`${schoolAddress}\n${schoolEmail}  |  ${schoolConfig.phone || '+1 (555) 123-4567'}`, 200, 68, { align: 'right' });
 
                 // Divider Line
                 doc.moveTo(50, 110).lineTo(doc.page.width - 50, 110).strokeColor(primaryColor).lineWidth(2).stroke();

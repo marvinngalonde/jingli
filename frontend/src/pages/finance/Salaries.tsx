@@ -24,7 +24,7 @@ export default function Salaries() {
     const [search, setSearch] = useState('');
 
     const form = useForm({
-        initialValues: { staffId: '', amount: 0, month: new Date().getMonth() + 1, year: new Date().getFullYear(), method: 'BANK_TRANSFER', currency: 'USD', notes: '' },
+        initialValues: { staffId: '', amount: 0, baseSalary: 0, allowances: 0, deductions: 0, month: new Date().getMonth() + 1, year: new Date().getFullYear(), method: 'BANK_TRANSFER', currency: 'USD', notes: '' },
         validate: {
             staffId: (v) => (!v ? 'Staff member required' : null),
             amount: (v) => (v <= 0 ? 'Amount must be > 0' : null),
@@ -65,6 +65,9 @@ export default function Salaries() {
                 year: item.year || new Date().getFullYear(),
                 method: item.method || 'BANK_TRANSFER',
                 currency: item.currency || 'USD',
+                baseSalary: item.baseSalary || 0,
+                allowances: item.allowances || 0,
+                deductions: item.deductions || 0,
                 notes: item.notes || '',
             });
         } else {
@@ -77,7 +80,14 @@ export default function Salaries() {
         setSubmitting(true);
         try {
             if (editingId) {
-                await api.patch(`/salaries/${editingId}`, { amount: values.amount, method: values.method, notes: values.notes });
+                await api.patch(`/salaries/${editingId}`, {
+                    amount: values.amount,
+                    baseSalary: values.baseSalary,
+                    allowances: values.allowances,
+                    deductions: values.deductions,
+                    method: values.method,
+                    notes: values.notes
+                });
                 notifications.show({ id: 'sal-update', title: 'Updated', message: 'Salary record updated', color: 'green' });
             } else {
                 await api.post('/salaries', values);
@@ -187,8 +197,10 @@ export default function Salaries() {
                                     <Table.Th>Emp. ID</Table.Th>
                                     <Table.Th>Department</Table.Th>
                                     <Table.Th>Period</Table.Th>
-                                    <Table.Th>Amount</Table.Th>
-                                    <Table.Th>Method</Table.Th>
+                                    <Table.Th>Base</Table.Th>
+                                    <Table.Th>Allowances</Table.Th>
+                                    <Table.Th>Deductions</Table.Th>
+                                    <Table.Th>Net Amount</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th>Actions</Table.Th>
                                 </Table.Tr>
@@ -200,8 +212,10 @@ export default function Salaries() {
                                         <Table.Td><Text size="sm" c="dimmed">{r.staff?.employeeId || '—'}</Text></Table.Td>
                                         <Table.Td>{r.staff?.department || '—'}</Table.Td>
                                         <Table.Td>{MONTHS[(r.month || 1) - 1]?.slice(0, 3)} {r.year}</Table.Td>
+                                        <Table.Td>${Number(r.baseSalary || 0).toLocaleString()}</Table.Td>
+                                        <Table.Td c="green">+${Number(r.allowances || 0).toLocaleString()}</Table.Td>
+                                        <Table.Td c="red">-${Number(r.deductions || 0).toLocaleString()}</Table.Td>
                                         <Table.Td fw={600}>${Number(r.amount || 0).toLocaleString()}</Table.Td>
-                                        <Table.Td><Badge variant="light" size="sm">{r.method || 'N/A'}</Badge></Table.Td>
                                         <Table.Td><Badge color={statusColor(r.status)} variant="light">{r.status}</Badge></Table.Td>
                                         <Table.Td>
                                             <Group gap="xs">
@@ -227,7 +241,14 @@ export default function Salaries() {
                 <form onSubmit={form.onSubmit(handleSave)}>
                     <Stack>
                         {!editingId && <StaffPicker value={form.values.staffId} onChange={(v) => form.setFieldValue('staffId', v || '')} label="Staff Member" required />}
-                        <NumberInput label="Amount ($)" min={0} required {...form.getInputProps('amount')} />
+                        <Group grow>
+                            <NumberInput label="Base Salary ($)" min={0} required {...form.getInputProps('baseSalary')} />
+                            <NumberInput label="Net Amount ($)" min={0} description="Calculated automatically if left alone" {...form.getInputProps('amount')} />
+                        </Group>
+                        <Group grow>
+                            <NumberInput label="Allowances (+)" min={0} {...form.getInputProps('allowances')} />
+                            <NumberInput label="Deductions (-)" min={0} {...form.getInputProps('deductions')} />
+                        </Group>
                         <Group grow>
                             <Select label="Month" data={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} required {...form.getInputProps('month')} />
                             <NumberInput label="Year" min={2020} max={2030} required {...form.getInputProps('year')} />

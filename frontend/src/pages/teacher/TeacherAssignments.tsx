@@ -1,6 +1,7 @@
 import { Title, Text, Stack, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, TextInput, Select, NumberInput, Tabs, Drawer, Card, ThemeIcon, Textarea, ScrollArea, SimpleGrid, Paper, Modal } from '@mantine/core';
 import { IconPlus, IconClipboardList, IconTrash, IconEye, IconEdit, IconSearch, IconAlertTriangle, IconClipboardCheck } from '@tabler/icons-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
@@ -43,17 +44,13 @@ const ASSIGNMENT_TYPES = [
 ];
 
 export function TeacherAssignments() {
+    const queryClient = useQueryClient();
     const { sectionId } = useParams();
     const navigate = useNavigate();
 
-    // ─── Assignments state ───
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [loading, setLoading] = useState(true);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-    const [deleting, setDeleting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Assignment Form state
@@ -64,17 +61,11 @@ export function TeacherAssignments() {
     const [type, setType] = useState('HOMEWORK');
     const [subjectId, setSubjectId] = useState('');
     const [selectedGlobalSectionId, setSelectedGlobalSectionId] = useState<string | null>(null);
-    const [availableSubjects, setAvailableSubjects] = useState<{ value: string; label: string }[]>([]);
-    const [availableClasses, setAvailableClasses] = useState<{ value: string; label: string }[]>([]);
 
     // ─── CALA state ───
-    const [calaRecords, setCalaRecords] = useState<CalaRecord[]>([]);
-    const [calaLoading, setCalaLoading] = useState(false);
     const [calaDrawerOpened, { open: openCalaDrawer, close: closeCalaDrawer }] = useDisclosure(false);
-    const [calaSaving, setCalaSaving] = useState(false);
     const [calaEditingId, setCalaEditingId] = useState<string | null>(null);
     const [calaDeleteTarget, setCalaDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-    const [calaDeleting, setCalaDeleting] = useState(false);
 
     // CALA Form state
     const [calaTaskName, setCalaTaskName] = useState('');
@@ -86,9 +77,6 @@ export function TeacherAssignments() {
     const [calaDate, setCalaDate] = useState('');
     const [calaTeacherRemarks, setCalaTeacherRemarks] = useState('');
 
-    const [availableStudents, setAvailableStudents] = useState<{ value: string; label: string }[]>([]);
-    const [availableTerms, setAvailableTerms] = useState<{ value: string; label: string }[]>([]);
-
     // CALA Filters
     const [calaClassFilter, setCalaClassFilter] = useState<string | null>(null);
     const [calaSubjectFilter, setCalaSubjectFilter] = useState<string | null>(null);
@@ -96,72 +84,64 @@ export function TeacherAssignments() {
     // ─── Active Tab ───
     const [activeTab, setActiveTab] = useState<string | null>('assignments');
 
-    // ─── Fetch Assignments ───
-    const fetchAssignments = useCallback(async () => {
-        setLoading(true);
-        try {
-            if (sectionId) {
-                const [assignRes, classesRes] = await Promise.all([
-                    api.get(`/teacher/classes/${sectionId}/assignments`),
-                    api.get('/teacher/classes'),
-                ]);
-                setAssignments(assignRes.data);
-                const thisClass = classesRes.data.find((c: any) => c.section.id === sectionId);
-                if (thisClass) {
-                    setAvailableSubjects(thisClass.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
-                    if (thisClass.subjects.length > 0 && !subjectId) setSubjectId(thisClass.subjects[0].id);
-                }
-            } else {
-                const [assignRes, classesRes] = await Promise.all([
-                    api.get('/teacher/assignments'),
-                    api.get('/teacher/classes'),
-                ]);
-                setAssignments(assignRes.data);
-                setAvailableClasses(classesRes.data.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` })));
-            }
-        } catch { notifications.show({ title: 'Error', message: 'Failed to load assignments', color: 'red' }); }
-        finally { setLoading(false); }
-    }, [sectionId]);
+    // ─── Queries ───
+    const { data: classesData = [], isLoading: classesLoading } = useQuery({
+        queryKey: ['teacherClasses'],
+        queryFn: () => api.get('/teacher/classes').then(res => res.data)
+    });
 
-    // ─── Fetch CALA ───
-    const fetchCala = useCallback(async () => {
-        setCalaLoading(true);
-        try {
-            const { data } = await api.get('/cala');
-            setCalaRecords(Array.isArray(data) ? data : []);
-        } catch { notifications.show({ title: 'Error', message: 'Failed to load CALA records', color: 'red' }); }
-        finally { setCalaLoading(false); }
-    }, []);
-
-    useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
-    useEffect(() => { if (activeTab === 'cala') fetchCala(); }, [activeTab, fetchCala]);
-
-    // Fetch subjects and students when global section changes OR cala class filter changes
-    useEffect(() => {
-        const targetSectionId = activeTab === 'cala' && calaClassFilter ? calaClassFilter : (sectionId || selectedGlobalSectionId);
-        if (!targetSectionId) {
-            setAvailableStudents([]);
-            return;
+    const { data: assignmentsData = [], isLoading: assignmentsLoading } = useQuery({
+        queryKey: ['teacherAssignments', sectionId],
+        queryFn: () => {
+            if (sectionId) return api.get(`/teacher/classes/${sectionId}/assignments`).then(res => res.data);
+            return api.get('/teacher/assignments').then(res => res.data);
         }
-        (async () => {
-            try {
-                const [classesRes, studentsRes, termsRes] = await Promise.all([
-                    api.get('/teacher/classes'),
-                    api.get(`/teacher/classes/${targetSectionId}/students`),
-                    api.get('/exams/terms')
-                ]);
+    });
 
-                const cls = classesRes.data.find((c: any) => c.section.id === targetSectionId);
-                if (cls) {
-                    setAvailableSubjects(cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` })));
-                    if (cls.subjects.length > 0 && !subjectId) setSubjectId(cls.subjects[0].id);
-                }
+    const { data: calaData = [], isLoading: calaLoading } = useQuery({
+        queryKey: ['teacherCala'],
+        queryFn: () => api.get('/cala').then(res => Array.isArray(res.data) ? res.data : []),
+        enabled: activeTab === 'cala'
+    });
 
-                setAvailableStudents(studentsRes.data.map((s: any) => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` })));
-                setAvailableTerms(Array.isArray(termsRes.data) ? termsRes.data.map((t: any) => ({ value: t.id, label: t.name })) : []);
-            } catch { /* ignore */ }
-        })();
-    }, [selectedGlobalSectionId, sectionId]);
+    const assignments = assignmentsData as Assignment[];
+    const calaRecords = calaData as CalaRecord[];
+    const loading = classesLoading || assignmentsLoading;
+
+    // ─── Derived Dropdowns ───
+    const availableClasses = useMemo(() => {
+        if (sectionId) return [];
+        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` }));
+    }, [classesData, sectionId]);
+
+    const targetSectionId = activeTab === 'cala' && calaClassFilter ? calaClassFilter : (sectionId || selectedGlobalSectionId);
+
+    const { data: studentsData = [] } = useQuery({
+        queryKey: ['teacherClassStudents', targetSectionId],
+        queryFn: () => api.get(`/teacher/classes/${targetSectionId}/students`).then(res => res.data),
+        enabled: !!targetSectionId
+    });
+
+    const { data: termsData = [] } = useQuery({
+        queryKey: ['examTerms'],
+        queryFn: () => api.get('/exams/terms').then(res => Array.isArray(res.data) ? res.data : [])
+    });
+
+    const availableStudents = useMemo(() => studentsData.map((s: any) => ({ value: s.id, label: `${s.firstName} ${s.lastName} (${s.admissionNo})` })), [studentsData]);
+    const availableTerms = useMemo(() => termsData.map((t: any) => ({ value: t.id, label: t.name })), [termsData]);
+
+    const availableSubjects = useMemo(() => {
+        if (!targetSectionId) return [];
+        const cls = classesData.find((c: any) => c.section.id === targetSectionId);
+        if (cls) return cls.subjects.map((s: any) => ({ value: s.id, label: `${s.name} (${s.code})` }));
+        return [];
+    }, [classesData, targetSectionId]);
+
+    useEffect(() => {
+        if (availableSubjects.length > 0 && !subjectId && !editingId && activeTab === 'assignments') {
+            setSubjectId(availableSubjects[0].value);
+        }
+    }, [availableSubjects, subjectId, editingId, activeTab]);
 
     // ─── Assignment CRUD ───
     const resetAssignmentForm = () => { setTitle(''); setDescription(''); setDueDate(''); setMaxMarks(100); setType('HOMEWORK'); setSubjectId(''); setEditingId(null); if (!sectionId) setSelectedGlobalSectionId(null); };
@@ -178,36 +158,48 @@ export function TeacherAssignments() {
         openDrawer();
     };
 
-    const handleSaveAssignment = async () => {
-        const targetSectionId = sectionId || selectedGlobalSectionId;
-        if (!title || !dueDate || maxMarks === '') return;
-        setSaving(true);
-        try {
+    const saveAssignmentMutation = useMutation({
+        mutationFn: async () => {
+            const target = sectionId || selectedGlobalSectionId;
             if (editingId) {
-                await api.patch(`/assignments/${editingId}`, { title, description, dueDate, maxMarks, type });
-                notifications.show({ title: 'Updated', message: `Assignment "${title}" updated`, color: 'green' });
+                return api.patch(`/assignments/${editingId}`, { title, description, dueDate, maxMarks, type });
             } else {
-                if (!subjectId || !targetSectionId) return;
-                await api.post(`/teacher/classes/${targetSectionId}/assignments`, { title, description, dueDate, maxMarks, type, subjectId });
-                notifications.show({ title: 'Created', message: `Assignment "${title}" created`, color: 'green' });
+                if (!subjectId || !target) throw new Error('Missing target segment');
+                return api.post(`/teacher/classes/${target}/assignments`, { title, description, dueDate, maxMarks, type, subjectId });
             }
+        },
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: `Assignment ${editingId ? 'updated' : 'created'}`, color: 'green' });
             closeDrawer();
             resetAssignmentForm();
-            fetchAssignments();
-        } catch { notifications.show({ title: 'Error', message: 'Failed to save assignment', color: 'red' }); }
-        finally { setSaving(false); }
+            queryClient.invalidateQueries({ queryKey: ['teacherAssignments'] });
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to save assignment', color: 'red' });
+        }
+    });
+
+    const handleSaveAssignment = () => {
+        if (!title || !dueDate || maxMarks === '') return;
+        saveAssignmentMutation.mutate();
     };
 
-    const handleDeleteAssignment = async () => {
-        if (!deleteTarget) return;
-        setDeleting(true);
-        try {
-            await api.delete(`/teacher/assignments/${deleteTarget.id}`);
-            setAssignments(prev => prev.filter(a => a.id !== deleteTarget.id));
-            notifications.show({ title: 'Deleted', message: `"${deleteTarget.title}" deleted`, color: 'orange' });
+    const deleteAssignmentMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/teacher/assignments/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: `"${deleteTarget?.title}" deleted`, color: 'orange' });
+            queryClient.invalidateQueries({ queryKey: ['teacherAssignments'] });
             setDeleteTarget(null);
-        } catch { notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' }); }
-        finally { setDeleting(false); }
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+            setDeleteTarget(null);
+        }
+    });
+
+    const handleDeleteAssignment = () => {
+        if (!deleteTarget) return;
+        deleteAssignmentMutation.mutate(deleteTarget.id);
     };
 
     // ─── CALA CRUD ───
@@ -228,44 +220,53 @@ export function TeacherAssignments() {
         openCalaDrawer();
     };
 
-    const handleSaveCala = async () => {
-        if (!calaTaskName || calaScore === '' || calaMaxMarks === '' || !calaStudentId || !calaTermId || !calaDate) return;
-        setCalaSaving(true);
-        const payload = {
-            taskName: calaTaskName,
-            score: Number(calaScore),
-            maxScore: Number(calaMaxMarks),
-            subjectId: calaSubjectId,
-            studentId: calaStudentId,
-            termId: calaTermId,
-            date: calaDate,
-            teacherRemarks: calaTeacherRemarks
-        };
-        try {
-            if (calaEditingId) {
-                await api.patch(`/cala/${calaEditingId}`, payload);
-                notifications.show({ title: 'Updated', message: `CALA updated`, color: 'green' });
-            } else {
-                await api.post('/cala', payload);
-                notifications.show({ title: 'Created', message: `CALA created`, color: 'green' });
-            }
+    const saveCalaMutation = useMutation({
+        mutationFn: async () => {
+            const payload = {
+                taskName: calaTaskName,
+                score: Number(calaScore),
+                maxScore: Number(calaMaxMarks),
+                subjectId: calaSubjectId,
+                studentId: calaStudentId,
+                termId: calaTermId,
+                date: calaDate,
+                teacherRemarks: calaTeacherRemarks
+            };
+            if (calaEditingId) return api.patch(`/cala/${calaEditingId}`, payload);
+            return api.post('/cala', payload);
+        },
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: `CALA ${calaEditingId ? 'updated' : 'created'}`, color: 'green' });
             closeCalaDrawer();
             resetCalaForm();
-            fetchCala();
-        } catch { notifications.show({ title: 'Error', message: 'Failed to save CALA record', color: 'red' }); }
-        finally { setCalaSaving(false); }
+            queryClient.invalidateQueries({ queryKey: ['teacherCala'] });
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to save CALA record', color: 'red' });
+        }
+    });
+
+    const handleSaveCala = () => {
+        if (!calaTaskName || calaScore === '' || calaMaxMarks === '' || !calaStudentId || !calaTermId || !calaDate) return;
+        saveCalaMutation.mutate();
     };
 
-    const handleDeleteCala = async () => {
-        if (!calaDeleteTarget) return;
-        setCalaDeleting(true);
-        try {
-            await api.delete(`/cala/${calaDeleteTarget.id}`);
-            setCalaRecords(prev => prev.filter(c => c.id !== calaDeleteTarget.id));
-            notifications.show({ title: 'Deleted', message: `"${calaDeleteTarget.title}" deleted`, color: 'orange' });
+    const deleteCalaMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/cala/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: `"${calaDeleteTarget?.title}" deleted`, color: 'orange' });
+            queryClient.invalidateQueries({ queryKey: ['teacherCala'] });
             setCalaDeleteTarget(null);
-        } catch { notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' }); }
-        finally { setCalaDeleting(false); }
+        },
+        onError: () => {
+            notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+            setCalaDeleteTarget(null);
+        }
+    });
+
+    const handleDeleteCala = () => {
+        if (!calaDeleteTarget) return;
+        deleteCalaMutation.mutate(calaDeleteTarget.id);
     };
 
     // ─── Filter ───
@@ -512,7 +513,7 @@ export function TeacherAssignments() {
                     <TextInput label="Due Date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required />
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={closeDrawer}>Cancel</Button>
-                        <Button onClick={handleSaveAssignment} loading={saving} disabled={!title || !dueDate || maxMarks === ''}>
+                        <Button onClick={handleSaveAssignment} loading={saveAssignmentMutation.isPending} disabled={!title || !dueDate || maxMarks === ''}>
                             {editingId ? 'Update' : 'Create'}
                         </Button>
                     </Group>
@@ -542,7 +543,7 @@ export function TeacherAssignments() {
 
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={closeCalaDrawer}>Cancel</Button>
-                        <Button color="green" onClick={handleSaveCala} loading={calaSaving} disabled={!calaTaskName || calaScore === '' || calaMaxMarks === '' || !calaStudentId || !calaTermId || !calaDate}>
+                        <Button color="green" onClick={handleSaveCala} loading={saveCalaMutation.isPending} disabled={!calaTaskName || calaScore === '' || calaMaxMarks === '' || !calaStudentId || !calaTermId || !calaDate}>
                             {calaEditingId ? 'Update' : 'Create'}
                         </Button>
                     </Group>
@@ -554,7 +555,7 @@ export function TeacherAssignments() {
                 <Text size="sm">Are you sure you want to delete <b>"{deleteTarget?.title}"</b>? This action cannot be undone.</Text>
                 <Group justify="flex-end" mt="lg">
                     <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-                    <Button color="red" onClick={handleDeleteAssignment} loading={deleting}>Delete</Button>
+                    <Button color="red" onClick={handleDeleteAssignment} loading={deleteAssignmentMutation.isPending}>Delete</Button>
                 </Group>
             </Modal>
 
@@ -563,7 +564,7 @@ export function TeacherAssignments() {
                 <Text size="sm">Are you sure you want to delete <b>"{calaDeleteTarget?.title}"</b>? This action cannot be undone.</Text>
                 <Group justify="flex-end" mt="lg">
                     <Button variant="default" onClick={() => setCalaDeleteTarget(null)}>Cancel</Button>
-                    <Button color="red" onClick={handleDeleteCala} loading={calaDeleting}>Delete</Button>
+                    <Button color="red" onClick={handleDeleteCala} loading={deleteCalaMutation.isPending}>Delete</Button>
                 </Group>
             </Modal>
         </Stack>

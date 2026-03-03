@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsDateString, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStaffDto {
@@ -46,4 +46,9 @@ export class CreateStaffDto {
     @IsString()
     @IsOptional()
     phone?: string;
+
+    @ApiProperty({ example: 3000, required: false })
+    @IsNumber()
+    @IsOptional()
+    baseSalary?: number;
 }

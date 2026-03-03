@@ -24,6 +24,18 @@ export class CreateSalaryPaymentDto {
     @IsString()
     @IsOptional()
     notes?: string;
+
+    @IsNumber()
+    @IsOptional()
+    baseSalary?: number;
+
+    @IsNumber()
+    @IsOptional()
+    allowances?: number;
+
+    @IsNumber()
+    @IsOptional()
+    deductions?: number;
 }
 
 export class RunPayrollDto {
@@ -58,4 +70,16 @@ export class UpdateSalaryPaymentDto {
     @IsString()
     @IsOptional()
     notes?: string;
+
+    @IsNumber()
+    @IsOptional()
+    baseSalary?: number;
+
+    @IsNumber()
+    @IsOptional()
+    allowances?: number;
+
+    @IsNumber()
+    @IsOptional()
+    deductions?: number;
 }

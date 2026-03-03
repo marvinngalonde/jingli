@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Title, Text, Paper, Group, Card, Badge, Grid, ThemeIcon, SimpleGrid, Progress, RingProgress, Stack, Select, Table, Box, ScrollArea } from '@mantine/core';
 import {
@@ -11,25 +12,13 @@ import {
 
 export default function TeacherAnalytics() {
     const [period, setPeriod] = useState<string | null>('this-term');
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchAnalytics = async () => {
-            setLoading(true);
-            try {
-                const res = await api.get('/teacher/analytics');
-                setData(res.data);
-            } catch (error) {
-                console.error('Failed to load analytics', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAnalytics();
-    }, [period]);
+    const { data, isLoading } = useQuery({
+        queryKey: ['teacherAnalytics', period],
+        queryFn: () => api.get('/teacher/analytics').then(res => res.data)
+    });
 
-    if (!data) return <div style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }}>Loading analytics...</div>;
+    if (isLoading || !data) return <div style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }}>Loading analytics...</div>;
 
     const { overallStats, classSyllabus, assignmentStats, atRiskStudents, weeklyActivity, subjectPerformance } = data;
 

@@ -2,8 +2,9 @@ import { Button, Group, Badge, Modal, TextInput, Select, Stack, Loader, Center, 
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserPlus, IconLogout, IconPrinter, IconDownload } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
-import { DataTable } from '../../components/common/DataTable';
-import { useState, useEffect } from 'react';
+import { DataTable, type Column } from '../../components/common/DataTable';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitorsService, VisitorStatus } from '../../services/visitorsService';
 import type { Visitor } from '../../services/visitorsService';
 import { notifications } from '@mantine/notifications';
@@ -11,11 +12,9 @@ import { useForm } from '@mantine/form';
 import { exportToCsv, exportToPdf } from '../../utils/exportUtils';
 
 export default function Visitors() {
-    const [visitors, setVisitors] = useState<Visitor[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [opened, { open, close }] = useDisclosure(false);
-    const [submitting, setSubmitting] = useState(false);
+    const queryClient = useQueryClient();
 
     const form = useForm({
         initialValues: {
@@ -32,46 +31,33 @@ export default function Visitors() {
         },
     });
 
-    useEffect(() => {
-        loadVisitors();
-    }, []);
+    const { data: visitors = [], isLoading } = useQuery({
+        queryKey: ['visitors'],
+        queryFn: () => visitorsService.getAll()
+    });
 
-    const loadVisitors = async () => {
-        setLoading(true);
-        try {
-            const data = await visitorsService.getAll();
-            setVisitors(data);
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to load visitors', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCheckOut = async (id: string) => {
-        try {
-            await visitorsService.checkout(id);
-            notifications.show({ title: 'Checked Out', message: 'Visitor marked as exited', color: 'green' });
-            loadVisitors();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to check out visitor', color: 'red' });
-        }
-    };
-
-    const handleCheckIn = async (values: typeof form.values) => {
-        setSubmitting(true);
-        try {
-            await visitorsService.create(values);
+    const checkInMutation = useMutation({
+        mutationFn: visitorsService.create,
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Visitor checked in', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['visitors'] });
             form.reset();
             close();
-            loadVisitors();
-        } catch (error) {
-            notifications.show({ title: 'Error', message: 'Failed to check in visitor', color: 'red' });
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to check in visitor', color: 'red' })
+    });
+
+    const checkOutMutation = useMutation({
+        mutationFn: visitorsService.checkout,
+        onSuccess: () => {
+            notifications.show({ title: 'Checked Out', message: 'Visitor marked as exited', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['visitors'] });
+        },
+        onError: () => notifications.show({ title: 'Error', message: 'Failed to check out visitor', color: 'red' })
+    });
+
+    const handleCheckOut = (id: string) => checkOutMutation.mutate(id);
+    const handleCheckIn = (values: typeof form.values) => checkInMutation.mutate(values);
 
     const handlePrintBadge = (visitor: Visitor) => {
         alert(`Printing badge for ${visitor.name}\nTime In: ${new Date(visitor.checkIn).toLocaleTimeString()}`);
@@ -107,6 +93,61 @@ export default function Visitors() {
         }
     };
 
+    const columns: Column<Visitor>[] = [
+        { accessor: 'name', header: 'Visitor Name' },
+        { accessor: 'purpose', header: 'Purpose' },
+        { accessor: 'personToMeet', header: 'Meeting With' },
+        { accessor: 'idProof', header: 'ID Proof' },
+        { accessor: 'vehicleNo', header: 'Vehicle No.' },
+        {
+            accessor: 'checkIn',
+            header: 'Time In',
+            render: (item) => new Date(item.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+            accessor: 'checkOut',
+            header: 'Time Out',
+            render: (item) => item.checkOut ? new Date(item.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'
+        },
+        {
+            accessor: 'status',
+            header: 'Status',
+            render: (item) => (
+                <Badge color={item.status === VisitorStatus.IN ? 'green' : 'gray'}>{item.status}</Badge>
+            )
+        },
+        {
+            accessor: 'actions',
+            header: 'Actions',
+            width: 180,
+            render: (item) => (
+                <Group gap="xs">
+                    {item.status === VisitorStatus.IN && (
+                        <Button
+                            size="compact-xs"
+                            color="orange"
+                            variant="light"
+                            leftSection={<IconLogout size={14} />}
+                            loading={checkOutMutation.isPending && checkOutMutation.variables === item.id}
+                            onClick={() => handleCheckOut(item.id)}
+                        >
+                            Out
+                        </Button>
+                    )}
+                    <Button
+                        size="compact-xs"
+                        color="blue"
+                        variant="subtle"
+                        leftSection={<IconPrinter size={14} />}
+                        onClick={() => handlePrintBadge(item)}
+                    >
+                        Badge
+                    </Button>
+                </Group>
+            )
+        }
+    ];
+
     return (
         <>
             <PageHeader
@@ -127,64 +168,12 @@ export default function Visitors() {
                 }
             />
 
-            {loading ? (
+            {isLoading ? (
                 <Center p="xl"><Loader /></Center>
             ) : (
                 <DataTable
                     data={filteredVisitors}
-                    columns={[
-                        { accessor: 'name', header: 'Visitor Name' },
-                        { accessor: 'purpose', header: 'Purpose' },
-                        { accessor: 'personToMeet', header: 'Meeting With' },
-                        { accessor: 'idProof', header: 'ID Proof' },
-                        { accessor: 'vehicleNo', header: 'Vehicle No.' },
-                        {
-                            accessor: 'checkIn',
-                            header: 'Time In',
-                            render: (item) => new Date(item.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        },
-                        {
-                            accessor: 'checkOut',
-                            header: 'Time Out',
-                            render: (item) => item.checkOut ? new Date(item.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'
-                        },
-                        {
-                            accessor: 'status',
-                            header: 'Status',
-                            render: (item) => (
-                                <Badge color={item.status === VisitorStatus.IN ? 'green' : 'gray'}>{item.status}</Badge>
-                            )
-                        },
-                        {
-                            accessor: 'actions',
-                            header: 'Actions',
-                            width: 180,
-                            render: (item) => (
-                                <Group gap="xs">
-                                    {item.status === VisitorStatus.IN && (
-                                        <Button
-                                            size="compact-xs"
-                                            color="orange"
-                                            variant="light"
-                                            leftSection={<IconLogout size={14} />}
-                                            onClick={() => handleCheckOut(item.id)}
-                                        >
-                                            Out
-                                        </Button>
-                                    )}
-                                    <Button
-                                        size="compact-xs"
-                                        color="blue"
-                                        variant="subtle"
-                                        leftSection={<IconPrinter size={14} />}
-                                        onClick={() => handlePrintBadge(item)}
-                                    >
-                                        Badge
-                                    </Button>
-                                </Group>
-                            )
-                        }
-                    ]}
+                    columns={columns}
                     search={search}
                     onSearchChange={setSearch}
                 />
@@ -206,7 +195,7 @@ export default function Visitors() {
                         <TextInput label="Vehicle No." placeholder="Optional" {...form.getInputProps('vehicleNo')} />
                         <Group justify="flex-end">
                             <Button variant="default" onClick={close}>Cancel</Button>
-                            <Button type="submit" loading={submitting}>Check In</Button>
+                            <Button type="submit" loading={checkInMutation.isPending}>Check In</Button>
                         </Group>
                     </Stack>
                 </form>

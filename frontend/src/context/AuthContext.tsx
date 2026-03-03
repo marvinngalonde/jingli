@@ -14,6 +14,12 @@ export interface UserProfile {
     firstName?: string;
     lastName?: string;
     profile?: any; // The linked domain profile (Staff/Student/Guardian)
+    school?: {
+        name: string;
+        config: any;
+        email?: string;
+        address?: string;
+    };
 }
 
 interface AuthContextType {

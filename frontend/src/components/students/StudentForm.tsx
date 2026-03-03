@@ -118,7 +118,7 @@ export function StudentForm({ initialValues, onSubmit, onCancel, loading, isEdit
         onSubmit(payload);
     };
 
-    const levelOptions = levels.map(l => ({ value: l.id, label: l.name }));
+    const levelOptions = levels.map(l => ({ value: l.id, label: `${l.name} ${l.level || ''}`.trim().replace(/\s+/g, ' ') }));
     const sectionOptions = sections.map(s => ({ value: s.id, label: s.name }));
 
     return (

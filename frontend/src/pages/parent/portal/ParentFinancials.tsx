@@ -2,6 +2,7 @@ import { Title, Text, Stack, Card, Group, Select, LoadingOverlay, Table, Badge, 
 import { IconUsers, IconCreditCard, IconReceipt } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { format } from 'date-fns';
 
@@ -33,44 +34,35 @@ interface FinancialData {
 
 export function ParentFinancials() {
     const { } = useAuth();
-    const [children, setChildren] = useState<Child[]>([]);
     const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-    const [data, setData] = useState<FinancialData>({ pendingAmount: 0, totalPaid: 0, invoices: [], transactions: [] });
-    const [loading, setLoading] = useState(true);
+
+    const { data: childrenData, isLoading: loadingChildren } = useQuery({
+        queryKey: ['parentChildren'],
+        queryFn: async () => {
+            const res = await api.get('/parent/children');
+            return res.data as Child[];
+        }
+    });
+
+    const children = childrenData || [];
 
     useEffect(() => {
-        const fetchChildren = async () => {
-            try {
-                const res = await api.get('/parent/children');
-                setChildren(res.data);
-                if (res.data.length > 0) {
-                    setSelectedChildId(res.data[0].id);
-                } else {
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Failed to fetch children", error);
-                setLoading(false);
-            }
-        };
-        fetchChildren();
-    }, []);
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
+        }
+    }, [children, selectedChildId]);
 
-    useEffect(() => {
-        if (!selectedChildId) return;
-        const fetchFinancials = async () => {
-            setLoading(true);
-            try {
-                const res = await api.get(`/parent/financials/${selectedChildId}`);
-                setData(res.data);
-            } catch (error) {
-                console.error("Failed to fetch financial data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchFinancials();
-    }, [selectedChildId]);
+    const { data: financialData, isLoading: loadingFinancials } = useQuery({
+        queryKey: ['parentFinancials', selectedChildId],
+        queryFn: async () => {
+            const res = await api.get(`/parent/financials/${selectedChildId}`);
+            return res.data as FinancialData;
+        },
+        enabled: !!selectedChildId
+    });
+
+    const data = financialData || { pendingAmount: 0, totalPaid: 0, invoices: [], transactions: [] };
+    const loading = loadingChildren || (!!selectedChildId && loadingFinancials);
 
     const getStatusColor = (status: string) => {
         switch (status) {

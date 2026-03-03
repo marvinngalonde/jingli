@@ -7,7 +7,8 @@ import {
     Stack,
     Grid,
     Title,
-    Divider
+    Divider,
+    NumberInput
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import type { CreateStaffDto } from '../../types/staff';
@@ -31,6 +32,7 @@ export function StaffForm({ initialValues, onSubmit, onCancel, loading, isEditin
             designation: '',
             department: '',
             joinDate: new Date(),
+            baseSalary: 0,
         },
         validate: {
             firstName: (value) => (value?.length < 2 ? 'First name must have at least 2 letters' : null),
@@ -101,6 +103,16 @@ export function StaffForm({ initialValues, onSubmit, onCancel, loading, isEditin
                             required
                             {...form.getInputProps('joinDate')}
                             valueFormat="DD MMM YYYY"
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={6}>
+                        <NumberInput
+                            label="Base Salary"
+                            name="baseSalary"
+                            placeholder="3000"
+                            prefix="$"
+                            min={0}
+                            {...form.getInputProps('baseSalary')}
                         />
                     </Grid.Col>
                 </Grid>

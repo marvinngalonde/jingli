@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Button,
     Group,
@@ -50,10 +51,6 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     const [search, setSearch] = useState('');
     const { user } = useAuth();
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
-    const [teachers, setTeachers] = useState<any[]>([]);
     const [createModalOpened, setCreateModalOpened] = useState(false);
     const [editModalOpened, setEditModalOpened] = useState(false);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
@@ -62,32 +59,24 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     const [page, setPage] = useState(1);
     const [activeTab, setActiveTab] = useState<string | null>('classes');
 
-    // Fetch classes on mount
-    useEffect(() => {
-        fetchClasses();
-    }, []);
+    const { data: classLevels = [], isLoading: classesLoading, error: classesError, refetch: fetchClasses } = useQuery({
+        queryKey: ['classes'],
+        queryFn: () => classesApi.getAll()
+    });
 
-    const fetchClasses = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const [data, staffRes] = await Promise.all([
-                classesApi.getAll(),
-                staffService.getAll()
-            ]);
-            setClassLevels(data);
+    const { data: staffList = [], isLoading: staffLoading, error: staffError } = useQuery({
+        queryKey: ['staff'],
+        queryFn: () => staffService.getAll()
+    });
 
-            // Filter staff who are likely teachers
-            const teachingRoles = ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'];
-            const teacherStaff = staffRes.filter(s => s.designation?.toLowerCase().includes('teacher') || teachingRoles.includes(s.user?.role || ''));
-            setTeachers(teacherStaff);
-        } catch (err: any) {
-            console.error('Failed to fetch classes or staff:', err);
-            setError(err.response?.data?.message || 'Failed to load data');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const loading = classesLoading || staffLoading;
+    const errorObj = classesError || staffError;
+    const error = errorObj ? (errorObj as any).message : null;
+
+    const teachers = useMemo(() => {
+        const teachingRoles = ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'];
+        return staffList.filter((s: any) => s.designation?.toLowerCase().includes('teacher') || teachingRoles.includes(s.user?.role || ''));
+    }, [staffList]);
 
     // Flatten class levels into rows (one row per section)
     const rows: ClassRow[] = classLevels.flatMap(level =>

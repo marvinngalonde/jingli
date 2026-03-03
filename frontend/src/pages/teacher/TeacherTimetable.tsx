@@ -1,5 +1,6 @@
 import { Title, Text, Stack, Card, Loader, Center } from '@mantine/core';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { TimetableGrid } from '../../components/timetable/TimetableGrid';
@@ -10,82 +11,63 @@ import type { TimetableEntry, Subject } from '../../types/academics';
 
 export function TeacherTimetable() {
     const { user } = useAuth();
-    const [entries, setEntries] = useState<TimetableEntry[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     // Edit Modal State
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
-    const [submitting, setSubmitting] = useState(false);
 
-    // Reference Data for editing
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [teachers, setTeachers] = useState<any[]>([]);
+    // Queries
+    const { data: entriesData = [], isLoading: loadingEntries } = useQuery({
+        queryKey: ['teacherTimetable', user?.profile?.id],
+        queryFn: () => timetableApi.getAll({ teacherId: user?.profile?.id as string }),
+        enabled: !!user?.profile?.id
+    });
 
-    useEffect(() => {
-        if (user?.profile?.id) {
-            loadTeacherTimetable(user.profile.id);
-            loadReferenceData();
-        }
-    }, [user]);
+    const { data: subjects = [] } = useQuery({
+        queryKey: ['subjects'],
+        queryFn: () => subjectsApi.getAll(),
+        enabled: !!user?.profile?.id
+    });
 
-    const loadTeacherTimetable = async (teacherId: string) => {
-        try {
-            setLoading(true);
-            const data = await timetableApi.getAll({ teacherId });
-            setEntries(data);
-        } catch (error) {
-            console.error('Failed to load timetable', error);
-            notifications.show({ title: 'Error', message: 'Failed to load your timetable', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: teachers = [] } = useQuery({
+        queryKey: ['staff'],
+        queryFn: () => api.get('/staff').then(res => res.data),
+        enabled: !!user?.profile?.id
+    });
 
-    const loadReferenceData = async () => {
-        try {
-            const [subjectsRes, staffRes] = await Promise.all([
-                subjectsApi.getAll(),
-                api.get('/staff')
-            ]);
-            setSubjects(subjectsRes);
-            setTeachers(staffRes.data);
-        } catch (e) {
-            console.warn('Could not load subjects or staff for editing', e);
-        }
-    };
+    const entries = entriesData;
+    const loading = loadingEntries && !!user?.profile?.id;
 
-    const handleEditEntry = async (id: string, values: any) => {
-        try {
-            setSubmitting(true);
-            await timetableApi.update(id, values);
+    const updateMutation = useMutation({
+        mutationFn: ({ id, values }: { id: string; values: any }) => timetableApi.update(id, values),
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Timetable entry updated', color: 'green' });
             setEditModalOpen(false);
             setEditingEntry(null);
-            if (user?.profile?.id) {
-                loadTeacherTimetable(user.profile.id);
-            }
-        } catch (error: any) {
+            queryClient.invalidateQueries({ queryKey: ['teacherTimetable', user?.profile?.id] });
+        },
+        onError: (error: any) => {
             console.error('Failed to update entry', error);
             notifications.show({
                 title: 'Error',
                 message: error.response?.data?.message || 'Failed to update entry.',
                 color: 'red'
             });
-        } finally {
-            setSubmitting(false);
         }
+    });
+
+    const handleEditEntry = async (id: string, values: any) => {
+        updateMutation.mutate({ id, values });
     };
 
-    const handleDeleteEntry = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this entry?')) return;
-        try {
-            await timetableApi.delete(id);
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => timetableApi.delete(id),
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Entry deleted', color: 'green' });
-            if (user?.profile?.id) {
-                loadTeacherTimetable(user.profile.id);
-            }
-        } catch (error: any) {
+            queryClient.invalidateQueries({ queryKey: ['teacherTimetable', user?.profile?.id] });
+        },
+        onError: (error: any) => {
             console.error('Failed to delete entry', error);
             notifications.show({
                 title: 'Error',
@@ -93,6 +75,11 @@ export function TeacherTimetable() {
                 color: 'red'
             });
         }
+    });
+
+    const handleDeleteEntry = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this entry?')) return;
+        deleteMutation.mutate(id);
     };
 
     const openEditModal = (entry: TimetableEntry) => {
@@ -136,7 +123,7 @@ export function TeacherTimetable() {
                 opened={editModalOpen}
                 onClose={() => { setEditModalOpen(false); setEditingEntry(null); }}
                 onSubmit={handleEditEntry}
-                loading={submitting}
+                loading={updateMutation.isPending}
                 subjects={subjects}
                 teachers={teachers}
                 entry={editingEntry}

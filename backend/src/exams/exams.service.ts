@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -66,13 +66,25 @@ export class ExamsService {
     }
     // Exam Terms
     async createTerm(data: any) {
+        // Use provided academicYearId or find current
+        let academicYearId = data.academicYearId;
+        if (!academicYearId) {
+            const currentYear = await this.prisma.academicYear.findFirst({
+                where: { schoolId: data.schoolId, current: true }
+            });
+            academicYearId = currentYear?.id;
+        }
+        if (!academicYearId) {
+            throw new BadRequestException('No active academic year found. Please provide academicYearId or set a current year in settings.');
+        }
+
         return this.prisma.examTerm.create({
             data: {
-                schoolId: data.schoolId,
-                name: data.name,
+                school: { connect: { id: data.schoolId as string } },
+                name: data.name as string,
                 startDate: new Date(data.startDate),
                 endDate: new Date(data.endDate),
-                academicYearId: data.academicYearId,
+                academicYear: { connect: { id: academicYearId as string } },
             }
         });
     }

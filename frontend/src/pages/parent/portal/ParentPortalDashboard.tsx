@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     SimpleGrid, Paper, Text, Group, ThemeIcon, Badge, Card, Stack,
     Loader, Center, Avatar, Button, Progress, Table, Anchor
@@ -45,16 +45,9 @@ interface LiveClass {
 export default function ParentPortalDashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [children, setChildren] = useState<Child[]>([]);
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => { loadAll(); }, []);
-
-    const loadAll = async () => {
-        try {
-            setLoading(true);
+    const { data: dashboardData, isLoading: loading } = useQuery({
+        queryKey: ['parentPortalDashboard'],
+        queryFn: async () => {
             const [childrenRes, invoiceRes, liveRes] = await Promise.allSettled([
                 api.get('/parent/children'),
                 api.get('/invoices'),
@@ -65,15 +58,17 @@ export default function ParentPortalDashboard() {
             const inv = invoiceRes.status === 'fulfilled' ? (invoiceRes.value.data || []) : [];
             const live = liveRes.status === 'fulfilled' ? (liveRes.value.data || []) : [];
 
-            setChildren(Array.isArray(ch) ? ch : []);
-            setInvoices(Array.isArray(inv) ? inv.filter((i: any) => i.status === 'UNPAID' || i.status === 'OVERDUE').slice(0, 5) : []);
-            setLiveClasses(Array.isArray(live) ? live.filter((l: any) => l.status === 'SCHEDULED' || l.status === 'LIVE').slice(0, 3) : []);
-        } catch {
-            notifications.show({ title: 'Error', message: 'Failed to load portal data', color: 'red' });
-        } finally {
-            setLoading(false);
+            return {
+                children: Array.isArray(ch) ? ch : [],
+                invoices: Array.isArray(inv) ? inv.filter((i: any) => i.status === 'UNPAID' || i.status === 'OVERDUE').slice(0, 5) : [],
+                liveClasses: Array.isArray(live) ? live.filter((l: any) => l.status === 'SCHEDULED' || l.status === 'LIVE').slice(0, 3) : []
+            };
         }
-    };
+    });
+
+    const children = dashboardData?.children || [];
+    const invoices = dashboardData?.invoices || [];
+    const liveClasses = dashboardData?.liveClasses || [];
 
     if (loading) return <Center h={400}><Loader /></Center>;
 

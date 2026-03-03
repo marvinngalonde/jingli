@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Text,
     Paper,
@@ -51,17 +52,23 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
     const { user } = useAuth();
     const isTeacher = isTeacherRole(user?.role || '');
 
-    // State
-    const [loading, setLoading] = useState(false);
-    const [classes, setClasses] = useState<ClassLevel[]>([]);
+    // UI State
     const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
     const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
 
-    // Data
-    const [entries, setEntries] = useState<TimetableEntry[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [teachers, setTeachers] = useState<Teacher[]>([]);
-    const [allocations, setAllocations] = useState<Allocation[]>([]);
+    const queryClient = useQueryClient();
+
+    const { data: classes = [], isLoading: classesLoading } = useQuery({ queryKey: ['classes'], queryFn: () => classesApi.getAll() });
+    const { data: subjects = [], isLoading: subjectsLoading } = useQuery({ queryKey: ['subjects'], queryFn: () => subjectsApi.getAll() });
+    const { data: teachers = [], isLoading: teachersLoading } = useQuery({ queryKey: ['staff'], queryFn: () => api.get('/staff').then(res => res.data) });
+    const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => api.get('/subjects/allocations').then(res => res.data) });
+    const { data: entries = [], isLoading: entriesLoading } = useQuery({
+        queryKey: ['timetable', selectedSectionId],
+        queryFn: () => timetableApi.getAll({ sectionId: selectedSectionId! }),
+        enabled: !!selectedSectionId
+    });
+
+    const loading = classesLoading || subjectsLoading || teachersLoading;
 
     // UI State
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -72,116 +79,48 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
     // Get this teacher's staff ID for permission checks
     const staffId = user?.profile?.id;
 
-    // Initial Load
-    useEffect(() => {
-        loadInitialData();
-    }, []);
-
-    // Load Timetable + Allocations when Section Changes
-    useEffect(() => {
-        if (selectedSectionId) {
-            loadTimetable(selectedSectionId);
-            loadAllocations(selectedSectionId);
-        } else {
-            setEntries([]);
-            setAllocations([]);
-        }
-    }, [selectedSectionId]);
-
-    const loadInitialData = async () => {
-        try {
-            setLoading(true);
-            const [classesRes, subjectsRes] = await Promise.all([
-                classesApi.getAll(),
-                subjectsApi.getAll()
-            ]);
-            setClasses(classesRes);
-            setSubjects(subjectsRes);
-
-            try {
-                const staffRes = await api.get('/staff');
-                setTeachers(staffRes.data);
-            } catch (e) {
-                console.warn('Failed to load staff list', e);
-            }
-
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load initial data', error);
-            notifications.show({ title: 'Error', message: 'Failed to load classes or subjects', color: 'red' });
-            setLoading(false);
-        }
-    };
-
-    const loadTimetable = async (sectionId: string) => {
-        try {
-            setLoading(true);
-            const data = await timetableApi.getAll({ sectionId });
-            setEntries(data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Failed to load timetable', error);
-            notifications.show({ title: 'Error', message: 'Failed to load timetable', color: 'red' });
-            setLoading(false);
-        }
-    };
-
-    const loadAllocations = async (_sectionId: string) => {
-        try {
-            const res = await api.get('/subjects/allocations');
-            setAllocations(res.data);
-        } catch (e) {
-            console.warn('Could not load allocations', e);
-            setAllocations([]);
-        }
-    };
-
-    const handleCreateEntry = async (values: CreateTimetableDto) => {
-        try {
-            setSubmitting(true);
-            await timetableApi.create(values);
+    const createMutation = useMutation({
+        mutationFn: timetableApi.create,
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Timetable entry created', color: 'green' });
             setCreateModalOpen(false);
-            if (selectedSectionId) loadTimetable(selectedSectionId);
-            setSubmitting(false);
-        } catch (error: any) {
+            if (selectedSectionId) queryClient.invalidateQueries({ queryKey: ['timetable', selectedSectionId] });
+        },
+        onError: (error: any) => {
             console.error('Failed to create entry', error);
             notifications.show({
                 title: 'Error',
                 message: error.response?.data?.message || 'Failed to create entry. Check for conflicts.',
                 color: 'red'
             });
-            setSubmitting(false);
         }
-    };
+    });
 
-    const handleEditEntry = async (id: string, values: any) => {
-        try {
-            setSubmitting(true);
-            await timetableApi.update(id, values);
+    const editMutation = useMutation({
+        mutationFn: ({ id, values }: { id: string, values: any }) => timetableApi.update(id, values),
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Timetable entry updated', color: 'green' });
             setEditModalOpen(false);
             setEditingEntry(null);
-            if (selectedSectionId) loadTimetable(selectedSectionId);
-            setSubmitting(false);
-        } catch (error: any) {
+            if (selectedSectionId) queryClient.invalidateQueries({ queryKey: ['timetable', selectedSectionId] });
+        },
+        onError: (error: any) => {
             console.error('Failed to update entry', error);
             notifications.show({
                 title: 'Error',
                 message: error.response?.data?.message || 'Failed to update entry.',
                 color: 'red'
             });
-            setSubmitting(false);
         }
-    };
+    });
 
-    const handleDeleteEntry = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this entry?')) return;
-        try {
-            await timetableApi.delete(id);
+    const deleteMutation = useMutation({
+        mutationFn: timetableApi.delete,
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Entry deleted', color: 'green' });
-            if (selectedSectionId) loadTimetable(selectedSectionId);
-        } catch (error: any) {
+            if (selectedSectionId) queryClient.invalidateQueries({ queryKey: ['timetable', selectedSectionId] });
+        },
+        onError: (error: any) => {
             console.error('Failed to delete entry', error);
             notifications.show({
                 title: 'Error',
@@ -189,6 +128,13 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                 color: 'red'
             });
         }
+    });
+
+    const handleCreateEntry = (values: CreateTimetableDto) => createMutation.mutate(values);
+    const handleEditEntry = (id: string, values: any) => editMutation.mutate({ id, values });
+    const handleDeleteEntry = (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this entry?')) return;
+        deleteMutation.mutate(id);
     };
 
     const openEditModal = (entry: TimetableEntry) => {
@@ -246,8 +192,8 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                         <Button
                             variant="light"
                             leftSection={<IconRefresh size={16} />}
-                            onClick={() => selectedSectionId && loadTimetable(selectedSectionId)}
-                            disabled={!selectedSectionId}
+                            onClick={() => selectedSectionId && queryClient.invalidateQueries({ queryKey: ['timetable', selectedSectionId] })}
+                            disabled={!selectedSectionId || entriesLoading}
                             mt={24}
                         >
                             Refresh
@@ -269,7 +215,7 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                 <Center h={200}>
                     <Text c="dimmed">Select a class and section to view timetable</Text>
                 </Center>
-            ) : loading ? (
+            ) : entriesLoading ? (
                 <Center h={200}>
                     <Loader />
                 </Center>
@@ -288,7 +234,7 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                     opened={createModalOpen}
                     onClose={() => setCreateModalOpen(false)}
                     onSubmit={handleCreateEntry}
-                    loading={submitting}
+                    loading={createMutation.isPending}
                     subjects={subjects}
                     teachers={teachers}
                     sectionId={selectedSectionId}
@@ -301,7 +247,7 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
                 opened={editModalOpen}
                 onClose={() => { setEditModalOpen(false); setEditingEntry(null); }}
                 onSubmit={handleEditEntry}
-                loading={submitting}
+                loading={editMutation.isPending}
                 subjects={subjects}
                 teachers={teachers}
                 entry={editingEntry}

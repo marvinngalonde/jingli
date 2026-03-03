@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button, Tabs, Text, Group } from '@mantine/core';
 import { IconPlus, IconCalendar, IconFileAnalytics } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
@@ -18,47 +19,39 @@ export function Exams() {
     const [activeTab, setActiveTab] = useState<string | null>('schedule');
 
     // --- Schedule State ---
-    const [exams, setExams] = useState<Exam[]>([]);
-    const [loading, setLoading] = useState(true);
     const [createModalOpened, setCreateModalOpened] = useState(false);
     const [editModalOpened, setEditModalOpened] = useState(false);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        if (activeTab === 'schedule') {
-            loadData();
-        }
-    }, [activeTab]);
+    const { data: exams = [], isLoading: loading, refetch: loadData } = useQuery({
+        queryKey: ['exams', user?.schoolId],
+        queryFn: () => examsService.getExams(user?.schoolId || ''),
+        enabled: activeTab === 'schedule' && !!user?.schoolId
+    });
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const examsData = await examsService.getExams(user?.schoolId || '');
-            setExams(examsData);
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'Failed to load exams', color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const handleEdit = (exam: Exam) => {
         setSelectedExam(exam);
         setEditModalOpened(true);
     };
 
-    const handleDelete = async (exam: Exam) => {
-        if (!window.confirm(`Are you sure you want to delete "${exam.name}"? This will delete all associated grades.`)) return;
-        try {
-            await examsService.deleteExam(exam.id);
+    const deleteMutation = useMutation({
+        mutationFn: examsService.deleteExam,
+        onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Exam deleted', color: 'green' });
             loadData();
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to delete exam', color: 'red' });
         }
+    });
+
+    const handleDelete = async (exam: Exam) => {
+        if (!window.confirm(`Are you sure you want to delete "${exam.name}"? This will delete all associated grades.`)) return;
+        deleteMutation.mutate(exam.id);
     };
 
     const filteredExams = exams.filter(e =>
@@ -121,7 +114,7 @@ export function Exams() {
                         columns={columns}
                         search={search}
                         onSearchChange={setSearch}
-                        loading={loading}
+                        loading={loading || deleteMutation.isPending}
                         pagination={{ total: 1, page: 1, onChange: () => { } }}
                     />
                 </Tabs.Panel>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Paper,
     Title,
@@ -35,8 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export function NoticeBoard() {
     const { user } = useAuth();
-    const [notices, setNotices] = useState<Notice[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [audienceFilter, setAudienceFilter] = useState<string | null>(null);
 
@@ -44,32 +44,29 @@ export function NoticeBoard() {
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
 
-    useEffect(() => {
-        loadNotices();
-    }, []);
-
-    const loadNotices = async () => {
-        setLoading(true);
-        try {
-            const data = await noticesService.getAll();
-            setNotices(data);
-        } catch (error) {
-            console.error("Failed to load notices", error);
-            notifications.show({ title: 'Error', message: 'Failed to load notices', color: 'red' });
-        } finally {
-            setLoading(false);
+    const { data: noticesData, isLoading: loading } = useQuery({
+        queryKey: ['notices'],
+        queryFn: async () => {
+            return await noticesService.getAll();
         }
-    };
+    });
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this notice?')) return;
-        try {
-            await noticesService.delete(id);
+    const notices = noticesData || [];
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => noticesService.delete(id),
+        onSuccess: () => {
             notifications.show({ title: 'Deleted', message: 'Notice deleted successfully', color: 'green' });
-            loadNotices();
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: ['notices'] });
+        },
+        onError: () => {
             notifications.show({ title: 'Error', message: 'Failed to delete notice', color: 'red' });
         }
+    });
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this notice?')) return;
+        deleteMutation.mutate(id);
     };
 
     const handleEdit = (notice: Notice) => {
@@ -210,7 +207,7 @@ export function NoticeBoard() {
                     initialData={editingNotice}
                     onSuccess={() => {
                         setDrawerOpened(false);
-                        loadNotices();
+                        queryClient.invalidateQueries({ queryKey: ['notices'] });
                     }}
                 />
             </Drawer>

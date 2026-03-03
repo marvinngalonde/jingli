@@ -22,6 +22,8 @@ export class UpdateAssetDto {
     @IsString() @IsOptional() categoryId?: string;
     @IsString() @IsOptional() serialNo?: string;
     @IsString() @IsOptional() location?: string;
+    @IsDateString() @IsOptional() purchaseDate?: string;
+    @IsNumber() @IsOptional() purchasePrice?: number;
     @IsString() @IsOptional() condition?: string;
     @IsInt() @IsOptional() quantity?: number;
     @IsString() @IsOptional() notes?: string;

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
@@ -10,15 +11,64 @@ import { StaffPicker } from '../../components/common/StaffPicker';
 
 export default function Health() {
     const [activeTab, setActiveTab] = useState<string | null>('visits');
-    const [visits, setVisits] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [stats, setStats] = useState({ totalVisits: 0, todayVisits: 0, profilesRecorded: 0 });
+    const [search, setSearch] = useState('');
+    const queryClient = useQueryClient();
+
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const [drawerMode, setDrawerMode] = useState<'visit' | 'profile'>('visit');
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [search, setSearch] = useState('');
     const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
+
+    // Queries
+    const { data: visits = [], isLoading: visitsLoading } = useQuery({
+        queryKey: ['healthVisits'],
+        queryFn: () => api.get('/health/visits').then(res => res.data || [])
+    });
+
+    const { data: stats = { totalVisits: 0, todayVisits: 0, profilesRecorded: 0 }, isLoading: statsLoading } = useQuery({
+        queryKey: ['healthStats'],
+        queryFn: () => api.get('/health/stats').then(res => res.data)
+    });
+
+    const loading = visitsLoading || statsLoading;
+
+    // Mutations
+    const visitMutation = useMutation({
+        mutationFn: (values: any) => editingId
+            ? api.patch(`/health/visits/${editingId}`, values)
+            : api.post('/health/visits', values),
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: editingId ? 'Visit updated' : 'Visit logged', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['healthVisits'] });
+            queryClient.invalidateQueries({ queryKey: ['healthStats'] });
+            closeDrawer();
+            visitForm.reset();
+            setEditingId(null);
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save visit', color: 'red' })
+    });
+
+    const profileMutation = useMutation({
+        mutationFn: (values: any) => api.post('/health/profiles', values),
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Medical profile saved', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['healthStats'] });
+            closeDrawer();
+            profileForm.reset();
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save profile', color: 'red' })
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/health/visits/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: 'Visit removed', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['healthVisits'] });
+            queryClient.invalidateQueries({ queryKey: ['healthStats'] });
+            setDeleteModal({ opened: false, id: '', name: '' });
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+    });
 
     const visitForm = useForm({
         initialValues: { studentId: '', complaint: '', diagnosis: '', treatment: '', attendedBy: '', referral: '', notes: '' },
@@ -33,20 +83,6 @@ export default function Health() {
         initialValues: { studentId: '', bloodType: '', allergies: '', chronicConditions: '', emergencyContact: '', emergencyPhone: '', medicalAidProvider: '', medicalAidNumber: '', doctorName: '', doctorPhone: '', notes: '' },
         validate: { studentId: (v) => (!v ? 'Please select a student' : null) },
     });
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [visitsRes, statsRes] = await Promise.allSettled([
-                api.get('/health/visits'),
-                api.get('/health/stats'),
-            ]);
-            if (visitsRes.status === 'fulfilled') setVisits(visitsRes.value.data || []);
-            if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchData(); }, []);
 
     const openVisitDrawer = (item?: any) => {
         setDrawerMode('visit');
@@ -74,50 +110,12 @@ export default function Health() {
         openDrawer();
     };
 
-    const handleSaveVisit = async (values: typeof visitForm.values) => {
-        setSubmitting(true);
-        try {
-            if (editingId) {
-                await api.patch(`/health/visits/${editingId}`, values);
-                notifications.show({ title: 'Success', message: 'Visit updated', color: 'green' });
-            } else {
-                await api.post('/health/visits', values);
-                notifications.show({ title: 'Success', message: 'Visit logged', color: 'green' });
-            }
-            closeDrawer(); visitForm.reset(); setEditingId(null); fetchData();
-        } catch (err: any) {
-            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save visit', color: 'red' });
-        } finally { setSubmitting(false); }
-    };
+    const handleSaveVisit = (values: typeof visitForm.values) => visitMutation.mutate(values);
+    const handleSaveProfile = (values: typeof profileForm.values) => profileMutation.mutate(values);
+    const confirmDelete = (id: string, name: string) => setDeleteModal({ opened: true, id, name });
+    const handleDelete = () => deleteMutation.mutate(deleteModal.id);
 
-    const handleSaveProfile = async (values: typeof profileForm.values) => {
-        setSubmitting(true);
-        try {
-            await api.post('/health/profiles', values);
-            notifications.show({ title: 'Success', message: 'Medical profile saved', color: 'green' });
-            closeDrawer(); profileForm.reset(); fetchData();
-        } catch (err: any) {
-            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save profile', color: 'red' });
-        } finally { setSubmitting(false); }
-    };
-
-    const confirmDelete = (id: string, name: string) => {
-        setDeleteModal({ opened: true, id, name });
-    };
-
-    const handleDelete = async () => {
-        try {
-            await api.delete(`/health/visits/${deleteModal.id}`);
-            notifications.show({ title: 'Deleted', message: 'Visit removed', color: 'green' });
-            fetchData();
-        } catch (err: any) {
-            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' });
-        } finally {
-            setDeleteModal({ opened: false, id: '', name: '' });
-        }
-    };
-
-    const filtered = visits.filter(v =>
+    const filtered = visits.filter((v: any) =>
         (v.student?.firstName + ' ' + v.student?.lastName).toLowerCase().includes(search.toLowerCase()) ||
         v.complaint?.toLowerCase().includes(search.toLowerCase())
     );
@@ -166,7 +164,7 @@ export default function Health() {
                         ) : (
                             <Table striped highlightOnHover>
                                 <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Date</Table.Th><Table.Th>Complaint</Table.Th><Table.Th>Diagnosis</Table.Th><Table.Th>Treatment</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
-                                <Table.Tbody>{filtered.map(v => (
+                                <Table.Tbody>{filtered.map((v: any) => (
                                     <Table.Tr key={v.id}>
                                         <Table.Td fw={500}>{v.student?.firstName} {v.student?.lastName}</Table.Td>
                                         <Table.Td>{new Date(v.date).toLocaleDateString()}</Table.Td>
@@ -176,7 +174,7 @@ export default function Health() {
                                         <Table.Td>
                                             <Group gap="xs">
                                                 <ActionIcon color="blue" variant="subtle" onClick={() => openVisitDrawer(v)}><IconEdit size={16} /></ActionIcon>
-                                                <ActionIcon color="red" variant="subtle" onClick={() => confirmDelete(v.id, `${v.student?.firstName} ${v.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
+                                                <ActionIcon color="red" variant="subtle" loading={deleteMutation.isPending && deleteMutation.variables === v.id} onClick={() => confirmDelete(v.id, `${v.student?.firstName} ${v.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>
@@ -218,7 +216,7 @@ export default function Health() {
                             <TextInput label="Doctor Name" {...profileForm.getInputProps('doctorName')} />
                             <TextInput label="Doctor Phone" {...profileForm.getInputProps('doctorPhone')} />
                             <Textarea label="Notes" {...profileForm.getInputProps('notes')} />
-                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>Save Profile</Button></Group>
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={profileMutation.isPending}>Save Profile</Button></Group>
                         </Stack>
                     </form>
                 ) : (
@@ -242,7 +240,7 @@ export default function Health() {
                             />
                             <TextInput label="Referral" placeholder="External referral if needed" {...visitForm.getInputProps('referral')} />
                             <Textarea label="Notes" {...visitForm.getInputProps('notes')} />
-                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>{editingId ? 'Update Visit' : 'Save Visit'}</Button></Group>
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={visitMutation.isPending}>{editingId ? 'Update Visit' : 'Save Visit'}</Button></Group>
                         </Stack>
                     </form>
                 )}
@@ -254,7 +252,7 @@ export default function Health() {
                     <Text size="sm">Are you sure you want to delete this clinic visit for <b>{deleteModal.name}</b>?</Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
-                        <Button color="red" onClick={handleDelete}>Delete</Button>
+                        <Button color="red" loading={deleteMutation.isPending} onClick={handleDelete}>Delete</Button>
                     </Group>
                 </Stack>
             </Modal>

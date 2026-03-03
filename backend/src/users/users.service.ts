@@ -19,6 +19,13 @@ export class UsersService {
                 role: true,
                 schoolId: true,
                 supabaseUid: true,
+                school: {
+                    select: {
+                        name: true,
+                        config: true,
+                        logoUrl: true,
+                    }
+                }
             },
         });
 

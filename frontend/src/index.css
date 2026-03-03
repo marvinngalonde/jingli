@@ -56,3 +56,14 @@ a:hover {
     display: none !important;
   }
 }
+
+/* ─── Prevent Fast-Flickering Loaders ─────────────────────────────────────── */
+.mantine-LoadingOverlay-root {
+  animation: delayOverlay 0.15s linear 0.15s forwards;
+  opacity: 0;
+}
+
+@keyframes delayOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

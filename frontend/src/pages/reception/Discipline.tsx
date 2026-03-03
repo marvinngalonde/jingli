@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Title, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, NumberInput, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
@@ -9,14 +10,51 @@ import { StudentPicker } from '../../components/common/StudentPicker';
 import { StaffPicker } from '../../components/common/StaffPicker';
 
 export default function Discipline() {
-    const [records, setRecords] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    const [search, setSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [typeFilter, setTypeFilter] = useState<string | null>(null);
-    const [search, setSearch] = useState('');
     const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
+
+    // Queries
+    const { data: records = [], isLoading: loading } = useQuery({
+        queryKey: ['disciplineRecords', typeFilter],
+        queryFn: () => {
+            const params = new URLSearchParams();
+            if (typeFilter) params.append('type', typeFilter);
+            return api.get(`/discipline?${params}`).then(res => res.data || []);
+        }
+    });
+
+    // Mutations
+    const recordMutation = useMutation({
+        mutationFn: (values: any) => {
+            const payload = { ...values, points: Number(values.points) };
+            return editingId
+                ? api.patch(`/discipline/${editingId}`, payload)
+                : api.post('/discipline', payload);
+        },
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: editingId ? 'Record updated' : 'Record added', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['disciplineRecords'] });
+            closeDrawer();
+            form.reset();
+            setEditingId(null);
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save record', color: 'red' })
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/discipline/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: 'Record removed', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['disciplineRecords'] });
+            setDeleteModal({ opened: false, id: '', name: '' });
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+    });
 
     const form = useForm({
         initialValues: { studentId: '', type: 'DEMERIT', category: 'Behaviour', description: '', points: 1, issuedBy: '', actionTaken: '' },
@@ -26,18 +64,6 @@ export default function Discipline() {
             issuedBy: (v) => (!v ? 'Please select the issuing staff' : null),
         },
     });
-
-    const fetchRecords = async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            if (typeFilter) params.append('type', typeFilter);
-            const res = await api.get(`/discipline?${params}`);
-            setRecords(res.data || []);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchRecords(); }, [typeFilter]);
 
     const openEditDrawer = (item?: any) => {
         setEditingId(item?.id || null);
@@ -57,46 +83,17 @@ export default function Discipline() {
         openDrawer();
     };
 
-    const handleSave = async (values: typeof form.values) => {
-        setSubmitting(true);
-        try {
-            const payload = { ...values, points: Number(values.points) };
-            if (editingId) {
-                await api.patch(`/discipline/${editingId}`, payload);
-                notifications.show({ title: 'Success', message: 'Record updated', color: 'green' });
-            } else {
-                await api.post('/discipline', payload);
-                notifications.show({ title: 'Success', message: 'Record added', color: 'green' });
-            }
-            closeDrawer(); form.reset(); setEditingId(null); fetchRecords();
-        } catch (err: any) {
-            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save record', color: 'red' });
-        } finally { setSubmitting(false); }
-    };
+    const handleSave = (values: typeof form.values) => recordMutation.mutate(values);
+    const confirmDelete = (id: string, name: string) => setDeleteModal({ opened: true, id, name });
+    const handleDelete = () => deleteMutation.mutate(deleteModal.id);
 
-    const confirmDelete = (id: string, name: string) => {
-        setDeleteModal({ opened: true, id, name });
-    };
-
-    const handleDelete = async () => {
-        try {
-            await api.delete(`/discipline/${deleteModal.id}`);
-            notifications.show({ title: 'Deleted', message: 'Record removed', color: 'green' });
-            fetchRecords();
-        } catch (err: any) {
-            notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' });
-        } finally {
-            setDeleteModal({ opened: false, id: '', name: '' });
-        }
-    };
-
-    const filtered = records.filter(r =>
+    const filtered = records.filter((r: any) =>
         (r.student?.firstName + ' ' + r.student?.lastName).toLowerCase().includes(search.toLowerCase()) ||
         r.description?.toLowerCase().includes(search.toLowerCase())
     );
 
-    const merits = records.filter(r => r.type === 'MERIT').length;
-    const demerits = records.filter(r => r.type === 'DEMERIT').length;
+    const merits = records.filter((r: any) => r.type === 'MERIT').length;
+    const demerits = records.filter((r: any) => r.type === 'DEMERIT').length;
 
     return (
         <div>
@@ -138,7 +135,7 @@ export default function Discipline() {
                 ) : (
                     <Table striped highlightOnHover>
                         <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Type</Table.Th><Table.Th>Category</Table.Th><Table.Th>Description</Table.Th><Table.Th>Points</Table.Th><Table.Th>Date</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
-                        <Table.Tbody>{filtered.map(r => (
+                        <Table.Tbody>{filtered.map((r: any) => (
                             <Table.Tr key={r.id}>
                                 <Table.Td fw={500}>{r.student?.firstName} {r.student?.lastName}</Table.Td>
                                 <Table.Td><Badge color={r.type === 'MERIT' ? 'green' : 'red'} variant="light">{r.type}</Badge></Table.Td>
@@ -180,7 +177,7 @@ export default function Discipline() {
                             error={form.errors.issuedBy as string}
                         />
                         <Textarea label="Action Taken" placeholder="e.g. Detention, Warning, Suspension" {...form.getInputProps('actionTaken')} />
-                        <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={submitting}>{editingId ? 'Update' : 'Save'}</Button></Group>
+                        <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={recordMutation.isPending}>{editingId ? 'Update' : 'Save'}</Button></Group>
                     </Stack>
                 </form>
             </Drawer>
@@ -191,7 +188,7 @@ export default function Discipline() {
                     <Text size="sm">Are you sure you want to delete this discipline record for <b>{deleteModal.name}</b>?</Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
-                        <Button color="red" onClick={handleDelete}>Delete</Button>
+                        <Button color="red" loading={deleteMutation.isPending} onClick={handleDelete}>Delete</Button>
                     </Group>
                 </Stack>
             </Modal>
