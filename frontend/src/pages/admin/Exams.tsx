@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Button, Tabs, Text, Group } from '@mantine/core';
-import { IconPlus, IconCalendar, IconFileAnalytics } from '@tabler/icons-react';
+import { Button, Tabs, Text, Group, Badge, Stack, Paper } from '@mantine/core';
+import { IconPlus, IconCalendar, IconFileAnalytics, IconClock } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useAuth } from '../../context/AuthContext';
 import { examsService } from '../../services/examsService';
@@ -13,6 +13,7 @@ import { DataTable, type Column } from '../../components/common/DataTable';
 import { ActionMenu } from '../../components/common/ActionMenu';
 import { CreateExamModal } from '../../components/modals/CreateExamModal';
 import { EditExamModal } from '../../components/modals/EditExamModal';
+import { ExamTimetableGrid } from '../../components/timetable/ExamTimetableGrid';
 
 export function Exams() {
     const { user } = useAuth();
@@ -54,15 +55,23 @@ export function Exams() {
         deleteMutation.mutate(exam.id);
     };
 
-    const filteredExams = exams.filter(e =>
-        e.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.classLevel?.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.subject?.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredExams = exams.filter(e => {
+        const classLabel = `${e.classLevel?.name || ''} ${e.classLevel?.level || ''}`.trim();
+        const q = search.toLowerCase();
+        return e.name.toLowerCase().includes(q) ||
+            classLabel.toLowerCase().includes(q) ||
+            e.subject?.name.toLowerCase().includes(q);
+    });
 
     const columns: Column<Exam>[] = [
         { accessor: 'name', header: 'Exam Name', render: (item) => <Text fw={500}>{item.name}</Text> },
-        { accessor: 'class', header: 'Class', render: (item) => <Text size="sm">{item.classLevel?.name || '-'}</Text> },
+        {
+            accessor: 'class', header: 'Class', render: (item) => (
+                <Badge variant="light" color="indigo" size="sm">
+                    {`${item.classLevel?.name || ''} ${(item.classLevel as any)?.level || ''}`.trim() || '-'}
+                </Badge>
+            )
+        },
         { accessor: 'subject', header: 'Subject', render: (item) => <Text size="sm">{item.subject?.name || '-'}</Text> },
         {
             accessor: 'date', header: 'Date', render: (item) => (
@@ -100,6 +109,9 @@ export function Exams() {
                     <Tabs.Tab value="gradebook" leftSection={<IconFileAnalytics size={16} />}>
                         Gradebook
                     </Tabs.Tab>
+                    <Tabs.Tab value="timetable" leftSection={<IconClock size={16} />}>
+                        Timetable
+                    </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="schedule">
@@ -121,6 +133,10 @@ export function Exams() {
 
                 <Tabs.Panel value="gradebook">
                     <Marks />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="timetable">
+                    <ExamTimetableGrid exams={filteredExams as any[]} />
                 </Tabs.Panel>
             </Tabs>
 

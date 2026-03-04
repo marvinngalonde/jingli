@@ -28,6 +28,7 @@ export class ExamsController {
     @ApiQuery({ name: 'schoolId', required: true })
     @ApiQuery({ name: 'termId', required: false })
     @ApiQuery({ name: 'classLevelId', required: false })
+    @Roles(UserRole.TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     findAll(
         @Query('schoolId') schoolId: string,
         @Query('termId') termId?: string,

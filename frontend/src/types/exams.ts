@@ -24,6 +24,7 @@ export interface Exam {
     };
     classLevel?: {
         name: string;
+        level?: string | number;
     };
     term?: {
         name: string;

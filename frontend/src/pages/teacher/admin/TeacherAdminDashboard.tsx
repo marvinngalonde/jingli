@@ -34,6 +34,14 @@ interface PendingSub {
 }
 
 export function TeacherDashboard() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+
+    const teacherName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Teacher' : 'Teacher';
+    const today = new Date();
+    const hour = today.getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
     const { data: stats = { classesToday: 0, totalStudents: 0, activeAssignments: 0, ungraded: 0 }, isLoading: statsLoading } = useQuery({
         queryKey: ['teacherStats'],
         queryFn: () => api.get('/teacher/dashboard-stats').then(res => res.data)
@@ -41,7 +49,7 @@ export function TeacherDashboard() {
 
     const { data: schedule = [], isLoading: scheduleLoading } = useQuery({
         queryKey: ['teacherScheduleToday'],
-        queryFn: () => api.get('/teacher/schedule/today').then(res => res.data || [])
+        queryFn: () => api.get('/teacher/schedule').then(res => res.data || [])
     });
 
     const { data: pendingSubsRaw = [], isLoading: pendingLoading } = useQuery({
@@ -56,7 +64,12 @@ export function TeacherDashboard() {
         queryFn: () => api.get('/teacher/analytics').then(res => res.data)
     });
 
-    const loading = statsLoading || scheduleLoading || pendingLoading || analyticsLoading;
+    const { data: examData = [], isLoading: examsLoading } = useQuery({
+        queryKey: ['teacherExams'],
+        queryFn: () => api.get('/teacher/exams').then(res => res.data || [])
+    });
+
+    const loading = statsLoading || scheduleLoading || pendingLoading || analyticsLoading || examsLoading;
 
     // Split into pending (ungraded) and recently graded
     const ungradedSubs = pendingSubs.filter(s => s.marks === null).slice(0, 5);
@@ -72,7 +85,7 @@ export function TeacherDashboard() {
         }));
     })() : [];
     const overallProgress = subjectProgress.length > 0
-        ? Math.round(subjectProgress.reduce((a, s) => a + s.progress, 0) / subjectProgress.length)
+        ? Math.round(subjectProgress.reduce((a: number, s: { progress: number }) => a + s.progress, 0) / subjectProgress.length)
         : 0;
 
     return (
@@ -187,7 +200,7 @@ export function TeacherDashboard() {
                             <Grid.Col span={8}>
                                 <Text fw={500} size="sm" mb="sm">Subject-wise Progress</Text>
                                 <Stack gap="sm">
-                                    {subjectProgress.map(s => (
+                                    {subjectProgress.map((s: { name: string; progress: number; color: string }) => (
                                         <div key={s.name}>
                                             <Group justify="space-between" mb={2}>
                                                 <Text size="xs" fw={500}>{s.name}</Text>
@@ -310,6 +323,46 @@ export function TeacherDashboard() {
                     </Paper>
                 </Grid.Col>
             </Grid>
+
+            {/* ─── UPCOMING EXAMS ─── */}
+            {(() => {
+                const now = new Date();
+                const upcomingExams = (examData as any[]).filter(e => new Date(e.date) >= now).slice(0, 5);
+                return (
+                    <Paper p="lg" radius="md" shadow="sm" withBorder mt="lg">
+                        <Group justify="space-between" mb="md">
+                            <Text fw={600} c="indigo">Upcoming Exams</Text>
+                            <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/teacher/exams')}>View All</Button>
+                        </Group>
+                        {upcomingExams.length === 0 ? (
+                            <Text ta="center" c="dimmed" size="sm" py="md">No upcoming exams scheduled</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Exam</Table.Th>
+                                        <Table.Th>Subject</Table.Th>
+                                        <Table.Th>Class</Table.Th>
+                                        <Table.Th>Date</Table.Th>
+                                        <Table.Th>Max Marks</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {upcomingExams.map((exam: any) => (
+                                        <Table.Tr key={exam.id}>
+                                            <Table.Td fw={500}>{exam.name}</Table.Td>
+                                            <Table.Td><Badge variant="light" size="sm">{exam.subject?.name || '—'}</Badge></Table.Td>
+                                            <Table.Td>{exam.classLevel?.name || '—'}</Table.Td>
+                                            <Table.Td>{new Date(exam.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Table.Td>
+                                            <Table.Td><Badge variant="outline" color="orange">{exam.maxMarks}</Badge></Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
+                    </Paper>
+                );
+            })()}
         </Box>
     );
 }

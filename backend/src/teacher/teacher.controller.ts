@@ -95,4 +95,9 @@ export class TeacherController {
         return this.teacherService.getLeaderboard(req.user);
     }
 
+    @Get('exams')
+    getExams(@Req() req: any) {
+        return this.teacherService.getExams(req.user);
+    }
+
 }

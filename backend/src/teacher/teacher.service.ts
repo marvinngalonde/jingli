@@ -684,4 +684,23 @@ export class TeacherService {
         return leaderboard;
     }
 
+    async getExams(user: any) {
+        const teacher = await this.prisma.staff.findFirst({
+            where: { userId: user.id },
+            select: { schoolId: true }
+        });
+
+        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+
+        return this.prisma.exam.findMany({
+            where: { schoolId: teacher.schoolId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                classLevel: { select: { name: true, level: true } },
+                term: { select: { name: true } },
+            },
+            orderBy: { date: 'asc' },
+        });
+    }
+
 }

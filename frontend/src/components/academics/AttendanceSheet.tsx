@@ -51,7 +51,7 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
         return classesRaw.flatMap((cls: any) =>
             cls.sections?.map((sec: any) => ({
                 value: sec.id,
-                label: `${cls.name} - ${sec.name}`.trim()
+                label: `${cls.name} ${cls.level || ''} - ${sec.name}`.trim()
             })) || []
         );
     }, [classesRaw]);
