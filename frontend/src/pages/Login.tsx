@@ -12,13 +12,17 @@ import {
     rem,
     LoadingOverlay,
     Stack,
-    Image
+    Image,
+    useMantineColorScheme
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
-import sideImage from '../assets/images/sideimg.png';
+
+// Import the new smaller transparent images
+import whitelogo from '../assets/images/whitelogo.png';
+import sideImgTrans from '../assets/images/sideimg-trans.png';
 
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -27,6 +31,8 @@ export function Login() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
+    const { colorScheme } = useMantineColorScheme();
+    const isDark = colorScheme === 'dark';
 
     const form = useForm({
         initialValues: {
@@ -75,7 +81,8 @@ export function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'var(--app-surface)'
+                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                color: isDark ? '#c1c2c5' : undefined
             }} className="login-form-container">
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
@@ -96,7 +103,7 @@ export function Login() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('username')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -113,7 +120,7 @@ export function Login() {
                                     )
                                 }
                                 {...form.getInputProps('password')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
                         </Stack>
 
@@ -128,7 +135,7 @@ export function Login() {
                         </Button>
 
                         <Text ta="center" mt="xl" size="sm">
-                            Need an account? ' '
+                            Need an account?{' '}
                             <Anchor component="button" type="button" fw={700} c="brand" onClick={() => notifications.show({ title: 'Contact Admin', message: 'Please contact your school administrator to get an account.', color: 'blue' })}>
                                 Contact Admin
                             </Anchor>
@@ -137,22 +144,53 @@ export function Login() {
                 </Box>
             </div>
 
-            {/* RIGHT SIDE: IMAGE */}
+            {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
             <div style={{
                 flex: '1',
-                background: 'var(--app-surface-dim)',
+                background: isDark
+                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
+                padding: '3rem 2rem',
                 position: 'relative'
             }}>
-                <Image
-                    src={sideImage}
-                    alt="Login Background"
-                    w="100%"
-                    h="100%"
-                    fit="cover"
-                />
+                {/* Top Logo */}
+                <Box mt="xl">
+                    <Image
+                        src={whitelogo}
+                        alt="Jingli Logo"
+                        w={300} // Adjust this width as needed to match your exact logo size
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Center Transparent Image */}
+                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <Image
+                        src={sideImgTrans}
+                        alt="Education Management Illustration"
+                        w="100%"
+                        maw={500} // Limits the max width so it stays crisp
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Bottom Text */}
+                <Text
+                    c="white"
+                    size="xl"
+                    mb="xl"
+                    style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 300,
+                        letterSpacing: '0.5px'
+                    }}
+                >
+                    Empowering Education, Simplifying Management
+                </Text>
             </div>
         </div>
     );

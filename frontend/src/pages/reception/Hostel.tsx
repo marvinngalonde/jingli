@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, NumberInput, Select } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, NumberInput, Select, Modal, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconHome2, IconBed, IconDoorExit, IconPlus, IconTrash, IconSearch, IconCheck, IconArrowLeft } from '@tabler/icons-react';
-import { api } from '../../services/api';
+import { IconHome2, IconBed, IconDoorExit, IconPlus, IconTrash, IconSearch, IconCheck, IconArrowLeft, IconDotsVertical, IconUserPlus } from '@tabler/icons-react';
+import { hostelService, type Hostel as IHostel, type Room as IRoom } from '../../services/hostelService';
+import { studentService } from '../../services/studentService';
 
 export default function Hostel() {
     const [activeTab, setActiveTab] = useState<string | null>('hostels');
@@ -13,41 +14,109 @@ export default function Hostel() {
     const queryClient = useQueryClient();
 
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const [drawerType, setDrawerType] = useState<'hostel' | 'exeat'>('hostel');
+    const [drawerType, setDrawerType] = useState<'hostel' | 'exeat' | 'room'>('hostel');
+    const [allocationModal, setAllocationModal] = useState<{ opened: boolean; room: IRoom | null }>({ opened: false, room: null });
 
     // Queries
     const { data: hostels = [], isLoading: hostelsLoading } = useQuery({
         queryKey: ['hostels'],
-        queryFn: () => api.get('/hostel/hostels').then(res => res.data || [])
+        queryFn: hostelService.getAllHostels
+    });
+
+    const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+        queryKey: ['rooms'],
+        queryFn: () => hostelService.getAllRooms()
     });
 
     const { data: exeats = [], isLoading: exeatsLoading } = useQuery({
         queryKey: ['hostelExeats'],
-        queryFn: () => api.get('/hostel/exeats').then(res => res.data || [])
+        queryFn: () => hostelService.getAllExeats()
     });
 
     const { data: stats = { hostels: 0, rooms: 0, occupiedBeds: 0, pendingExeats: 0 }, isLoading: statsLoading } = useQuery({
         queryKey: ['hostelStats'],
-        queryFn: () => api.get('/hostel/stats').then(res => res.data)
+        queryFn: hostelService.getStats
     });
 
-    const loading = hostelsLoading || exeatsLoading || statsLoading;
+    const { data: students = [] } = useQuery({
+        queryKey: ['students-for-allocation'],
+        queryFn: () => studentsService.getAll().then(res => res.data)
+    });
+
+    const loading = hostelsLoading || exeatsLoading || statsLoading || roomsLoading;
 
     // Mutations
+    const invalidateHostelQueries = () => {
+        queryClient.invalidateQueries({ queryKey: ['hostels'] });
+        queryClient.invalidateQueries({ queryKey: ['rooms'] });
+        queryClient.invalidateQueries({ queryKey: ['hostelStats'] });
+    };
+
+    const handleError = (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || err.message || 'Action failed', color: 'red' });
+
     const hostelMutation = useMutation({
-        mutationFn: (values: any) => api.post('/hostel/hostels', { ...values, capacity: Number(values.capacity) }),
+        mutationFn: hostelService.createHostel,
         onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Hostel added', color: 'green' });
-            queryClient.invalidateQueries({ queryKey: ['hostels'] });
-            queryClient.invalidateQueries({ queryKey: ['hostelStats'] });
+            invalidateHostelQueries();
             closeDrawer();
             hostelForm.reset();
         },
-        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+        onError: handleError
     });
 
+    const roomMutation = useMutation({
+        mutationFn: hostelService.createRoom,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Room added', color: 'green' });
+            invalidateHostelQueries();
+            closeDrawer();
+            roomForm.reset();
+        },
+        onError: handleError
+    });
+
+    const deleteHostelMutation = useMutation({
+        mutationFn: hostelService.deleteHostel,
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: 'Hostel removed', color: 'green' });
+            invalidateHostelQueries();
+        },
+        onError: handleError
+    });
+
+    const deleteRoomMutation = useMutation({
+        mutationFn: hostelService.deleteRoom,
+        onSuccess: () => {
+            notifications.show({ title: 'Deleted', message: 'Room removed', color: 'green' });
+            invalidateHostelQueries();
+        },
+        onError: handleError
+    });
+
+    const allocateBedMutation = useMutation({
+        mutationFn: hostelService.allocateBed,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Bed allocated', color: 'green' });
+            invalidateHostelQueries();
+            setAllocationModal({ opened: false, room: null });
+            allocationForm.reset();
+        },
+        onError: handleError
+    });
+
+    const deallocateBedMutation = useMutation({
+        mutationFn: hostelService.deallocateBed,
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Bed deallocated', color: 'green' });
+            invalidateHostelQueries();
+        },
+        onError: handleError
+    });
+
+    // Exeat Mutations
     const exeatMutation = useMutation({
-        mutationFn: (values: any) => api.post('/hostel/exeats', values),
+        mutationFn: hostelService.createExeat,
         onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Exeat request submitted', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['hostelExeats'] });
@@ -55,42 +124,38 @@ export default function Hostel() {
             closeDrawer();
             exeatForm.reset();
         },
-        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
-    });
-
-    const deleteHostelMutation = useMutation({
-        mutationFn: (id: string) => api.delete(`/hostel/hostels/${id}`),
-        onSuccess: () => {
-            notifications.show({ title: 'Deleted', message: 'Hostel removed', color: 'green' });
-            queryClient.invalidateQueries({ queryKey: ['hostels'] });
-            queryClient.invalidateQueries({ queryKey: ['hostelStats'] });
-        },
-        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+        onError: handleError
     });
 
     const approveExeatMutation = useMutation({
-        mutationFn: (id: string) => api.patch(`/hostel/exeats/${id}/approve`),
+        mutationFn: hostelService.approveExeat,
         onSuccess: () => {
             notifications.show({ title: 'Approved', message: 'Exeat approved', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['hostelExeats'] });
             queryClient.invalidateQueries({ queryKey: ['hostelStats'] });
         },
-        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+        onError: handleError
     });
 
     const returnExeatMutation = useMutation({
-        mutationFn: (id: string) => api.patch(`/hostel/exeats/${id}/return`),
+        mutationFn: hostelService.markReturned,
         onSuccess: () => {
             notifications.show({ title: 'Returned', message: 'Student marked returned', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['hostelExeats'] });
             queryClient.invalidateQueries({ queryKey: ['hostelStats'] });
         },
-        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
+        onError: handleError
     });
 
+    // Forms
     const hostelForm = useForm({
-        initialValues: { name: '', gender: 'MIXED', capacity: 100, warden: '' },
+        initialValues: { name: '', gender: 'MIXED' as any, capacity: 100, warden: '' },
         validate: { name: (v) => (!v ? 'Name is required' : null), capacity: (v) => (v <= 0 ? 'Must be > 0' : null) },
+    });
+
+    const roomForm = useForm({
+        initialValues: { name: '', capacity: 4, hostelId: '' },
+        validate: { name: (v) => (!v ? 'Required' : null), hostelId: (v) => (!v ? 'Required' : null) },
     });
 
     const exeatForm = useForm({
@@ -103,19 +168,28 @@ export default function Hostel() {
         },
     });
 
-    const handleOpenDrawer = (type: 'hostel' | 'exeat') => {
+    const allocationForm = useForm({
+        initialValues: { studentId: '', bedNumber: '' },
+        validate: { studentId: (v) => (!v ? 'Required' : null), bedNumber: (v) => (!v ? 'Required' : null) },
+    });
+
+    const handleOpenDrawer = (type: 'hostel' | 'exeat' | 'room') => {
         setDrawerType(type);
-        if (type === 'hostel') hostelForm.reset(); else exeatForm.reset();
+        if (type === 'hostel') hostelForm.reset();
+        else if (type === 'room') roomForm.reset();
+        else exeatForm.reset();
         openDrawer();
     };
 
     const handleSaveHostel = (values: typeof hostelForm.values) => hostelMutation.mutate(values);
+    const handleSaveRoom = (values: typeof roomForm.values) => roomMutation.mutate(values);
     const handleSaveExeat = (values: typeof exeatForm.values) => exeatMutation.mutate(values);
-    const handleDeleteHostel = (id: string) => deleteHostelMutation.mutate(id);
-    const handleApproveExeat = (id: string) => approveExeatMutation.mutate(id);
-    const handleReturnExeat = (id: string) => returnExeatMutation.mutate(id);
 
     const filteredHostels = hostels.filter((h: any) => h.name?.toLowerCase().includes(search.toLowerCase()));
+    const filteredRooms = rooms.filter((r: any) =>
+        r.name?.toLowerCase().includes(search.toLowerCase()) ||
+        r.hostel?.name?.toLowerCase().includes(search.toLowerCase())
+    );
     const filteredExeats = exeats.filter((e: any) =>
         (e.student?.firstName + ' ' + e.student?.lastName).toLowerCase().includes(search.toLowerCase()) ||
         e.reason?.toLowerCase().includes(search.toLowerCase())
@@ -156,6 +230,7 @@ export default function Hostel() {
             <Tabs value={activeTab} onChange={setActiveTab} radius="md">
                 <Tabs.List mb="md">
                     <Tabs.Tab value="hostels" leftSection={<IconHome2 size={16} />}>Hostels</Tabs.Tab>
+                    <Tabs.Tab value="rooms" leftSection={<IconBed size={16} />}>Rooms & Beds</Tabs.Tab>
                     <Tabs.Tab value="exeats" leftSection={<IconDoorExit size={16} />}>Exeats</Tabs.Tab>
                 </Tabs.List>
 
@@ -171,16 +246,104 @@ export default function Hostel() {
                         ) : (
                             <Table striped highlightOnHover>
                                 <Table.Thead><Table.Tr><Table.Th>Name</Table.Th><Table.Th>Gender</Table.Th><Table.Th>Capacity</Table.Th><Table.Th>Rooms</Table.Th><Table.Th>Warden</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
-                                <Table.Tbody>{filteredHostels.map((h: any) => (
+                                <Table.Tbody>{filteredHostels.map((h: IHostel) => (
                                     <Table.Tr key={h.id}>
                                         <Table.Td fw={500}>{h.name}</Table.Td>
                                         <Table.Td><Badge variant="light">{h.gender}</Badge></Table.Td>
                                         <Table.Td>{h.capacity}</Table.Td>
                                         <Table.Td>{h.rooms?.length || 0}</Table.Td>
                                         <Table.Td>{h.warden || '—'}</Table.Td>
-                                        <Table.Td><ActionIcon color="red" variant="subtle" loading={deleteHostelMutation.isPending && deleteHostelMutation.variables === h.id} onClick={() => handleDeleteHostel(h.id)}><IconTrash size={16} /></ActionIcon></Table.Td>
+                                        <Table.Td>
+                                            <ActionIcon color="red" variant="subtle" loading={deleteHostelMutation.isPending && deleteHostelMutation.variables === h.id} onClick={() => deleteHostelMutation.mutate(h.id)}>
+                                                <IconTrash size={16} />
+                                            </ActionIcon>
+                                        </Table.Td>
                                     </Table.Tr>
                                 ))}</Table.Tbody>
+                            </Table>
+                        )}
+                    </Paper>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="rooms">
+                    <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                        <LoadingOverlay visible={loading} />
+                        <Group justify="space-between" mb="md">
+                            <TextInput placeholder="Search rooms..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => handleOpenDrawer('room')}>Add Room</Button>
+                        </Group>
+                        {filteredRooms.length === 0 ? (
+                            <Text ta="center" c="dimmed" py="xl">No rooms found. Click "Add Room" to get started.</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead><Table.Tr><Table.Th>Room Name</Table.Th><Table.Th>Hostel</Table.Th><Table.Th>Capacity</Table.Th><Table.Th>Occupied</Table.Th><Table.Th>Occupants</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
+                                <Table.Tbody>{filteredRooms.map((r: IRoom) => {
+                                    const occupied = r.beds?.length || 0;
+                                    const isFull = occupied >= r.capacity;
+                                    return (
+                                        <Table.Tr key={r.id}>
+                                            <Table.Td fw={500}>{r.name}</Table.Td>
+                                            <Table.Td>{r.hostel?.name}</Table.Td>
+                                            <Table.Td>{r.capacity}</Table.Td>
+                                            <Table.Td>
+                                                <Badge color={isFull ? 'red' : 'green'} variant="light">
+                                                    {occupied} / {r.capacity}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Stack gap={2}>
+                                                    {r.beds?.map(b => (
+                                                        <Group key={b.id} gap="xs" justify="space-between" wrap="nowrap">
+                                                            <Text size="xs">
+                                                                <b>{b.bedNumber}:</b> {b.student ? `${b.student.firstName} ${b.student.lastName}` : 'Unknown'}
+                                                            </Text>
+                                                            <ActionIcon
+                                                                size="xs"
+                                                                color="red"
+                                                                variant="subtle"
+                                                                onClick={() => deallocateBedMutation.mutate(b.id)}
+                                                                loading={deallocateBedMutation.isPending && deallocateBedMutation.variables === b.id}
+                                                            >
+                                                                <IconTrash size={12} />
+                                                            </ActionIcon>
+                                                        </Group>
+                                                    ))}
+                                                    {occupied === 0 && <Text size="xs" c="dimmed">Vacant</Text>}
+                                                </Stack>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Group gap={4}>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="light"
+                                                        leftSection={<IconUserPlus size={14} />}
+                                                        disabled={isFull}
+                                                        onClick={() => {
+                                                            allocationForm.setFieldValue('bedNumber', `Bed ${occupied + 1}`);
+                                                            setAllocationModal({ opened: true, room: r });
+                                                        }}
+                                                    >
+                                                        Allocate
+                                                    </Button>
+                                                    <Menu>
+                                                        <Menu.Target>
+                                                            <ActionIcon variant="subtle"><IconDotsVertical size={16} /></ActionIcon>
+                                                        </Menu.Target>
+                                                        <Menu.Dropdown>
+                                                            <Menu.Item
+                                                                color="red"
+                                                                leftSection={<IconTrash size={14} />}
+                                                                onClick={() => deleteRoomMutation.mutate(r.id)}
+                                                            >
+                                                                Delete Room
+                                                            </Menu.Item>
+                                                        </Menu.Dropdown>
+                                                    </Menu>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                })}</Table.Tbody>
                             </Table>
                         )}
                     </Paper>
@@ -207,8 +370,8 @@ export default function Hostel() {
                                         <Table.Td><Badge color={e.status === 'APPROVED' ? 'green' : e.status === 'RETURNED' ? 'blue' : 'orange'} variant="light">{e.status}</Badge></Table.Td>
                                         <Table.Td>
                                             <Group gap={4}>
-                                                {e.status === 'PENDING' && <ActionIcon color="green" variant="subtle" loading={approveExeatMutation.isPending && approveExeatMutation.variables === e.id} onClick={() => handleApproveExeat(e.id)} title="Approve"><IconCheck size={16} /></ActionIcon>}
-                                                {e.status === 'APPROVED' && <ActionIcon color="blue" variant="subtle" loading={returnExeatMutation.isPending && returnExeatMutation.variables === e.id} onClick={() => handleReturnExeat(e.id)} title="Mark Returned"><IconArrowLeft size={16} /></ActionIcon>}
+                                                {e.status === 'PENDING' && <ActionIcon color="green" variant="subtle" loading={approveExeatMutation.isPending && approveExeatMutation.variables === e.id} onClick={() => approveExeatMutation.mutate(e.id)} title="Approve"><IconCheck size={16} /></ActionIcon>}
+                                                {e.status === 'APPROVED' && <ActionIcon color="blue" variant="subtle" loading={returnExeatMutation.isPending && returnExeatMutation.variables === e.id} onClick={() => returnExeatMutation.mutate(e.id)} title="Mark Returned"><IconArrowLeft size={16} /></ActionIcon>}
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>
@@ -219,8 +382,35 @@ export default function Hostel() {
                 </Tabs.Panel>
             </Tabs>
 
+            {/* Allocation Modal */}
+            <Modal
+                opened={allocationModal.opened}
+                onClose={() => setAllocationModal({ opened: false, room: null })}
+                title={`Allocate Bed in ${allocationModal.room?.name}`}
+            >
+                <form onSubmit={allocationForm.onSubmit((values) => allocateBedMutation.mutate({ ...values, roomId: allocationModal.room!.id }))}>
+                    <Stack>
+                        <Select
+                            label="Student"
+                            searchable
+                            data={students.map((s: any) => ({
+                                value: s.id,
+                                label: `${s.firstName} ${s.lastName} (${s.admissionNumber})`
+                            }))}
+                            required
+                            {...allocationForm.getInputProps('studentId')}
+                        />
+                        <TextInput label="Bed Identifier" placeholder="e.g., Bed A, Top Bunk" required {...allocationForm.getInputProps('bedNumber')} />
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="default" onClick={() => setAllocationModal({ opened: false, room: null })}>Cancel</Button>
+                            <Button type="submit" loading={allocateBedMutation.isPending}>Allocate</Button>
+                        </Group>
+                    </Stack>
+                </form>
+            </Modal>
+
             {/* Drawer */}
-            <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerType === 'hostel' ? 'Add Hostel' : 'New Exeat Request'} position="right" size="md">
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerType === 'hostel' ? 'Add Hostel' : drawerType === 'room' ? 'Add Room' : 'New Exeat Request'} position="right" size="md">
                 {drawerType === 'hostel' ? (
                     <form onSubmit={hostelForm.onSubmit(handleSaveHostel)}>
                         <Stack>
@@ -231,10 +421,33 @@ export default function Hostel() {
                             <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={hostelMutation.isPending}>Save</Button></Group>
                         </Stack>
                     </form>
+                ) : drawerType === 'room' ? (
+                    <form onSubmit={roomForm.onSubmit(handleSaveRoom)}>
+                        <Stack>
+                            <Select
+                                label="Hostel"
+                                data={hostels.map((h: IHostel) => ({ value: h.id, label: h.name }))}
+                                required
+                                {...roomForm.getInputProps('hostelId')}
+                            />
+                            <TextInput label="Room Name/Number" required {...roomForm.getInputProps('name')} />
+                            <NumberInput label="Capacity (Beds)" min={1} required {...roomForm.getInputProps('capacity')} />
+                            <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={roomMutation.isPending}>Save</Button></Group>
+                        </Stack>
+                    </form>
                 ) : (
                     <form onSubmit={exeatForm.onSubmit(handleSaveExeat)}>
                         <Stack>
-                            <TextInput label="Student ID" required {...exeatForm.getInputProps('studentId')} />
+                            <Select
+                                label="Student"
+                                searchable
+                                data={students.map((s: any) => ({
+                                    value: s.id,
+                                    label: `${s.firstName} ${s.lastName} (${s.admissionNumber})`
+                                }))}
+                                required
+                                {...exeatForm.getInputProps('studentId')}
+                            />
                             <TextInput label="Reason" required {...exeatForm.getInputProps('reason')} />
                             <TextInput label="Depart Date" type="date" required {...exeatForm.getInputProps('departDate')} />
                             <TextInput label="Return Date" type="date" required {...exeatForm.getInputProps('returnDate')} />
@@ -247,3 +460,4 @@ export default function Hostel() {
         </div>
     );
 }
+

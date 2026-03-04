@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Title, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, NumberInput, Modal } from '@mantine/core';
+import { Title, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, NumberInput, Modal, RingProgress, Center } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconShield, IconPlus, IconTrash, IconSearch, IconAward, IconAlertTriangle, IconEdit } from '@tabler/icons-react';
+import { IconShield, IconPlus, IconTrash, IconSearch, IconAward, IconAlertTriangle, IconEdit, IconChartBar } from '@tabler/icons-react';
 import { api } from '../../services/api';
 import { StudentPicker } from '../../components/common/StudentPicker';
 import { StaffPicker } from '../../components/common/StaffPicker';
@@ -18,6 +18,9 @@ export default function Discipline() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
+    // Conduct Summary Modal
+    const [summaryModal, setSummaryModal] = useState<{ opened: boolean; studentId: string | null; studentName: string }>({ opened: false, studentId: null, studentName: '' });
+
     // Queries
     const { data: records = [], isLoading: loading } = useQuery({
         queryKey: ['disciplineRecords', typeFilter],
@@ -26,6 +29,13 @@ export default function Discipline() {
             if (typeFilter) params.append('type', typeFilter);
             return api.get(`/discipline?${params}`).then(res => res.data || []);
         }
+    });
+
+    // Fetch Summary for Selected Student
+    const { data: studentSummary, isLoading: summaryLoading } = useQuery({
+        queryKey: ['disciplineSummary', summaryModal.studentId],
+        queryFn: () => summaryModal.studentId ? api.get(`/discipline/summary/${summaryModal.studentId}`).then(res => res.data) : null,
+        enabled: !!summaryModal.studentId
     });
 
     // Mutations
@@ -39,6 +49,7 @@ export default function Discipline() {
         onSuccess: () => {
             notifications.show({ title: 'Success', message: editingId ? 'Record updated' : 'Record added', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['disciplineRecords'] });
+            if (summaryModal.studentId) queryClient.invalidateQueries({ queryKey: ['disciplineSummary', summaryModal.studentId] });
             closeDrawer();
             form.reset();
             setEditingId(null);
@@ -51,6 +62,7 @@ export default function Discipline() {
         onSuccess: () => {
             notifications.show({ title: 'Deleted', message: 'Record removed', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['disciplineRecords'] });
+            if (summaryModal.studentId) queryClient.invalidateQueries({ queryKey: ['disciplineSummary', summaryModal.studentId] });
             setDeleteModal({ opened: false, id: '', name: '' });
         },
         onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed', color: 'red' })
@@ -79,6 +91,10 @@ export default function Discipline() {
             });
         } else {
             form.reset();
+            // Pre-select student if opening from summary modal
+            if (summaryModal.studentId) {
+                form.setFieldValue('studentId', summaryModal.studentId);
+            }
         }
         openDrawer();
     };
@@ -128,25 +144,33 @@ export default function Discipline() {
                         <TextInput placeholder="Search records..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ minWidth: 250 }} />
                         <Select placeholder="Filter type" data={[{ value: '', label: 'All' }, { value: 'MERIT', label: 'Merits' }, { value: 'DEMERIT', label: 'Demerits' }]} value={typeFilter} onChange={setTypeFilter} clearable w={140} />
                     </Group>
-                    <Button leftSection={<IconPlus size={16} />} onClick={() => openEditDrawer()}>Add Record</Button>
+                    <Group>
+                        <Button variant="light" leftSection={<IconChartBar size={16} />} onClick={() => setSummaryModal({ opened: true, studentId: null, studentName: '' })}>Conduct Summary</Button>
+                        <Button leftSection={<IconPlus size={16} />} onClick={() => openEditDrawer()}>Add Record</Button>
+                    </Group>
                 </Group>
                 {filtered.length === 0 ? (
                     <Text ta="center" c="dimmed" py="xl">No discipline records found. Click "Add Record" to get started.</Text>
                 ) : (
                     <Table striped highlightOnHover>
-                        <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Type</Table.Th><Table.Th>Category</Table.Th><Table.Th>Description</Table.Th><Table.Th>Points</Table.Th><Table.Th>Date</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
+                        <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Type</Table.Th><Table.Th>Category</Table.Th><Table.Th>Description</Table.Th><Table.Th>Issuing Staff</Table.Th><Table.Th>Points</Table.Th><Table.Th>Date</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                         <Table.Tbody>{filtered.map((r: any) => (
                             <Table.Tr key={r.id}>
-                                <Table.Td fw={500}>{r.student?.firstName} {r.student?.lastName}</Table.Td>
+                                <Table.Td fw={500}>
+                                    <Text size="sm" style={{ cursor: 'pointer', color: 'var(--mantine-color-blue-6)' }} onClick={() => setSummaryModal({ opened: true, studentId: r.studentId, studentName: `${r.student?.firstName} ${r.student?.lastName}` })}>
+                                        {r.student?.firstName} {r.student?.lastName}
+                                    </Text>
+                                </Table.Td>
                                 <Table.Td><Badge color={r.type === 'MERIT' ? 'green' : 'red'} variant="light">{r.type}</Badge></Table.Td>
                                 <Table.Td>{r.category}</Table.Td>
-                                <Table.Td>{r.description}</Table.Td>
+                                <Table.Td style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.description}</Table.Td>
+                                <Table.Td>{r.issuer ? `${r.issuer.firstName} ${r.issuer.lastName}` : '—'}</Table.Td>
                                 <Table.Td>{r.points}</Table.Td>
                                 <Table.Td>{new Date(r.date).toLocaleDateString()}</Table.Td>
                                 <Table.Td>
                                     <Group gap="xs">
                                         <ActionIcon color="blue" variant="subtle" onClick={() => openEditDrawer(r)}><IconEdit size={16} /></ActionIcon>
-                                        <ActionIcon color="red" variant="subtle" onClick={() => confirmDelete(r.id, `${r.student?.firstName} ${r.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
+                                        <ActionIcon color="red" variant="subtle" loading={deleteMutation.isPending && deleteMutation.variables === r.id} onClick={() => confirmDelete(r.id, `${r.student?.firstName} ${r.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
                                     </Group>
                                 </Table.Td>
                             </Table.Tr>
@@ -154,6 +178,68 @@ export default function Discipline() {
                     </Table>
                 )}
             </Paper>
+
+            {/* Conduct Summary Modal */}
+            <Modal opened={summaryModal.opened} onClose={() => setSummaryModal({ opened: false, studentId: null, studentName: '' })} title={<Title order={3}>Conduct Summary</Title>} size="lg">
+                <Stack pos="relative" style={{ minHeight: 200 }}>
+                    <LoadingOverlay visible={summaryLoading} />
+
+                    {!summaryModal.studentId ? (
+                        <StudentPicker
+                            label="Select Student to view score"
+                            value={summaryModal.studentId || ''}
+                            onChange={(val) => {
+                                // Bit of a hack to get the name, but StudentPicker just returns ID.
+                                // We'll just let the backend fetch it, and update name later if needed, 
+                                // but for now we just show the score.
+                                setSummaryModal({ opened: true, studentId: val, studentName: 'Selected Student' });
+                            }}
+                        />
+                    ) : (
+                        <Group justify="space-between" align="flex-start">
+                            <div>
+                                <Text size="lg" fw={600} mb="sm">{summaryModal.studentName}</Text>
+                                <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={() => openEditDrawer()}>Quick Add Record</Button>
+                            </div>
+
+                            {studentSummary && (
+                                <Group gap="xl">
+                                    <Stack align="center" gap={0}>
+                                        <Text size="sm" c="dimmed" fw={500}>Total Merits</Text>
+                                        <Text size="xl" fw={700} c="green">+{studentSummary.merits.points}</Text>
+                                        <Text size="xs" c="dimmed">({studentSummary.merits.count} awards)</Text>
+                                    </Stack>
+                                    <Stack align="center" gap={0}>
+                                        <Text size="sm" c="dimmed" fw={500}>Total Demerits</Text>
+                                        <Text size="xl" fw={700} c="red">-{studentSummary.demerits.points}</Text>
+                                        <Text size="xs" c="dimmed">({studentSummary.demerits.count} offenses)</Text>
+                                    </Stack>
+
+                                    <RingProgress
+                                        size={120}
+                                        thickness={12}
+                                        roundCaps
+                                        sections={[
+                                            { value: studentSummary.netScore > 0 ? 100 : 0, color: 'blue' },
+                                            { value: studentSummary.netScore < 0 ? 100 : 0, color: 'red' }
+                                        ]}
+                                        label={
+                                            <Center>
+                                                <Stack gap={0} align="center">
+                                                    <Text size="xs" c="dimmed" fw={500}>Net Score</Text>
+                                                    <Text size="xl" fw={700} c={studentSummary.netScore >= 0 ? 'blue' : 'red'}>
+                                                        {studentSummary.netScore > 0 ? '+' : ''}{studentSummary.netScore}
+                                                    </Text>
+                                                </Stack>
+                                            </Center>
+                                        }
+                                    />
+                                </Group>
+                            )}
+                        </Group>
+                    )}
+                </Stack>
+            </Modal>
 
             {/* Drawer */}
             <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? 'Edit Discipline Record' : 'Add Discipline Record'} position="right" size="md">

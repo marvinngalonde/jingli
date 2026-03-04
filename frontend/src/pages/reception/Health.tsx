@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, Modal } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, Textarea, Select, Modal, Divider, List } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconHeartbeat, IconStethoscope, IconUser, IconPlus, IconTrash, IconSearch, IconEdit } from '@tabler/icons-react';
+import { IconHeartbeat, IconStethoscope, IconUser, IconPlus, IconTrash, IconSearch, IconEdit, IconEye } from '@tabler/icons-react';
 import { api } from '../../services/api';
 import { StudentPicker } from '../../components/common/StudentPicker';
 import { StaffPicker } from '../../components/common/StaffPicker';
@@ -19,6 +19,9 @@ export default function Health() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; name: string }>({ opened: false, id: '', name: '' });
 
+    // Integrated Medical History View State
+    const [historyModal, setHistoryModal] = useState<{ opened: boolean; studentId: string | null; studentName: string }>({ opened: false, studentId: null, studentName: '' });
+
     // Queries
     const { data: visits = [], isLoading: visitsLoading } = useQuery({
         queryKey: ['healthVisits'],
@@ -28,6 +31,13 @@ export default function Health() {
     const { data: stats = { totalVisits: 0, todayVisits: 0, profilesRecorded: 0 }, isLoading: statsLoading } = useQuery({
         queryKey: ['healthStats'],
         queryFn: () => api.get('/health/stats').then(res => res.data)
+    });
+
+    // Query for viewing a specific student's full history Profile
+    const { data: selectedProfile, isLoading: profileLoading } = useQuery({
+        queryKey: ['healthProfile', historyModal.studentId],
+        queryFn: () => historyModal.studentId ? api.get(`/health/profiles/${historyModal.studentId}`).then(res => res.data) : null,
+        enabled: !!historyModal.studentId
     });
 
     const loading = visitsLoading || statsLoading;
@@ -53,8 +63,8 @@ export default function Health() {
         onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Medical profile saved', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['healthStats'] });
+            queryClient.invalidateQueries({ queryKey: ['healthProfile', profileForm.values.studentId] });
             closeDrawer();
-            profileForm.reset();
         },
         onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to save profile', color: 'red' })
     });
@@ -103,12 +113,22 @@ export default function Health() {
         openDrawer();
     };
 
-    const openProfileDrawer = () => {
+    const openProfileDrawer = (studentId?: string) => {
         setDrawerMode('profile');
         setEditingId(null);
-        profileForm.reset();
+        if (studentId) {
+            // In a real scenario we might fetch and prepopulate this if we had the data already, 
+            // but here we allow picking and editing or just blank form.
+            profileForm.setFieldValue('studentId', studentId);
+        } else {
+            profileForm.reset();
+        }
         openDrawer();
     };
+
+    const openHistoryModal = (studentId: string, studentName: string) => {
+        setHistoryModal({ opened: true, studentId, studentName });
+    }
 
     const handleSaveVisit = (values: typeof visitForm.values) => visitMutation.mutate(values);
     const handleSaveProfile = (values: typeof profileForm.values) => profileMutation.mutate(values);
@@ -119,6 +139,9 @@ export default function Health() {
         (v.student?.firstName + ' ' + v.student?.lastName).toLowerCase().includes(search.toLowerCase()) ||
         v.complaint?.toLowerCase().includes(search.toLowerCase())
     );
+
+    // Get visits for the currently selected history student
+    const historyVisits = visits.filter((v: any) => v.studentId === historyModal.studentId);
 
     return (
         <div>
@@ -173,6 +196,7 @@ export default function Health() {
                                         <Table.Td>{v.treatment || '—'}</Table.Td>
                                         <Table.Td>
                                             <Group gap="xs">
+                                                <ActionIcon color="teal" variant="subtle" title="View Full History" onClick={() => openHistoryModal(v.studentId, `${v.student?.firstName} ${v.student?.lastName}`)}><IconEye size={16} /></ActionIcon>
                                                 <ActionIcon color="blue" variant="subtle" onClick={() => openVisitDrawer(v)}><IconEdit size={16} /></ActionIcon>
                                                 <ActionIcon color="red" variant="subtle" loading={deleteMutation.isPending && deleteMutation.variables === v.id} onClick={() => confirmDelete(v.id, `${v.student?.firstName} ${v.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
                                             </Group>
@@ -188,12 +212,76 @@ export default function Health() {
                     <Paper p="lg" radius="md" shadow="sm" withBorder>
                         <Group justify="space-between" mb="md">
                             <Text c="dimmed">Create or update a student's medical profile</Text>
-                            <Button leftSection={<IconPlus size={16} />} onClick={openProfileDrawer}>New Profile</Button>
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => openProfileDrawer()}>New Profile</Button>
                         </Group>
-                        <Text ta="center" c="dimmed" py="xl">Select a student from the Students page or use the form to create/update a medical profile.</Text>
+                        <Text ta="center" c="dimmed" py="xl">Use the "View Full History" icon in the Clinic Visits tab to see a student's complete medical profile, or use the form above to record/update properties for any general student.</Text>
                     </Paper>
                 </Tabs.Panel>
             </Tabs>
+
+            {/* History Modal */}
+            <Modal
+                opened={historyModal.opened}
+                onClose={() => setHistoryModal({ opened: false, studentId: null, studentName: '' })}
+                title={<Title order={3}>Medical History: {historyModal.studentName}</Title>}
+                size="xl"
+            >
+                <div style={{ position: 'relative', minHeight: 200 }}>
+                    <LoadingOverlay visible={profileLoading || visitsLoading} />
+
+                    <Grid>
+                        {/* Profile Summary Column */}
+                        <Grid.Col span={{ base: 12, md: 4 }}>
+                            <Card withBorder shadow="sm" radius="md">
+                                <Group justify="space-between" mb="sm">
+                                    <Text fw={600}>Medical Profile</Text>
+                                    <ActionIcon variant="subtle" color="blue" onClick={() => openProfileDrawer(historyModal.studentId!)}><IconEdit size={16} /></ActionIcon>
+                                </Group>
+
+                                {selectedProfile ? (
+                                    <Stack gap="xs">
+                                        {selectedProfile.bloodType && <Group justify="space-between"><Text size="sm" c="dimmed">Blood Type</Text> <Badge color="red" variant="light">{selectedProfile.bloodType}</Badge></Group>}
+                                        {selectedProfile.allergies && <div><Text size="sm" c="dimmed">Allergies</Text><Text size="sm">{selectedProfile.allergies}</Text></div>}
+                                        {selectedProfile.chronicConditions && <div><Text size="sm" c="dimmed">Chronic Conditions</Text><Text size="sm">{selectedProfile.chronicConditions}</Text></div>}
+                                        {selectedProfile.doctorName && <div><Text size="sm" c="dimmed">Doctor</Text><Text size="sm">{selectedProfile.doctorName} {selectedProfile.doctorPhone && `(${selectedProfile.doctorPhone})`}</Text></div>}
+                                        {selectedProfile.medicalAidProvider && <div><Text size="sm" c="dimmed">Medical Aid</Text><Text size="sm">{selectedProfile.medicalAidProvider} {selectedProfile.medicalAidNumber && `[#${selectedProfile.medicalAidNumber}]`}</Text></div>}
+                                        {selectedProfile.emergencyContact && <div><Text size="sm" c="dimmed">Emergency Contact</Text><Text size="sm">{selectedProfile.emergencyContact} {selectedProfile.emergencyPhone && `(${selectedProfile.emergencyPhone})`}</Text></div>}
+                                        {selectedProfile.notes && <div><Text size="sm" c="dimmed">General Notes</Text><Text size="sm">{selectedProfile.notes}</Text></div>}
+                                    </Stack>
+                                ) : (
+                                    <Text size="sm" c="dimmed" ta="center" py="md">No profile recorded for this student.</Text>
+                                )}
+                            </Card>
+                        </Grid.Col>
+
+                        {/* Recent Visits Column */}
+                        <Grid.Col span={{ base: 12, md: 8 }}>
+                            <Text fw={600} mb="sm">Recent Clinic Visits ({historyVisits.length})</Text>
+                            {historyVisits.length === 0 ? (
+                                <Text size="sm" c="dimmed">No visits on record.</Text>
+                            ) : (
+                                <List spacing="sm" size="sm" center={false}>
+                                    {historyVisits.map((v: any) => (
+                                        <List.Item key={v.id} icon={<ThemeIcon color="blue" size={24} radius="xl"><IconStethoscope size={14} /></ThemeIcon>}>
+                                            <Paper p="sm" withBorder radius="md">
+                                                <Group justify="space-between" mb="xs">
+                                                    <Text fw={500}>{new Date(v.date).toLocaleDateString()}</Text>
+                                                    {v.parentNotified && <Badge color="green" variant="light" size="xs">Parent Notified</Badge>}
+                                                </Group>
+                                                <Text size="sm"><b>Complaint:</b> {v.complaint}</Text>
+                                                {v.diagnosis && <Text size="sm"><b>Diagnosis:</b> {v.diagnosis}</Text>}
+                                                {v.treatment && <Text size="sm"><b>Treatment:</b> {v.treatment}</Text>}
+                                                {v.referral && <Text size="sm"><b>Referral:</b> <Badge color="orange" variant="light">{v.referral}</Badge></Text>}
+                                                {v.notes && <Text size="sm" c="dimmed" mt="xs"><i>Notes: {v.notes}</i></Text>}
+                                            </Paper>
+                                        </List.Item>
+                                    ))}
+                                </List>
+                            )}
+                        </Grid.Col>
+                    </Grid>
+                </div>
+            </Modal>
 
             {/* Drawer */}
             <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerMode === 'profile' ? 'Medical Profile' : (editingId ? 'Edit Clinic Visit' : 'Log Clinic Visit')} position="right" size="md">

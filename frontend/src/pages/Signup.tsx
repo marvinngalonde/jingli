@@ -10,13 +10,18 @@ import {
     rem,
     LoadingOverlay,
     Stack,
-    Image, // Ensure Image is imported
+    Image,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
-import sideImage from '../assets/images/sideimg.png';
+import { useMantineColorScheme } from '@mantine/core';
+
+// Import the branded images
+import whitelogo from '../assets/images/whitelogo.png';
+import sideImgTrans from '../assets/images/sideimg-trans.png';
+
 import { supabase } from '../lib/supabase';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +30,8 @@ export function Signup() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const { setSkipNextProfileFetch, fetchProfile } = useAuth();
+    const { colorScheme } = useMantineColorScheme();
+    const isDark = colorScheme === 'dark';
 
     const form = useForm({
         initialValues: {
@@ -115,12 +122,16 @@ export function Signup() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'var(--app-surface)'
+                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                color: isDark ? '#c1c2c5' : undefined
             }} className="signup-form-container">
                 <Box maw={450} w="100%" px="xl" py="xl">
-                    <Title order={2} ta="center" mt="md" mb={40} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(28) }}>
+                    <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(28) }}>
                         Create your Jingli Account
                     </Title>
+                    <Text ta="center" c="dimmed" mb={40}>
+                        Enterprise School Management System
+                    </Text>
 
                     <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
                         <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
@@ -133,7 +144,7 @@ export function Signup() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('name')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
 
                             <TextInput
@@ -143,7 +154,7 @@ export function Signup() {
                                 radius="md"
                                 required
                                 {...form.getInputProps('email')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -160,7 +171,7 @@ export function Signup() {
                                     )
                                 }
                                 {...form.getInputProps('password')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
 
                             <PasswordInput
@@ -177,7 +188,7 @@ export function Signup() {
                                     )
                                 }
                                 {...form.getInputProps('confirmPassword')}
-                                styles={{ input: { backgroundColor: 'var(--app-surface-dim)' } }}
+                                styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
                         </Stack>
 
@@ -195,22 +206,53 @@ export function Signup() {
                 </Box>
             </div>
 
-            {/* RIGHT SIDE: IMAGE */}
+            {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
             <div style={{
                 flex: '1',
-                background: 'var(--app-surface-dim)',
+                background: isDark
+                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
+                padding: '3rem 2rem',
                 position: 'relative'
             }}>
-                <Image
-                    src={sideImage}
-                    alt="Signup Background"
-                    w="100%"
-                    h="100%"
-                    fit="cover"
-                />
+                {/* Top Logo */}
+                <Box mt="xl">
+                    <Image
+                        src={whitelogo}
+                        alt="Jingli Logo"
+                        w={300}
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Center Transparent Image */}
+                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <Image
+                        src={sideImgTrans}
+                        alt="Education Management Illustration"
+                        w="100%"
+                        maw={500}
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Bottom Text */}
+                <Text
+                    c="white"
+                    size="xl"
+                    mb="xl"
+                    style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 300,
+                        letterSpacing: '0.5px'
+                    }}
+                >
+                    Empowering Education, Simplifying Management
+                </Text>
             </div>
         </div>
     );

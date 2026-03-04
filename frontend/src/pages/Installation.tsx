@@ -17,13 +17,20 @@ import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
-import sideImage from '../assets/images/sideimg.png';
+import { useMantineColorScheme } from '@mantine/core';
+
+// Import the branded images
+import whitelogo from '../assets/images/whitelogo.png';
+import sideImgTrans from '../assets/images/sideimg-trans.png';
+
 import { api } from '../services/api';
 
 export function Installation() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [active, setActive] = useState(0);
+    const { colorScheme } = useMantineColorScheme();
+    const isDark = colorScheme === 'dark';
 
     const form = useForm({
         initialValues: {
@@ -93,7 +100,8 @@ export function Installation() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'var(--app-surface)'
+                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                color: isDark ? '#c1c2c5' : undefined
             }}>
                 <Box maw={500} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
@@ -113,6 +121,7 @@ export function Installation() {
                                     radius="md"
                                     required
                                     {...form.getInputProps('schoolName')}
+                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
                                 />
                                 <TextInput
                                     label="Subdomain"
@@ -122,6 +131,7 @@ export function Installation() {
                                     required
                                     description="This will be used for your school's custom URL"
                                     {...form.getInputProps('subdomain')}
+                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
                                 />
                             </Stack>
                         </Stepper.Step>
@@ -129,11 +139,11 @@ export function Installation() {
                         <Stepper.Step label="Second step" description="Admin Account">
                             <Stack gap="md" mt="md">
                                 <Group grow>
-                                    <TextInput label="First Name" placeholder="John" required {...form.getInputProps('adminFirstName')} />
-                                    <TextInput label="Last Name" placeholder="Doe" required {...form.getInputProps('adminLastName')} />
+                                    <TextInput label="First Name" placeholder="John" required {...form.getInputProps('adminFirstName')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
+                                    <TextInput label="Last Name" placeholder="Doe" required {...form.getInputProps('adminLastName')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
                                 </Group>
-                                <TextInput label="Username" placeholder="admin" required {...form.getInputProps('adminUsername')} />
-                                <TextInput label="Email Address" placeholder="admin@school.com" required {...form.getInputProps('adminEmail')} />
+                                <TextInput label="Username" placeholder="admin" required {...form.getInputProps('adminUsername')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
+                                <TextInput label="Email Address" placeholder="admin@school.com" required {...form.getInputProps('adminEmail')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
                                 <PasswordInput
                                     label="Password"
                                     placeholder="Strong password"
@@ -142,6 +152,7 @@ export function Installation() {
                                         reveal ? <IconEyeOff size={20} /> : <IconEyeCheck size={20} />
                                     }
                                     {...form.getInputProps('adminPassword')}
+                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
                                 />
                             </Stack>
                         </Stepper.Step>
@@ -177,22 +188,53 @@ export function Installation() {
                 </Box>
             </div>
 
-            {/* RIGHT SIDE: IMAGE */}
+            {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
             <div style={{
                 flex: '1',
-                background: 'var(--app-surface-dim)',
+                background: isDark
+                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
+                padding: '3rem 2rem',
                 position: 'relative'
             }}>
-                <Image
-                    src={sideImage}
-                    alt="Installation Background"
-                    w="100%"
-                    h="100%"
-                    fit="cover"
-                />
+                {/* Top Logo */}
+                <Box mt="xl">
+                    <Image
+                        src={whitelogo}
+                        alt="Jingli Logo"
+                        w={300}
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Center Transparent Image */}
+                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <Image
+                        src={sideImgTrans}
+                        alt="Education Management Illustration"
+                        w="100%"
+                        maw={500}
+                        fit="contain"
+                    />
+                </Box>
+
+                {/* Bottom Text */}
+                <Text
+                    c="white"
+                    size="xl"
+                    mb="xl"
+                    style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 300,
+                        letterSpacing: '0.5px'
+                    }}
+                >
+                    Empowering Education, Simplifying Management
+                </Text>
             </div>
         </div>
     );

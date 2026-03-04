@@ -31,10 +31,20 @@ export function Messenger() {
         queryKey: ['usersSearch'],
         queryFn: async () => {
             const resp = await api.get('/users/search');
-            return resp.data.filter((u: any) => u.id !== user?.id).map((u: any) => ({
-                value: u.id,
-                label: `${u.email} (${u.role})`
-            }));
+            return resp.data.filter((u: any) => u.id !== user?.id).map((u: any) => {
+                // Determine best name from profiles
+                const name = u.staffProfile
+                    ? `${u.staffProfile.firstName} ${u.staffProfile.lastName}`
+                    : u.studentProfile
+                        ? `${u.studentProfile.firstName} ${u.studentProfile.lastName}`
+                        : u.email;
+
+                return {
+                    value: u.id,
+                    label: `${name} (${u.role})`,
+                    rawUser: u // Keep raw user for hydration
+                };
+            });
         },
         enabled: modalOpened
     });
@@ -51,15 +61,16 @@ export function Messenger() {
         if (existing) {
             setSelectedPartner(existing.partner);
         } else {
-            // Mock a partner object if starting fresh
-            const selectedUser = users.find((u: { value: string; label: string }) => u.value === userId);
+            // Mock a partner object using the rawUser data
+            const selectedUser = users.find((u: { value: string; label: string; rawUser: any }) => u.value === userId);
             if (selectedUser) {
-                // This is a bit hacky since we don't have the full partner profile yet
+                const u = selectedUser.rawUser;
                 setSelectedPartner({
                     id: userId,
-                    email: selectedUser.label.split(' ')[0],
-                    role: 'USER', // Placeholder
-                    staffProfile: { firstName: selectedUser.label.split(' ')[0], lastName: '' }
+                    email: u.email,
+                    role: u.role,
+                    staffProfile: u.staffProfile,
+                    studentProfile: u.studentProfile
                 } as any);
             }
         }
@@ -69,11 +80,11 @@ export function Messenger() {
     if (loading) return <Center h="400px"><Loader /></Center>;
 
     return (
-        <>
-            <Grid gutter="md">
+        <Paper elevation={0} style={{ backgroundColor: 'transparent' }}>
+            <Grid gutter="xs">
                 <Grid.Col span={{ base: 12, md: 4 }}>
-                    <Paper withBorder radius="md" p={0}>
-                        <Group p="md" justify="space-between" bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', borderTopLeftRadius: 'var(--mantine-radius-md)', borderTopRightRadius: 'var(--mantine-radius-md)' }}>
+                    <Paper withBorder radius="md" p={0} style={{ overflow: 'hidden', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+                        <Group p="md" justify="space-between" bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
                             <Title order={5}>My Chats</Title>
                             <Tooltip label="New Conversation">
                                 <ActionIcon onClick={handleNewChat} variant="light" color="blue">
@@ -81,25 +92,29 @@ export function Messenger() {
                                 </ActionIcon>
                             </Tooltip>
                         </Group>
-                        <ConversationList
-                            conversations={conversations}
-                            selectedId={selectedPartner?.id || null}
-                            onSelect={(id) => {
-                                const conv = conversations.find(c => c.partner.id === id);
-                                if (conv) setSelectedPartner(conv.partner);
-                            }}
-                        />
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            <ConversationList
+                                conversations={conversations}
+                                selectedId={selectedPartner?.id || null}
+                                onSelect={(id) => {
+                                    const conv = conversations.find(c => c.partner.id === id);
+                                    if (conv) setSelectedPartner(conv.partner);
+                                }}
+                            />
+                        </div>
                     </Paper>
                 </Grid.Col>
 
                 <Grid.Col span={{ base: 12, md: 8 }}>
                     {selectedPartner ? (
-                        <ChatWindow
-                            partnerId={selectedPartner.id}
-                            partnerName={selectedPartner.staffProfile ? `${selectedPartner.staffProfile.firstName} ${selectedPartner.staffProfile.lastName}` : (selectedPartner.studentProfile ? `${selectedPartner.studentProfile.firstName} ${selectedPartner.studentProfile.lastName}` : selectedPartner.email)}
-                        />
+                        <Paper withBorder radius="md" style={{ overflow: 'hidden', height: 'calc(100vh - 120px)' }}>
+                            <ChatWindow
+                                partnerId={selectedPartner.id}
+                                partnerName={selectedPartner.staffProfile ? `${selectedPartner.staffProfile.firstName} ${selectedPartner.staffProfile.lastName}` : (selectedPartner.studentProfile ? `${selectedPartner.studentProfile.firstName} ${selectedPartner.studentProfile.lastName}` : selectedPartner.email)}
+                            />
+                        </Paper>
                     ) : (
-                        <Paper withBorder radius="md" h={{ base: '500px', md: 'calc(100vh - 350px)' }} mih="400px">
+                        <Paper withBorder radius="md" h={{ base: '500px', md: 'calc(100vh - 120px)' }} mih="400px">
                             <Center h="100%">
                                 <Stack align="center" gap="xs">
                                     <IconMessagePlus size={48} color="var(--mantine-color-gray-4)" />
@@ -124,6 +139,6 @@ export function Messenger() {
                     rightSection={searchingUsers ? <Loader size="xs" /> : undefined}
                 />
             </Modal>
-        </>
+        </Paper>
     );
 }
