@@ -13,7 +13,8 @@ export interface Hostel {
 
 export interface Room {
     id: string;
-    name: string;
+    number: string;
+    name?: string; // backwards compat
     capacity: number;
     hostelId: string;
     hostel?: Hostel;
@@ -60,6 +61,7 @@ export const hostelService = {
     // Hostels
     getAllHostels: () => api.get<Hostel[]>('/hostel/hostels').then(res => res.data),
     createHostel: (data: Partial<Hostel>) => api.post<Hostel>('/hostel/hostels', data).then(res => res.data),
+    updateHostel: (id: string, data: Partial<Hostel>) => api.patch<Hostel>(`/hostel/hostels/${id}`, data).then(res => res.data),
     deleteHostel: (id: string) => api.delete(`/hostel/hostels/${id}`).then(res => res.data),
 
     // Rooms

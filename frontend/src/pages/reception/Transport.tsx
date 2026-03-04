@@ -4,8 +4,9 @@ import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, Them
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconBus, IconRoute, IconUsers, IconPlus, IconTrash, IconEdit, IconSearch, IconEye } from '@tabler/icons-react';
+import { IconBus, IconRoute, IconUsers, IconPlus, IconTrash, IconEdit, IconSearch, IconEye, IconMapPin } from '@tabler/icons-react';
 import { api } from '../../services/api';
+import { StudentPicker } from '../../components/common/StudentPicker';
 
 export default function Transport() {
     const [activeTab, setActiveTab] = useState<string | null>('vehicles');
@@ -13,9 +14,9 @@ export default function Transport() {
     const queryClient = useQueryClient();
 
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const [drawerType, setDrawerType] = useState<'vehicle' | 'route'>('vehicle');
+    const [drawerType, setDrawerType] = useState<'vehicle' | 'route' | 'allocation'>('vehicle');
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; type: 'vehicle' | 'route'; name: string }>({ opened: false, id: '', type: 'vehicle', name: '' });
+    const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; type: 'vehicle' | 'route' | 'allocation'; name: string }>({ opened: false, id: '', type: 'vehicle', name: '' });
 
     // Queries
     const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
@@ -77,6 +78,29 @@ export default function Transport() {
         onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to delete', color: 'red' })
     });
 
+    const allocateMutation = useMutation({
+        mutationFn: (values: any) => api.post('/transport/student-routes', values),
+        onSuccess: () => {
+            notifications.show({ title: 'Success', message: 'Student allocated to route', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['transportRoutes'] });
+            queryClient.invalidateQueries({ queryKey: ['transportStats'] });
+            closeDrawer();
+            allocationForm.reset();
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to allocate', color: 'red' })
+    });
+
+    const unassignMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/transport/student-routes/${id}`),
+        onSuccess: () => {
+            notifications.show({ title: 'Removed', message: 'Student removed from route', color: 'green' });
+            queryClient.invalidateQueries({ queryKey: ['transportRoutes'] });
+            queryClient.invalidateQueries({ queryKey: ['transportStats'] });
+            setDeleteModal({ opened: false, id: '', type: 'vehicle', name: '' });
+        },
+        onError: (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || 'Failed to remove', color: 'red' })
+    });
+
     const vehicleForm = useForm({
         initialValues: { regNumber: '', make: '', model: '', capacity: 50, insuranceExpiry: '', nextServiceDate: '' },
         validate: {
@@ -90,7 +114,15 @@ export default function Transport() {
         validate: { name: (v) => (!v ? 'Route name is required' : null) },
     });
 
-    const handleOpenDrawer = (type: 'vehicle' | 'route', item?: any) => {
+    const allocationForm = useForm({
+        initialValues: { studentId: '', routeId: '', pickupPoint: '', direction: 'BOTH' },
+        validate: {
+            studentId: (v) => (!v ? 'Student is required' : null),
+            routeId: (v) => (!v ? 'Route is required' : null),
+        },
+    });
+
+    const handleOpenDrawer = (type: 'vehicle' | 'route' | 'allocation', item?: any) => {
         setDrawerType(type);
         setEditingId(item?.id || null);
         if (type === 'vehicle') {
@@ -102,7 +134,7 @@ export default function Transport() {
                 insuranceExpiry: item.insuranceExpiry ? item.insuranceExpiry.split('T')[0] : '',
                 nextServiceDate: item.nextServiceDate ? item.nextServiceDate.split('T')[0] : '',
             } : { regNumber: '', make: '', model: '', capacity: 50, insuranceExpiry: '', nextServiceDate: '' });
-        } else {
+        } else if (type === 'route') {
             routeForm.setValues(item ? {
                 name: item.name || '',
                 description: item.description || '',
@@ -111,14 +143,23 @@ export default function Transport() {
                 startTime: item.startTime || '',
                 endTime: item.endTime || '',
             } : { name: '', description: '', vehicleId: '', driverName: '', startTime: '', endTime: '' });
+        } else {
+            allocationForm.reset();
         }
         openDrawer();
     };
 
     const handleSaveVehicle = (values: typeof vehicleForm.values) => vehicleMutation.mutate(values);
     const handleSaveRoute = (values: typeof routeForm.values) => routeMutation.mutate(values);
-    const confirmDelete = (id: string, type: 'vehicle' | 'route', name: string) => setDeleteModal({ opened: true, id, type, name });
-    const handleDelete = () => deleteMutation.mutate({ id: deleteModal.id, type: deleteModal.type });
+    const handleSaveAllocation = (values: typeof allocationForm.values) => allocateMutation.mutate(values);
+    const confirmDelete = (id: string, type: 'vehicle' | 'route' | 'allocation', name: string) => setDeleteModal({ opened: true, id, type, name });
+    const handleDelete = () => {
+        if (deleteModal.type === 'allocation') {
+            unassignMutation.mutate(deleteModal.id);
+        } else {
+            deleteMutation.mutate({ id: deleteModal.id, type: deleteModal.type as 'vehicle' | 'route' });
+        }
+    };
 
     const filteredVehicles = vehicles.filter((v: any) =>
         v.regNumber?.toLowerCase().includes(search.toLowerCase()) ||
@@ -127,6 +168,20 @@ export default function Transport() {
 
     const filteredRoutes = routes.filter((r: any) =>
         r.name?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    // Flatten route allocations
+    const allAllocations = routes.flatMap((r: any) =>
+        (r.students || []).map((s: any) => ({
+            ...s,
+            route: r
+        }))
+    );
+
+    const filteredAllocations = allAllocations.filter((a: any) =>
+        (a.student?.firstName + ' ' + a.student?.lastName).toLowerCase().includes(search.toLowerCase()) ||
+        a.route?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        a.pickupPoint?.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
@@ -168,6 +223,7 @@ export default function Transport() {
                 <Tabs.List mb="md">
                     <Tabs.Tab value="vehicles" leftSection={<IconBus size={16} />}>Vehicles</Tabs.Tab>
                     <Tabs.Tab value="routes" leftSection={<IconRoute size={16} />}>Routes</Tabs.Tab>
+                    <Tabs.Tab value="allocations" leftSection={<IconMapPin size={16} />}>Allocations</Tabs.Tab>
                 </Tabs.List>
 
                 {/* Vehicles Tab */}
@@ -192,7 +248,7 @@ export default function Transport() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {filteredVehicles.map(v => (
+                                    {filteredVehicles.map((v: any) => (
                                         <Table.Tr key={v.id}>
                                             <Table.Td fw={500}>{v.regNumber}</Table.Td>
                                             <Table.Td>{v.make} {v.model}</Table.Td>
@@ -235,7 +291,7 @@ export default function Transport() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {filteredRoutes.map(r => (
+                                    {filteredRoutes.map((r: any) => (
                                         <Table.Tr key={r.id}>
                                             <Table.Td fw={500}>{r.name}</Table.Td>
                                             <Table.Td>{r.vehicle ? `${r.vehicle.regNumber} (${r.vehicle.make})` : '—'}</Table.Td>
@@ -255,10 +311,49 @@ export default function Transport() {
                         )}
                     </Paper>
                 </Tabs.Panel>
+
+                {/* Allocations Tab */}
+                <Tabs.Panel value="allocations">
+                    <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                        <LoadingOverlay visible={loading} />
+                        <Group justify="space-between" mb="md">
+                            <TextInput placeholder="Search students or routes..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                            <Button leftSection={<IconPlus size={16} />} onClick={() => handleOpenDrawer('allocation')}>Allocate Student</Button>
+                        </Group>
+                        {filteredAllocations.length === 0 ? (
+                            <Text ta="center" c="dimmed" py="xl">No students allocated yet. Click "Allocate Student" to get started.</Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Student</Table.Th>
+                                        <Table.Th>Route</Table.Th>
+                                        <Table.Th>Pickup Point</Table.Th>
+                                        <Table.Th>Direction</Table.Th>
+                                        <Table.Th>Actions</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {filteredAllocations.map((a: any) => (
+                                        <Table.Tr key={a.id}>
+                                            <Table.Td fw={500}>{a.student?.firstName} {a.student?.lastName} <Text span size="xs" c="dimmed">({a.student?.admissionNo})</Text></Table.Td>
+                                            <Table.Td>{a.route?.name}</Table.Td>
+                                            <Table.Td>{a.pickupPoint || '—'}</Table.Td>
+                                            <Table.Td><Badge variant="light" color={a.direction === 'BOTH' ? 'blue' : 'gray'}>{a.direction}</Badge></Table.Td>
+                                            <Table.Td>
+                                                <ActionIcon color="red" variant="subtle" loading={unassignMutation.isPending && deleteModal.id === a.id} onClick={() => confirmDelete(a.id, 'allocation', `Allocation for ${a.student?.firstName}`)}><IconTrash size={16} /></ActionIcon>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
+                    </Paper>
+                </Tabs.Panel>
             </Tabs>
 
             {/* Drawer for Adding/Editing */}
-            <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? `Edit ${drawerType === 'vehicle' ? 'Vehicle' : 'Route'}` : `Add ${drawerType === 'vehicle' ? 'Vehicle' : 'Route'}`} position="right" size="md">
+            <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? `Edit ${drawerType === 'vehicle' ? 'Vehicle' : drawerType === 'route' ? 'Route' : 'Allocation'}` : `Add ${drawerType === 'vehicle' ? 'Vehicle' : drawerType === 'route' ? 'Route' : 'Allocation'}`} position="right" size="md">
                 {drawerType === 'vehicle' ? (
                     <form onSubmit={vehicleForm.onSubmit(handleSaveVehicle)}>
                         <Stack>
@@ -276,7 +371,7 @@ export default function Transport() {
                             </Group>
                         </Stack>
                     </form>
-                ) : (
+                ) : drawerType === 'route' ? (
                     <form onSubmit={routeForm.onSubmit(handleSaveRoute)}>
                         <Stack>
                             <TextInput label="Route Name" placeholder="e.g. North Route" required {...routeForm.getInputProps('name')} />
@@ -300,16 +395,46 @@ export default function Transport() {
                             </Group>
                         </Stack>
                     </form>
+                ) : (
+                    <form onSubmit={allocationForm.onSubmit(handleSaveAllocation)}>
+                        <Stack>
+                            <StudentPicker
+                                value={allocationForm.values.studentId}
+                                onChange={(val) => allocationForm.setFieldValue('studentId', val || '')}
+                                required
+                                error={allocationForm.errors.studentId as string}
+                            />
+                            <Select
+                                label="Route"
+                                placeholder="Select a route"
+                                data={routes.map((r: any) => ({ value: r.id, label: r.name }))}
+                                required
+                                searchable
+                                {...allocationForm.getInputProps('routeId')}
+                            />
+                            <TextInput label="Pickup Point" placeholder="e.g. Main Gate" {...allocationForm.getInputProps('pickupPoint')} />
+                            <Select
+                                label="Direction"
+                                data={['PICKUP', 'DROPOFF', 'BOTH']}
+                                required
+                                {...allocationForm.getInputProps('direction')}
+                            />
+                            <Group justify="flex-end" mt="md">
+                                <Button variant="default" onClick={closeDrawer}>Cancel</Button>
+                                <Button type="submit" loading={allocateMutation.isPending}>Allocate</Button>
+                            </Group>
+                        </Stack>
+                    </form>
                 )}
             </Drawer>
 
             {/* Delete Confirmation Modal */}
-            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Deletion">
+            <Modal opened={deleteModal.opened} onClose={() => setDeleteModal({ ...deleteModal, opened: false })} title="Confirm Removal">
                 <Stack>
-                    <Text size="sm">Are you sure you want to delete <b>{deleteModal.name}</b>? This cannot be undone.</Text>
+                    <Text size="sm">Are you sure you want to remove <b>{deleteModal.name}</b>? This cannot be undone.</Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={() => setDeleteModal({ ...deleteModal, opened: false })}>Cancel</Button>
-                        <Button color="red" loading={deleteMutation.isPending} onClick={handleDelete}>Delete</Button>
+                        <Button color="red" loading={deleteMutation.isPending || unassignMutation.isPending} onClick={handleDelete}>Remove</Button>
                     </Group>
                 </Stack>
             </Modal>

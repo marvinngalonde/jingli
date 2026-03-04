@@ -29,6 +29,10 @@ export class HostelController {
     @Roles(UserRole.SUPER_ADMIN)
     removeHostel(@Req() req: any, @Param('id') id: string) { return this.service.removeHostel(id, req.user.schoolId); }
 
+    @Patch('hostels/:id')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
+    updateHostel(@Req() req: any, @Param('id') id: string, @Body() dto: any) { return this.service.updateHostel(id, dto, req.user.schoolId); }
+
     @Post('rooms')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
     createRoom(@Req() req: any, @Body() dto: any) { return this.service.createRoom(dto, req.user.schoolId); }

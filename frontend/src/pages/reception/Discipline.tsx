@@ -179,8 +179,8 @@ export default function Discipline() {
                 )}
             </Paper>
 
-            {/* Conduct Summary Modal */}
-            <Modal opened={summaryModal.opened} onClose={() => setSummaryModal({ opened: false, studentId: null, studentName: '' })} title={<Title order={3}>Conduct Summary</Title>} size="lg">
+            {/* Conduct Summary Drawer */}
+            <Drawer opened={summaryModal.opened} onClose={() => setSummaryModal({ opened: false, studentId: null, studentName: '' })} title={<Title order={3}>Conduct Summary</Title>} position="right" size="lg">
                 <Stack pos="relative" style={{ minHeight: 200 }}>
                     <LoadingOverlay visible={summaryLoading} />
 
@@ -189,21 +189,20 @@ export default function Discipline() {
                             label="Select Student to view score"
                             value={summaryModal.studentId || ''}
                             onChange={(val) => {
-                                // Bit of a hack to get the name, but StudentPicker just returns ID.
-                                // We'll just let the backend fetch it, and update name later if needed, 
-                                // but for now we just show the score.
                                 setSummaryModal({ opened: true, studentId: val, studentName: 'Selected Student' });
                             }}
                         />
                     ) : (
-                        <Group justify="space-between" align="flex-start">
-                            <div>
-                                <Text size="lg" fw={600} mb="sm">{summaryModal.studentName}</Text>
-                                <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={() => openEditDrawer()}>Quick Add Record</Button>
-                            </div>
+                        <Stack gap="lg">
+                            <Group justify="space-between" align="flex-start">
+                                <div>
+                                    <Text size="lg" fw={600} mb="sm">{summaryModal.studentName}</Text>
+                                    <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={() => openEditDrawer()}>Quick Add Record</Button>
+                                </div>
+                            </Group>
 
                             {studentSummary && (
-                                <Group gap="xl">
+                                <Group gap="xl" justify="center">
                                     <Stack align="center" gap={0}>
                                         <Text size="sm" c="dimmed" fw={500}>Total Merits</Text>
                                         <Text size="xl" fw={700} c="green">+{studentSummary.merits.points}</Text>
@@ -236,10 +235,10 @@ export default function Discipline() {
                                     />
                                 </Group>
                             )}
-                        </Group>
+                        </Stack>
                     )}
                 </Stack>
-            </Modal>
+            </Drawer>
 
             {/* Drawer */}
             <Drawer opened={drawerOpened} onClose={closeDrawer} title={editingId ? 'Edit Discipline Record' : 'Add Discipline Record'} position="right" size="md">

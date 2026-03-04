@@ -33,6 +33,14 @@ export class HealthService {
         return this.prisma.medicalProfile.findUnique({ where: { studentId } });
     }
 
+    async findAllProfiles(schoolId: string) {
+        return this.prisma.medicalProfile.findMany({
+            where: { student: { schoolId } },
+            include: { student: { select: { firstName: true, lastName: true, admissionNo: true } } },
+            orderBy: { studentId: 'asc' },
+        });
+    }
+
     // ═══════ Clinic Visits ═══════
     async createVisit(dto: any, schoolId: string) {
         return this.prisma.clinicVisit.create({

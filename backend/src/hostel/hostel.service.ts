@@ -15,6 +15,9 @@ export class HostelService {
     async removeHostel(id: string, schoolId: string) {
         return this.prisma.hostel.delete({ where: { id, schoolId } });
     }
+    async updateHostel(id: string, dto: any, schoolId: string) {
+        return this.prisma.hostel.update({ where: { id, schoolId }, data: dto });
+    }
 
     // ═══════ Rooms ═══════
     async createRoom(dto: any, schoolId: string) {

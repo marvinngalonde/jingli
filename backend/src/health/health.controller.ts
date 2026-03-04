@@ -18,6 +18,11 @@ export class HealthController {
     @ApiOperation({ summary: 'Create/Update Medical Profile' })
     upsertProfile(@Body() dto: any) { return this.service.upsertProfile(dto); }
 
+    @Get('profiles')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @ApiOperation({ summary: 'List All Medical Profiles' })
+    findAllProfiles(@Req() req: any) { return this.service.findAllProfiles(req.user.schoolId); }
+
     @Get('profiles/:studentId')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.PARENT)
     @ApiOperation({ summary: 'Get Medical Profile' })

@@ -42,6 +42,14 @@ export default function Health() {
 
     const loading = visitsLoading || statsLoading;
 
+    // All Profiles listing
+    const { data: allProfiles = [], isLoading: profilesListLoading } = useQuery({
+        queryKey: ['healthProfiles'],
+        queryFn: () => api.get('/health/profiles').then(res => res.data || [])
+    });
+
+    const [profileSearch, setProfileSearch] = useState('');
+
     // Mutations
     const visitMutation = useMutation({
         mutationFn: (values: any) => editingId
@@ -63,6 +71,7 @@ export default function Health() {
         onSuccess: () => {
             notifications.show({ title: 'Success', message: 'Medical profile saved', color: 'green' });
             queryClient.invalidateQueries({ queryKey: ['healthStats'] });
+            queryClient.invalidateQueries({ queryKey: ['healthProfiles'] });
             queryClient.invalidateQueries({ queryKey: ['healthProfile', profileForm.values.studentId] });
             closeDrawer();
         },
@@ -209,12 +218,40 @@ export default function Health() {
                 </Tabs.Panel>
 
                 <Tabs.Panel value="profiles">
-                    <Paper p="lg" radius="md" shadow="sm" withBorder>
+                    <Paper p="lg" radius="md" shadow="sm" withBorder pos="relative">
+                        <LoadingOverlay visible={profilesListLoading} />
                         <Group justify="space-between" mb="md">
-                            <Text c="dimmed">Create or update a student's medical profile</Text>
+                            <TextInput placeholder="Search profiles..." leftSection={<IconSearch size={16} />} value={profileSearch} onChange={e => setProfileSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
                             <Button leftSection={<IconPlus size={16} />} onClick={() => openProfileDrawer()}>New Profile</Button>
                         </Group>
-                        <Text ta="center" c="dimmed" py="xl">Use the "View Full History" icon in the Clinic Visits tab to see a student's complete medical profile, or use the form above to record/update properties for any general student.</Text>
+                        {(() => {
+                            const filteredProfiles = allProfiles.filter((p: any) =>
+                                (p.student?.firstName + ' ' + p.student?.lastName).toLowerCase().includes(profileSearch.toLowerCase()) ||
+                                p.bloodType?.toLowerCase().includes(profileSearch.toLowerCase())
+                            );
+                            return filteredProfiles.length === 0 ? (
+                                <Text ta="center" c="dimmed" py="xl">No medical profiles found. Click "New Profile" to get started.</Text>
+                            ) : (
+                                <Table striped highlightOnHover>
+                                    <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Blood Type</Table.Th><Table.Th>Allergies</Table.Th><Table.Th>Chronic Conditions</Table.Th><Table.Th>Emergency Contact</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
+                                    <Table.Tbody>{filteredProfiles.map((p: any) => (
+                                        <Table.Tr key={p.id || p.studentId}>
+                                            <Table.Td fw={500}>{p.student?.firstName} {p.student?.lastName}</Table.Td>
+                                            <Table.Td>{p.bloodType ? <Badge color="red" variant="light">{p.bloodType}</Badge> : '—'}</Table.Td>
+                                            <Table.Td>{p.allergies || '—'}</Table.Td>
+                                            <Table.Td>{p.chronicConditions || '—'}</Table.Td>
+                                            <Table.Td>{p.emergencyContact ? `${p.emergencyContact} ${p.emergencyPhone ? `(${p.emergencyPhone})` : ''}` : '—'}</Table.Td>
+                                            <Table.Td>
+                                                <Group gap="xs">
+                                                    <ActionIcon color="teal" variant="subtle" title="View Full History" onClick={() => openHistoryModal(p.studentId, `${p.student?.firstName} ${p.student?.lastName}`)}><IconEye size={16} /></ActionIcon>
+                                                    <ActionIcon color="blue" variant="subtle" title="Edit Profile" onClick={() => openProfileDrawer(p.studentId)}><IconEdit size={16} /></ActionIcon>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}</Table.Tbody>
+                                </Table>
+                            );
+                        })()}
                     </Paper>
                 </Tabs.Panel>
             </Tabs>

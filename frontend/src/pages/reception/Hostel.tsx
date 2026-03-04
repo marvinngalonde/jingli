@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, NumberInput, Select, Modal, Menu } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Stack, LoadingOverlay, ActionIcon, TextInput, NumberInput, Select, Modal, Menu, Textarea } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconHome2, IconBed, IconDoorExit, IconPlus, IconTrash, IconSearch, IconCheck, IconArrowLeft, IconDotsVertical, IconUserPlus } from '@tabler/icons-react';
+import { IconHome2, IconBed, IconDoorExit, IconPlus, IconTrash, IconSearch, IconCheck, IconArrowLeft, IconDotsVertical, IconUserPlus, IconEdit } from '@tabler/icons-react';
 import { hostelService, type Hostel as IHostel, type Room as IRoom } from '../../services/hostelService';
-import { studentService } from '../../services/studentService';
+import { StudentPicker } from '../../components/common/StudentPicker';
 
 export default function Hostel() {
     const [activeTab, setActiveTab] = useState<string | null>('hostels');
@@ -38,10 +38,8 @@ export default function Hostel() {
         queryFn: hostelService.getStats
     });
 
-    const { data: students = [] } = useQuery({
-        queryKey: ['students-for-allocation'],
-        queryFn: () => studentsService.getAll().then(res => res.data)
-    });
+    // Edit hostel state
+    const [editingHostel, setEditingHostel] = useState<IHostel | null>(null);
 
     const loading = hostelsLoading || exeatsLoading || statsLoading || roomsLoading;
 
@@ -55,12 +53,15 @@ export default function Hostel() {
     const handleError = (err: any) => notifications.show({ title: 'Error', message: err.response?.data?.message || err.message || 'Action failed', color: 'red' });
 
     const hostelMutation = useMutation({
-        mutationFn: hostelService.createHostel,
+        mutationFn: (data: any) => editingHostel
+            ? hostelService.updateHostel(editingHostel.id, data)
+            : hostelService.createHostel(data),
         onSuccess: () => {
-            notifications.show({ title: 'Success', message: 'Hostel added', color: 'green' });
+            notifications.show({ title: 'Success', message: editingHostel ? 'Hostel updated' : 'Hostel added', color: 'green' });
             invalidateHostelQueries();
             closeDrawer();
             hostelForm.reset();
+            setEditingHostel(null);
         },
         onError: handleError
     });
@@ -154,14 +155,14 @@ export default function Hostel() {
     });
 
     const roomForm = useForm({
-        initialValues: { name: '', capacity: 4, hostelId: '' },
-        validate: { name: (v) => (!v ? 'Required' : null), hostelId: (v) => (!v ? 'Required' : null) },
+        initialValues: { number: '', capacity: 4, hostelId: '' },
+        validate: { number: (v) => (!v ? 'Required' : null), hostelId: (v) => (!v ? 'Required' : null) },
     });
 
     const exeatForm = useForm({
         initialValues: { studentId: '', reason: '', departDate: '', returnDate: '', guardianName: '' },
         validate: {
-            studentId: (v) => (!v ? 'Student ID required' : null),
+            studentId: (v) => (!v ? 'Student required' : null),
             reason: (v) => (!v ? 'Reason required' : null),
             departDate: (v) => (!v ? 'Required' : null),
             returnDate: (v) => (!v ? 'Required' : null),
@@ -175,6 +176,7 @@ export default function Hostel() {
 
     const handleOpenDrawer = (type: 'hostel' | 'exeat' | 'room') => {
         setDrawerType(type);
+        setEditingHostel(null);
         if (type === 'hostel') hostelForm.reset();
         else if (type === 'room') roomForm.reset();
         else exeatForm.reset();
@@ -185,9 +187,16 @@ export default function Hostel() {
     const handleSaveRoom = (values: typeof roomForm.values) => roomMutation.mutate(values);
     const handleSaveExeat = (values: typeof exeatForm.values) => exeatMutation.mutate(values);
 
+    const openEditHostel = (h: IHostel) => {
+        setEditingHostel(h);
+        hostelForm.setValues({ name: h.name, gender: h.gender, capacity: h.capacity, warden: h.warden || '' });
+        setDrawerType('hostel');
+        openDrawer();
+    };
+
     const filteredHostels = hostels.filter((h: any) => h.name?.toLowerCase().includes(search.toLowerCase()));
     const filteredRooms = rooms.filter((r: any) =>
-        r.name?.toLowerCase().includes(search.toLowerCase()) ||
+        r.number?.toLowerCase().includes(search.toLowerCase()) ||
         r.hostel?.name?.toLowerCase().includes(search.toLowerCase())
     );
     const filteredExeats = exeats.filter((e: any) =>
@@ -254,9 +263,14 @@ export default function Hostel() {
                                         <Table.Td>{h.rooms?.length || 0}</Table.Td>
                                         <Table.Td>{h.warden || '—'}</Table.Td>
                                         <Table.Td>
-                                            <ActionIcon color="red" variant="subtle" loading={deleteHostelMutation.isPending && deleteHostelMutation.variables === h.id} onClick={() => deleteHostelMutation.mutate(h.id)}>
-                                                <IconTrash size={16} />
-                                            </ActionIcon>
+                                            <Group gap={4}>
+                                                <ActionIcon color="blue" variant="subtle" onClick={() => openEditHostel(h)}>
+                                                    <IconEdit size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon color="red" variant="subtle" loading={deleteHostelMutation.isPending && deleteHostelMutation.variables === h.id} onClick={() => deleteHostelMutation.mutate(h.id)}>
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}</Table.Tbody>
@@ -282,7 +296,7 @@ export default function Hostel() {
                                     const isFull = occupied >= r.capacity;
                                     return (
                                         <Table.Tr key={r.id}>
-                                            <Table.Td fw={500}>{r.name}</Table.Td>
+                                            <Table.Td fw={500}>{r.number}</Table.Td>
                                             <Table.Td>{r.hostel?.name}</Table.Td>
                                             <Table.Td>{r.capacity}</Table.Td>
                                             <Table.Td>
@@ -386,19 +400,15 @@ export default function Hostel() {
             <Modal
                 opened={allocationModal.opened}
                 onClose={() => setAllocationModal({ opened: false, room: null })}
-                title={`Allocate Bed in ${allocationModal.room?.name}`}
+                title={`Allocate Bed in ${allocationModal.room?.number || allocationModal.room?.name}`}
             >
                 <form onSubmit={allocationForm.onSubmit((values) => allocateBedMutation.mutate({ ...values, roomId: allocationModal.room!.id }))}>
                     <Stack>
-                        <Select
-                            label="Student"
-                            searchable
-                            data={students.map((s: any) => ({
-                                value: s.id,
-                                label: `${s.firstName} ${s.lastName} (${s.admissionNumber})`
-                            }))}
+                        <StudentPicker
+                            value={allocationForm.values.studentId}
+                            onChange={(val) => allocationForm.setFieldValue('studentId', val || '')}
                             required
-                            {...allocationForm.getInputProps('studentId')}
+                            error={allocationForm.errors.studentId as string}
                         />
                         <TextInput label="Bed Identifier" placeholder="e.g., Bed A, Top Bunk" required {...allocationForm.getInputProps('bedNumber')} />
                         <Group justify="flex-end" mt="md">
@@ -410,7 +420,7 @@ export default function Hostel() {
             </Modal>
 
             {/* Drawer */}
-            <Drawer opened={drawerOpened} onClose={closeDrawer} title={drawerType === 'hostel' ? 'Add Hostel' : drawerType === 'room' ? 'Add Room' : 'New Exeat Request'} position="right" size="md">
+            <Drawer opened={drawerOpened} onClose={() => { closeDrawer(); setEditingHostel(null); }} title={drawerType === 'hostel' ? (editingHostel ? 'Edit Hostel' : 'Add Hostel') : drawerType === 'room' ? 'Add Room' : 'New Exeat Request'} position="right" size="md">
                 {drawerType === 'hostel' ? (
                     <form onSubmit={hostelForm.onSubmit(handleSaveHostel)}>
                         <Stack>
@@ -430,7 +440,7 @@ export default function Hostel() {
                                 required
                                 {...roomForm.getInputProps('hostelId')}
                             />
-                            <TextInput label="Room Name/Number" required {...roomForm.getInputProps('name')} />
+                            <TextInput label="Room Number" placeholder="e.g. Room 12, A-3" required {...roomForm.getInputProps('number')} />
                             <NumberInput label="Capacity (Beds)" min={1} required {...roomForm.getInputProps('capacity')} />
                             <Group justify="flex-end" mt="md"><Button variant="default" onClick={closeDrawer}>Cancel</Button><Button type="submit" loading={roomMutation.isPending}>Save</Button></Group>
                         </Stack>
@@ -438,17 +448,13 @@ export default function Hostel() {
                 ) : (
                     <form onSubmit={exeatForm.onSubmit(handleSaveExeat)}>
                         <Stack>
-                            <Select
-                                label="Student"
-                                searchable
-                                data={students.map((s: any) => ({
-                                    value: s.id,
-                                    label: `${s.firstName} ${s.lastName} (${s.admissionNumber})`
-                                }))}
+                            <StudentPicker
+                                value={exeatForm.values.studentId}
+                                onChange={(val) => exeatForm.setFieldValue('studentId', val || '')}
                                 required
-                                {...exeatForm.getInputProps('studentId')}
+                                error={exeatForm.errors.studentId as string}
                             />
-                            <TextInput label="Reason" required {...exeatForm.getInputProps('reason')} />
+                            <Textarea label="Reason" required {...exeatForm.getInputProps('reason')} />
                             <TextInput label="Depart Date" type="date" required {...exeatForm.getInputProps('departDate')} />
                             <TextInput label="Return Date" type="date" required {...exeatForm.getInputProps('returnDate')} />
                             <TextInput label="Guardian Name" {...exeatForm.getInputProps('guardianName')} />
