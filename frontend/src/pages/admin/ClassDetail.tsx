@@ -323,7 +323,7 @@ export default function ClassDetail() {
             </Button>
 
             <PageHeader
-                title={`${classData.classLevel?.name || 'Class'} — Section ${classData.name}`}
+                title={`${classData.classLevel?.name || 'Class'} ${classData.classLevel?.level ?? ''} — Section ${classData.name}`}
                 subtitle={`Class Teacher: ${classTeacherName}`}
             />
 

@@ -1,9 +1,9 @@
 import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge } from '@mantine/core';
 import { IconArrowLeft, IconFile, IconDownload } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
 interface CourseMaterial {
     id: string;
@@ -18,24 +18,16 @@ interface CourseMaterial {
 export function StudentCourseMaterials() {
     const { subjectId } = useParams();
     const navigate = useNavigate();
-    const [materials, setMaterials] = useState<CourseMaterial[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchMaterials = async () => {
-            if (!subjectId) return;
-            try {
-                // Endpoint to fetch materials for a specific subject
-                const { data } = await api.get(`/student/classes/${subjectId}/materials`);
-                setMaterials(data);
-            } catch (error) {
-                console.error("Failed to fetch materials", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchMaterials();
-    }, [subjectId]);
+    const { data: materials = [], isFetching: loading } = useQuery<CourseMaterial[]>({
+        queryKey: ['studentMaterials', subjectId],
+        queryFn: async () => {
+            if (!subjectId) return [];
+            const { data } = await api.get(`/student/classes/${subjectId}/materials`);
+            return data;
+        },
+        enabled: !!subjectId,
+    });
 
     return (
         <Stack gap="lg" pos="relative">

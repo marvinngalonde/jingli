@@ -4,7 +4,7 @@ import { IconSchool, IconBook, IconFileDescription, IconClipboardList, IconDownl
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor } from '@mantine/core';
+import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor, Divider, UnstyledButton } from '@mantine/core';
 
 interface SubjectInfo {
     id: string;
@@ -23,11 +23,11 @@ interface Material {
     subject?: { name: string; code: string };
 }
 
-export default function StudentELearning() {
+export default function StudentPortalMaterials() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { data, isLoading: loading } = useQuery({
-        queryKey: ['studentELearning'],
+        queryKey: ['studentPortalMaterials'],
         queryFn: async () => {
             const classesRes = await api.get('/student/classes');
             const subjectsList = classesRes.data || [];
@@ -96,55 +96,84 @@ export default function StudentELearning() {
                             <Text c="dimmed" mt="xs">You are not enrolled in any subjects yet.</Text>
                         </Card>
                     ) : (
-                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
-                            {subjects.map((subj) => (
+                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="xl">
+                            {subjects.map((subj: any) => (
                                 <Card
                                     key={subj.id || subj.subjectId}
                                     withBorder
-                                    radius="md"
-                                    padding="lg"
+                                    radius="lg"
+                                    padding="xl"
                                     shadow="sm"
                                     bg="var(--app-surface)"
-                                    style={{ cursor: 'pointer', transition: 'transform 0.15s', }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}
+                                    style={{
+                                        transition: 'all 0.2s ease',
+                                        border: '1px solid var(--app-border-light)',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-4px)';
+                                        e.currentTarget.style.boxShadow = 'var(--mantine-shadow-md)';
+                                        e.currentTarget.style.borderColor = 'var(--mantine-color-blue-3)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'none';
+                                        e.currentTarget.style.boxShadow = 'var(--mantine-shadow-sm)';
+                                        e.currentTarget.style.borderColor = 'var(--app-border-light)';
+                                    }}
                                 >
-                                    <Group justify="space-between" mb="sm">
-                                        <ThemeIcon size="xl" radius="md" variant="light" color="blue">
-                                            <IconBook size={24} />
+                                    <Group justify="space-between" mb="lg">
+                                        <ThemeIcon size={48} radius="md" variant="light" color="blue" style={{ background: 'var(--mantine-color-blue-0)' }}>
+                                            <IconBook size={28} />
                                         </ThemeIcon>
-                                        <Badge variant="outline" color="grape" size="sm">{subj.subject?.code}</Badge>
+                                        <Badge variant="dot" color="blue" size="lg" radius="sm">
+                                            {subj.subject?.code}
+                                        </Badge>
                                     </Group>
-                                    <Text fw={600} size="lg" mt="xs">{subj.subject?.name}</Text>
-                                    <Text size="sm" c="dimmed" mb="md">
-                                        Teacher: {subj.teacher?.firstName} {subj.teacher?.lastName}
-                                    </Text>
 
-                                    <Group grow gap="xs">
-                                        <Paper
-                                            withBorder
-                                            radius="md"
-                                            p="xs"
-                                            ta="center"
-                                            bg="var(--app-surface-dim)"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => navigate(`/student/classes/${subj.subject?.id || subj.subjectId}/materials`)}
+                                    <Stack gap={4} mb="xl">
+                                        <Text fw={700} size="xl" lh={1.2}>
+                                            {subj.subject?.name}
+                                        </Text>
+                                        <Text size="sm" c="dimmed">
+                                            Instructor: {subj.teacher?.firstName} {subj.teacher?.lastName}
+                                        </Text>
+                                    </Stack>
+
+                                    <Divider mb="xl" variant="dashed" />
+
+                                    <Group grow gap="md">
+                                        <UnstyledButton
+                                            onClick={() => navigate(`/student-portal/classes/${subj.subject?.id || subj.subjectId}/materials`)}
+                                            style={{
+                                                padding: '12px',
+                                                borderRadius: '12px',
+                                                backgroundColor: 'var(--app-surface-dim)',
+                                                border: '1px solid var(--app-border-light)',
+                                                textAlign: 'center',
+                                                transition: 'background-color 0.2s',
+                                            }}
+                                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--mantine-color-blue-0)')}
+                                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-surface-dim)')}
                                         >
-                                            <IconFileDescription size={16} color="var(--mantine-color-blue-6)" />
-                                            <Text size="xs" mt={2}>Materials</Text>
-                                        </Paper>
-                                        <Paper
-                                            withBorder
-                                            radius="md"
-                                            p="xs"
-                                            ta="center"
-                                            bg="var(--app-surface-dim)"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => navigate(`/student/classes/${subj.subject?.id || subj.subjectId}/assignments`)}
+                                            <IconFileDescription size={20} color="var(--mantine-color-blue-6)" style={{ margin: '0 auto 4px' }} />
+                                            <Text size="xs" fw={600} c="blue">Materials</Text>
+                                        </UnstyledButton>
+
+                                        <UnstyledButton
+                                            onClick={() => navigate(`/student-portal/classes/${subj.subject?.id || subj.subjectId}/assignments`)}
+                                            style={{
+                                                padding: '12px',
+                                                borderRadius: '12px',
+                                                backgroundColor: 'var(--app-surface-dim)',
+                                                border: '1px solid var(--app-border-light)',
+                                                textAlign: 'center',
+                                                transition: 'background-color 0.2s',
+                                            }}
+                                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--mantine-color-orange-0)')}
+                                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-surface-dim)')}
                                         >
-                                            <IconClipboardList size={16} color="var(--mantine-color-orange-6)" />
-                                            <Text size="xs" mt={2}>Assignments</Text>
-                                        </Paper>
+                                            <IconClipboardList size={20} color="var(--mantine-color-orange-6)" style={{ margin: '0 auto 4px' }} />
+                                            <Text size="xs" fw={600} c="orange">Assignments</Text>
+                                        </UnstyledButton>
                                     </Group>
                                 </Card>
                             ))}
@@ -175,7 +204,7 @@ export default function StudentELearning() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {materials.map((mat) => (
+                                    {materials.map((mat: any) => (
                                         <Table.Tr key={mat.id}>
                                             <Table.Td>
                                                 <Group gap="sm">

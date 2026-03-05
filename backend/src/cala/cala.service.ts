@@ -14,6 +14,20 @@ export class CalaService {
             throw new Error('Invalid date provided');
         }
 
+        // dto.assessedBy currently holds the userId from the Controller req.user.id.
+        // We must map it to a Staff ID because CalaRecord foreign key requires Staff
+        let validAssessedBy: string = dto.assessedBy || '';
+        if (dto.assessedBy) {
+            const staff = await this.prisma.staff.findFirst({
+                where: { userId: dto.assessedBy, schoolId }
+            });
+            if (staff) {
+                validAssessedBy = staff.id;
+            } else {
+                throw new Error('Staff profile not found for the current user');
+            }
+        }
+
         return this.prisma.calaRecord.create({
             data: {
                 schoolId,
@@ -24,7 +38,7 @@ export class CalaService {
                 score: dto.score != null ? Number(dto.score) : 0,
                 maxScore: dto.maxScore != null ? Number(dto.maxScore) : 50,
                 teacherRemarks: dto.teacherRemarks || '',
-                assessedBy: dto.assessedBy || null,
+                assessedBy: validAssessedBy,
                 date: parsedDate,
             },
         });

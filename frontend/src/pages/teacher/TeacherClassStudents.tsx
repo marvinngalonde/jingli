@@ -36,7 +36,7 @@ export function TeacherClassStudents() {
 
     const className = useMemo(() => {
         const thisClass = classesData.find((c: any) => c.section.id === sectionId);
-        return thisClass ? `${thisClass.section.classLevel.name} ${thisClass.section.name}` : '';
+        return thisClass ? `${thisClass.section.classLevel.name} ${thisClass.section.classLevel.level ?? ""} ${thisClass.section.name}` : '';
     }, [classesData, sectionId]);
 
     const handlePrint = () => {

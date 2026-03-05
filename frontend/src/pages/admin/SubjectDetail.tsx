@@ -80,7 +80,7 @@ export default function SubjectDetail() {
         if (!acc[sectionId]) {
             acc[sectionId] = {
                 id: sectionId,
-                grade: entry.section.classLevel?.name || `Grade ${entry.section.classLevel?.level}`, // Need classLevel included
+                grade: `${entry.section.classLevel?.name || ''} ${entry.section.classLevel?.level ?? ''}`.trim() || `Grade ${entry.section.classLevel?.level}`,
                 section: entry.section.name,
                 teachers: new Set<string>(),
                 hours: 0
@@ -116,7 +116,7 @@ export default function SubjectDetail() {
         }
 
         if (entry.section?.classLevel) {
-            acc[teacherId].grades.add(entry.section.classLevel.name);
+            acc[teacherId].grades.add(`${entry.section.classLevel.name} ${entry.section.classLevel.level ?? ''}`.trim());
         } else if (entry.section) {
             acc[teacherId].grades.add(entry.section.name);
         }

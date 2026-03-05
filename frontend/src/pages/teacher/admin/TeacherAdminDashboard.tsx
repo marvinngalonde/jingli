@@ -233,7 +233,7 @@ export function TeacherDashboard() {
                                         <Group justify="space-between">
                                             <div>
                                                 <Text size="sm" fw={600}>{item.subject?.name || item.name || 'Class'}</Text>
-                                                <Text size="xs" c="dimmed">{item.section?.classLevel?.name} {item.section?.name}</Text>
+                                                <Text size="xs" c="dimmed">{item.section?.classLevel?.name} {item.section?.classLevel?.level ?? ''} {item.section?.name}</Text>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <Badge variant="light" size="sm">{item.startTime}-{item.endTime}</Badge>
@@ -352,7 +352,7 @@ export function TeacherDashboard() {
                                         <Table.Tr key={exam.id}>
                                             <Table.Td fw={500}>{exam.name}</Table.Td>
                                             <Table.Td><Badge variant="light" size="sm">{exam.subject?.name || '—'}</Badge></Table.Td>
-                                            <Table.Td>{exam.classLevel?.name || '—'}</Table.Td>
+                                            <Table.Td>{`${exam.classLevel?.name || ''} ${exam.classLevel?.level ?? ''}`.trim() || '—'}</Table.Td>
                                             <Table.Td>{new Date(exam.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Table.Td>
                                             <Table.Td><Badge variant="outline" color="orange">{exam.maxMarks}</Badge></Table.Td>
                                         </Table.Tr>

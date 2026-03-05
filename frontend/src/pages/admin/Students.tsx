@@ -205,7 +205,7 @@ export default function Students() {
         {
             accessor: 'class',
             header: 'Class/Grade',
-            render: (item) => <Text size="sm">{item.section ? `${item.section.classLevel?.name || ''} ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
+            render: (item) => <Text size="sm">{item.section ? `${item.section.classLevel?.name || ''} ${item.section.classLevel?.level ?? ''} ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
         },
         {
             accessor: 'status',
@@ -250,7 +250,7 @@ export default function Students() {
             'Gender': s.gender,
             'DOB': s.dob ? new Date(s.dob).toLocaleDateString() : 'N/A',
             'Status': s.status,
-            'Class/Grade': s.section ? `${s.section.classLevel?.name || ''} ${s.section.name || ''}`.trim() : 'Unassigned',
+            'Class/Grade': s.section ? `${s.section.classLevel?.name || ''} ${s.section.classLevel?.level ?? ''} ${s.section.name || ''}`.trim() : 'Unassigned',
             'Enrolled': new Date(s.enrollmentDate).toLocaleDateString()
         }));
         exportToCsv(exportData, 'Jingli_Student_Directory');

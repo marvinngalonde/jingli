@@ -50,7 +50,7 @@ export default function TeacherMyStudents() {
             res.data.forEach((cls: any) => {
                 const key = cls.section?.id;
                 if (key && !sectionMap.has(key)) {
-                    sectionMap.set(key, `${cls.section?.classLevel?.name || 'Unknown'} — ${cls.section?.name || ''}`);
+                    sectionMap.set(key, `${cls.section?.classLevel?.name || 'Unknown'} ${cls.section?.classLevel?.level ?? ''} — ${cls.section?.name || ''}`);
                 }
             });
             const opts = Array.from(sectionMap.entries()).map(([value, label]) => ({ value, label }));

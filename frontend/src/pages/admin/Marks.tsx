@@ -200,7 +200,7 @@ export default function Marks() {
                 <Group>
                     <Select
                         placeholder="Select Exam"
-                        data={exams.map(e => ({ value: e.id, label: `${e.name} (${e.classLevel?.name})` }))}
+                        data={exams.map(e => ({ value: e.id, label: `${e.name} (${e.classLevel?.name || ''} ${e.classLevel?.level ?? ''})` }))}
                         value={selectedExamId}
                         onChange={setSelectedExamId}
                         searchable

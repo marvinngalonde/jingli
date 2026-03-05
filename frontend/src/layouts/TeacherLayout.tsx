@@ -164,15 +164,6 @@ export function TeacherLayout() {
                         </Group>
                     </Group>
 
-                    <Group gap="sm" visibleFrom="sm" style={{ flex: 1, maxWidth: 400, margin: '0 auto' }}>
-                        <TextInput
-                            placeholder="Search courses, materials, students..."
-                            leftSection={<IconSearch size={16} />}
-                            radius="xl"
-                            style={{ width: '100%' }}
-                            styles={{ input: { background: 'var(--mantine-color-gray-0)' } }}
-                        />
-                    </Group>
 
                     <Group gap="sm">
                         <Badge

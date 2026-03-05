@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { format } from 'date-fns';
+import { PageHeader } from '../../../components/common/PageHeader';
 
 export function StudentDashboard() {
     const { user } = useAuth();
@@ -29,10 +30,10 @@ export function StudentDashboard() {
         <Stack gap="lg" pos="relative">
             <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
-            <div>
-                <Title order={2}>Welcome back, {user?.profile?.firstName || 'Student'}!</Title>
-                <Text c="dimmed">Here's your learning overview for today.</Text>
-            </div>
+            <PageHeader
+                title={`Welcome back, ${user?.profile?.firstName || 'Student'}!`}
+                subtitle="Here's your learning overview for today."
+            />
 
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
                 <Card withBorder radius="md" padding="xl" bg="gray.0">
@@ -77,7 +78,7 @@ export function StudentDashboard() {
                     <Text c="dimmed" fs="italic">You have no classes scheduled for today.</Text>
                 ) : (
                     <Timeline active={-1} bulletSize={30} lineWidth={2}>
-                        {schedule.map((period, index) => {
+                        {schedule.map((period: any, index: number) => {
                             return (
                                 <Timeline.Item
                                     key={index}

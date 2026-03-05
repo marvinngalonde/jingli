@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import {
     SimpleGrid, Paper, Text, Group, ThemeIcon, Badge, Card, Stack,
-    Loader, Center, Avatar, Button, Progress, Table, Anchor
+    Loader, Center, Avatar, Button, Progress, Table, Anchor, Container, Grid,
+    LoadingOverlay, Title
 } from '@mantine/core';
 import {
     IconUsers, IconCurrencyDollar, IconClipboardList, IconBrandZoom,
     IconChevronRight, IconFileAnalytics, IconBook, IconCalendar,
+    IconTrophy, IconBrain, IconArrowRight
 } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
 import { PageHeader } from '../../../components/common/PageHeader';
 
 interface Child {
@@ -22,24 +23,7 @@ interface Child {
     overallAverage?: number;
     attendanceRate?: number;
     pendingAssignments?: number;
-}
-
-interface Invoice {
-    id: string;
-    amount: number;
-    status: string;
-    dueDate: string;
-    title?: string;
-}
-
-interface LiveClass {
-    id: string;
-    title: string;
-    subject?: { name: string };
-    scheduledFor: string;
-    provider: string;
-    status: string;
-    meetingUrl: string;
+    photoUrl?: string;
 }
 
 export default function ParentPortalDashboard() {
@@ -63,188 +47,157 @@ export default function ParentPortalDashboard() {
                 invoices: Array.isArray(inv) ? inv.filter((i: any) => i.status === 'UNPAID' || i.status === 'OVERDUE').slice(0, 5) : [],
                 liveClasses: Array.isArray(live) ? live.filter((l: any) => l.status === 'SCHEDULED' || l.status === 'LIVE').slice(0, 3) : []
             };
-        }
+        },
+        retry: false
     });
 
     const children = dashboardData?.children || [];
     const invoices = dashboardData?.invoices || [];
     const liveClasses = dashboardData?.liveClasses || [];
 
-    if (loading) return <Center h={400}><Loader /></Center>;
-
-    const outstanding = invoices.reduce((s, i) => s + Number(i.amount || 0), 0);
-
     return (
-        <div>
+        <Container size="xl" p="md">
+            <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+
             <PageHeader
-                title={`Welcome, ${user?.firstName || user?.profile?.firstName || 'Parent'} 👋`}
-                subtitle="Your children's school overview"
+                title={`Academic Hub 🧠`}
+                subtitle={`Welcome, ${user?.firstName || 'Parent'}. Monitoring your children's educational progress.`}
             />
 
-            {/* Stat strip */}
-            <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="md" mb="xl">
-                <Paper withBorder radius="md" p="lg" bg="var(--app-surface)" style={{ cursor: 'pointer' }} onClick={() => navigate('/parent-portal/performance')}>
-                    <Group justify="space-between" mb="xs">
-                        <ThemeIcon variant="light" color="teal" size="lg" radius="md"><IconUsers size={20} /></ThemeIcon>
-                        <IconChevronRight size={14} color="var(--mantine-color-dimmed)" />
-                    </Group>
-                    <Text size="xl" fw={700}>{children.length}</Text>
-                    <Text size="xs" c="dimmed">Children Enrolled</Text>
-                </Paper>
-                <Paper withBorder radius="md" p="lg" bg="var(--app-surface)" style={{ cursor: 'pointer' }} onClick={() => navigate('/parent-portal/fees')}>
-                    <Group justify="space-between" mb="xs">
-                        <ThemeIcon variant="light" color="red" size="lg" radius="md"><IconCurrencyDollar size={20} /></ThemeIcon>
-                        <IconChevronRight size={14} color="var(--mantine-color-dimmed)" />
-                    </Group>
-                    <Text size="xl" fw={700}>${outstanding.toFixed(0)}</Text>
-                    <Text size="xs" c="dimmed">Outstanding Fees</Text>
-                </Paper>
-                <Paper withBorder radius="md" p="lg" bg="var(--app-surface)" style={{ cursor: 'pointer' }} onClick={() => navigate('/parent-portal/live-classes')}>
-                    <Group justify="space-between" mb="xs">
-                        <ThemeIcon variant="light" color="blue" size="lg" radius="md"><IconBrandZoom size={20} /></ThemeIcon>
-                        <IconChevronRight size={14} color="var(--mantine-color-dimmed)" />
-                    </Group>
-                    <Text size="xl" fw={700}>{liveClasses.length}</Text>
-                    <Text size="xs" c="dimmed">Upcoming Live Classes</Text>
-                </Paper>
-            </SimpleGrid>
+            <Grid gutter="lg">
+                <Grid.Col span={{ base: 12, md: 8 }}>
+                    <Stack gap="lg">
+                        {/* Children Progress Explorer */}
+                        <Card withBorder radius="lg" p="xl" bg="var(--app-surface)">
+                            <Group justify="space-between" mb="xl">
+                                <Group gap="sm">
+                                    <ThemeIcon variant="light" color="teal" size="lg" radius="md">
+                                        <IconUsers size={20} />
+                                    </ThemeIcon>
+                                    <Title order={4}>My Children's Progress</Title>
+                                </Group>
+                                <Button variant="subtle" size="xs" onClick={() => navigate('/parent-portal/performance')}>Deep Analysis</Button>
+                            </Group>
 
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
-                {/* Children Cards */}
-                <Card withBorder radius="md" p="lg" bg="var(--app-surface)">
-                    <Group justify="space-between" mb="md">
-                        <Group>
-                            <ThemeIcon variant="light" color="teal" size="md" radius="md"><IconUsers size={16} /></ThemeIcon>
-                            <Text fw={600}>My Children</Text>
-                        </Group>
-                        <Button variant="subtle" size="xs" onClick={() => navigate('/parent-portal/performance')}>View progress</Button>
-                    </Group>
-                    {children.length === 0 ? (
-                        <Text c="dimmed" ta="center" py="md" size="sm">No children linked to your account.</Text>
-                    ) : (
-                        <Stack gap="sm">
-                            {children.map(child => {
-                                const avg = child.overallAverage ?? 0;
-                                return (
-                                    <Paper key={child.id} withBorder radius="md" p="md" bg="var(--app-surface-dim)">
-                                        <Group justify="space-between">
-                                            <Group>
-                                                <Avatar radius="xl" color="teal" size="md">
-                                                    {child.firstName?.[0]}
-                                                </Avatar>
-                                                <div>
-                                                    <Text size="sm" fw={600}>{child.firstName} {child.lastName}</Text>
-                                                    <Text size="xs" c="dimmed">
-                                                        {child.section?.classLevel?.name || ''} {child.section?.name || ''} · {child.admissionNo}
-                                                    </Text>
-                                                </div>
-                                            </Group>
-                                            <div style={{ textAlign: 'right', minWidth: 80 }}>
-                                                <Badge variant="light" color={avg >= 70 ? 'green' : avg >= 50 ? 'yellow' : 'red'} size="sm" mb={4}>
-                                                    {avg > 0 ? `${avg.toFixed(0)}%` : 'N/A'}
-                                                </Badge>
-                                                {child.attendanceRate !== undefined && (
-                                                    <Text size="xs" c="dimmed">Att: {child.attendanceRate}%</Text>
-                                                )}
-                                            </div>
-                                        </Group>
-                                    </Paper>
-                                );
-                            })}
-                        </Stack>
-                    )}
-                </Card>
+                            {children.length === 0 ? (
+                                <Text c="dimmed" ta="center" py="xl">No children linked to your account.</Text>
+                            ) : (
+                                <Stack gap="md">
+                                    {children.map(child => {
+                                        const avg = child.overallAverage ?? 0;
+                                        return (
+                                            <Paper key={child.id} withBorder radius="lg" p="lg" bg="var(--app-surface-dim)" style={{
+                                                transition: 'transform 0.1s',
+                                                cursor: 'pointer'
+                                            }} onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                                                onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
+                                                onClick={() => navigate('/parent-portal/performance')}
+                                            >
+                                                <Group justify="space-between" wrap="nowrap">
+                                                    <Group wrap="nowrap">
+                                                        <Avatar src={child.photoUrl} radius="lg" color="teal" size={60}>
+                                                            {child.firstName?.[0]}
+                                                        </Avatar>
+                                                        <div>
+                                                            <Text size="md" fw={700}>{child.firstName} {child.lastName}</Text>
+                                                            <Text size="xs" c="dimmed" mb={4}>
+                                                                {child.section?.classLevel?.name || ''} {child.section?.name || ''}
+                                                            </Text>
+                                                            <Group gap="xs">
+                                                                <Badge variant="light" color="teal" size="xs">Att: {child.attendanceRate || 0}%</Badge>
+                                                                <Badge variant="light" color="blue" size="xs">{child.pendingAssignments || 0} Pending</Badge>
+                                                            </Group>
+                                                        </div>
+                                                    </Group>
 
-                {/* Outstanding Invoices */}
-                <Card withBorder radius="md" p="lg" bg="var(--app-surface)">
-                    <Group justify="space-between" mb="md">
-                        <Group>
-                            <ThemeIcon variant="light" color="red" size="md" radius="md"><IconCurrencyDollar size={16} /></ThemeIcon>
-                            <Text fw={600}>Outstanding Fees</Text>
-                        </Group>
-                        <Button variant="subtle" size="xs" onClick={() => navigate('/parent-portal/fees')}>Pay now</Button>
-                    </Group>
-                    {invoices.length === 0 ? (
-                        <Text c="dimmed" ta="center" py="md" size="sm">No outstanding fees 🎉</Text>
-                    ) : (
-                        <Stack gap="xs">
-                            {invoices.map(inv => (
-                                <Paper key={inv.id} withBorder radius="md" p="sm" bg="var(--app-surface-dim)">
-                                    <Group justify="space-between">
-                                        <div>
-                                            <Text size="sm" fw={500}>{inv.title || 'Invoice'}</Text>
-                                            <Text size="xs" c="dimmed">
-                                                Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'N/A'}
-                                            </Text>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <Text fw={700} size="sm">${Number(inv.amount).toFixed(2)}</Text>
-                                            <Badge variant="light" color={inv.status === 'OVERDUE' ? 'red' : 'orange'} size="xs">{inv.status}</Badge>
-                                        </div>
-                                    </Group>
-                                </Paper>
-                            ))}
-                        </Stack>
-                    )}
-                </Card>
+                                                    <Stack gap={2} align="flex-end">
+                                                        <Text size="xs" fw={700} c="dimmed" tt="uppercase">Overall Avg</Text>
+                                                        <Title order={2} c={avg >= 70 ? 'teal' : avg >= 50 ? 'orange' : 'red'}>
+                                                            {avg > 0 ? `${avg.toFixed(0)}%` : 'N/A'}
+                                                        </Title>
+                                                    </Stack>
+                                                </Group>
+                                                <Progress value={avg} color={avg >= 70 ? 'teal' : avg >= 50 ? 'orange' : 'red'} mt="md" radius="xl" size="sm" />
+                                            </Paper>
+                                        );
+                                    })}
+                                </Stack>
+                            )}
+                        </Card>
 
-                {/* Upcoming Live Classes */}
-                <Card withBorder radius="md" p="lg" bg="var(--app-surface)">
-                    <Group justify="space-between" mb="md">
-                        <Group>
-                            <ThemeIcon variant="light" color="blue" size="md" radius="md"><IconBrandZoom size={16} /></ThemeIcon>
-                            <Text fw={600}>Upcoming Live Classes</Text>
-                        </Group>
-                        <Button variant="subtle" size="xs" onClick={() => navigate('/parent-portal/live-classes')}>All classes</Button>
-                    </Group>
-                    {liveClasses.length === 0 ? (
-                        <Text c="dimmed" ta="center" py="md" size="sm">No upcoming live classes</Text>
-                    ) : (
-                        <Stack gap="xs">
-                            {liveClasses.map(c => (
-                                <Paper key={c.id} withBorder radius="md" p="sm" bg="var(--app-surface-dim)">
-                                    <Group justify="space-between">
-                                        <div>
-                                            <Text size="sm" fw={500}>{c.title}</Text>
-                                            <Text size="xs" c="dimmed">{c.subject?.name} · {c.provider}</Text>
-                                        </div>
-                                        <Badge variant={c.status === 'LIVE' ? 'filled' : 'light'} color={c.status === 'LIVE' ? 'green' : 'blue'} size="xs">
-                                            {c.status === 'LIVE' ? '● LIVE' : new Date(c.scheduledFor).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                        </Badge>
-                                    </Group>
-                                </Paper>
-                            ))}
-                        </Stack>
-                    )}
-                </Card>
+                        {/* Recent Academic Activity */}
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                            <Card withBorder radius="lg" p="xl" bg="var(--app-surface)">
+                                <Group mb="md">
+                                    <ThemeIcon variant="light" color="blue" size="md" radius="md"><IconBrandZoom size={18} /></ThemeIcon>
+                                    <Text fw={600}>Live Classes</Text>
+                                </Group>
+                                {liveClasses.length === 0 ? (
+                                    <Text size="sm" c="dimmed" ta="center" py="md">No classes scheduled</Text>
+                                ) : (
+                                    <Stack gap="xs">
+                                        {liveClasses.map(l => (
+                                            <Paper key={l.id} p="sm" radius="md" bg="var(--app-surface-dim)" withBorder>
+                                                <Text size="xs" fw={700} c="blue">{l.subject?.name}</Text>
+                                                <Text size="sm" fw={500} lineClamp={1}>{l.title}</Text>
+                                                <Text size="xs" c="dimmed">{new Date(l.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                                            </Paper>
+                                        ))}
+                                    </Stack>
+                                )}
+                                <Button variant="light" mt="md" fullWidth color="blue" onClick={() => navigate('/parent-portal/live-classes')}>View Schedule</Button>
+                            </Card>
 
-                {/* Quick Links */}
-                <Card withBorder radius="md" p="lg" bg="var(--app-surface)">
-                    <Text fw={600} mb="md">Quick Access</Text>
-                    <SimpleGrid cols={2} spacing="sm">
-                        {[
-                            { label: "Children's Progress", icon: IconUsers, to: '/parent-portal/performance', color: 'teal' },
-                            { label: 'Report Cards', icon: IconFileAnalytics, to: '/parent-portal/reports', color: 'green' },
-                            { label: 'Subjects & Materials', icon: IconBook, to: '/parent-portal/subjects', color: 'indigo' },
-                            { label: 'School Calendar', icon: IconCalendar, to: '/parent-portal/calendar', color: 'blue' },
-                        ].map(q => (
-                            <Paper
-                                key={q.label}
-                                withBorder radius="md" p="md" ta="center" bg="var(--app-surface-dim)"
-                                style={{ cursor: 'pointer', transition: 'transform 0.15s' }}
-                                onClick={() => navigate(q.to)}
-                                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')}
-                                onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
-                            >
-                                <ThemeIcon variant="light" color={q.color} size="lg" radius="md" mx="auto" mb="xs">
-                                    <q.icon size={20} />
+                            <Card withBorder radius="lg" p="xl" bg="var(--app-surface)">
+                                <Group mb="md">
+                                    <ThemeIcon variant="light" color="orange" size="md" radius="md"><IconClipboardList size={18} /></ThemeIcon>
+                                    <Text fw={600}>Assignments</Text>
+                                </Group>
+                                <Text size="sm" c="dimmed" mb="lg">Review upcoming deadlines and recently submitted work for all children.</Text>
+                                <Button variant="light" fullWidth color="orange" onClick={() => navigate('/parent-portal/assignments')}>Open Assignments</Button>
+                            </Card>
+                        </SimpleGrid>
+                    </Stack>
+                </Grid.Col>
+
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Stack gap="lg">
+                        {/* Achievements Snippet */}
+                        <Card withBorder radius="lg" p="xl" bg="var(--app-surface)" style={{ background: 'linear-gradient(135deg, var(--mantine-color-yellow-0) 0%, var(--mantine-color-orange-0) 100%)' }}>
+                            <Group mb="md">
+                                <ThemeIcon variant="light" color="yellow.7" size="lg" radius="md">
+                                    <IconTrophy size={22} />
                                 </ThemeIcon>
-                                <Text size="xs" fw={500}>{q.label}</Text>
-                            </Paper>
-                        ))}
-                    </SimpleGrid>
-                </Card>
-            </SimpleGrid>
-        </div>
+                                <Title order={4} c="yellow.9">Leaderboards</Title>
+                            </Group>
+                            <Text size="sm" c="yellow.9" mb="lg">See where your children stand in their respective classes and houses.</Text>
+                            <Button variant="filled" color="yellow.7" fullWidth onClick={() => navigate('/parent-portal/performance')}>View Leaderboards</Button>
+                        </Card>
+
+                        {/* Learning Materials */}
+                        <Card withBorder radius="lg" p="xl" bg="var(--app-surface)">
+                            <Group mb="md">
+                                <ThemeIcon variant="light" color="indigo" size="lg" radius="md">
+                                    <IconBook size={20} />
+                                </ThemeIcon>
+                                <Title order={4}>Subject Resources</Title>
+                            </Group>
+                            <Text size="sm" c="dimmed" mb="lg">Access curriculum materials, lecture notes, and study guides.</Text>
+                            <Button variant="outline" color="indigo" fullWidth leftSection={<IconBrain size={16} />} onClick={() => navigate('/parent-portal/subjects')}>Material Library</Button>
+                        </Card>
+
+                        {/* Quick Actions */}
+                        <Card withBorder radius="lg" p="xl" bg="var(--app-surface)">
+                            <Title order={5} mb="md">Management Links</Title>
+                            <Stack gap="xs">
+                                <Button variant="subtle" fullWidth color="red" justify="flex-start" leftSection={<IconCurrencyDollar size={16} />} onClick={() => navigate('/parent/fees')}>Fees & Invoices</Button>
+                                <Button variant="subtle" fullWidth color="blue" justify="flex-start" leftSection={<IconCalendar size={16} />} onClick={() => navigate('/parent-portal/calendar')}>School Calendar</Button>
+                                <Button variant="subtle" fullWidth color="teal" justify="flex-start" leftSection={<IconArrowRight size={16} />} onClick={() => navigate('/parent/dashboard')}>Admin Overview</Button>
+                            </Stack>
+                        </Card>
+                    </Stack>
+                </Grid.Col>
+            </Grid>
+        </Container>
     );
 }

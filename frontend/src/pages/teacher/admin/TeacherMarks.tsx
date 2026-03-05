@@ -57,7 +57,7 @@ export default function TeacherMarks() {
                 id: e.id,
                 name: e.name,
                 maxMarks: e.maxMarks,
-                classLevel: e.classLevel?.name || '',
+                classLevel: `${e.classLevel?.name || ''} ${e.classLevel?.level ?? ''}`.trim(),
                 subject: e.subject?.name || '',
             }));
             setExams(examOpts);

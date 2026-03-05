@@ -19,9 +19,15 @@ export class StudentService {
         const sectionId = student.sectionId;
 
         // 1. Classes Today (count events in timetable for today)
-        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const weekdayMap: Record<string, any> = {
+            'Monday': 'MON', 'Tuesday': 'TUE', 'Wednesday': 'WED', 'Thursday': 'THU',
+            'Friday': 'FRI', 'Saturday': 'SAT', 'Sunday': 'SUN'
+        };
+        const todayFull = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const today = weekdayMap[todayFull];
+
         const classesToday = await this.prisma.timetable.count({
-            where: { sectionId: sectionId, day: today.toUpperCase() as any }
+            where: { sectionId: sectionId, day: today }
         });
 
         // 2. Pending Tasks (Assignments without submissions from this student)
@@ -53,12 +59,17 @@ export class StudentService {
 
         if (!student || !student.sectionId) throw new NotFoundException('Student profile not found');
 
-        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const weekdayMap: Record<string, any> = {
+            'Monday': 'MON', 'Tuesday': 'TUE', 'Wednesday': 'WED', 'Thursday': 'THU',
+            'Friday': 'FRI', 'Saturday': 'SAT', 'Sunday': 'SUN'
+        };
+        const todayFull = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const today = weekdayMap[todayFull];
 
         return this.prisma.timetable.findMany({
             where: {
                 sectionId: student.sectionId,
-                day: today.toUpperCase() as any
+                day: today
             },
             include: {
                 subject: { select: { name: true, code: true } },
@@ -168,6 +179,55 @@ export class StudentService {
                 }
             },
             orderBy: { submittedAt: 'desc' }
+        });
+    }
+
+    async getAllAssignments(user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id }
+        });
+        if (!student || !student.sectionId) throw new NotFoundException('Student profile not found');
+
+        return this.prisma.assignment.findMany({
+            where: { sectionId: student.sectionId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                submissions: { where: { studentId: student.id } }
+            },
+            orderBy: { dueDate: 'asc' }
+        });
+    }
+
+    async getQuizzes(user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id }
+        });
+        if (!student || !student.sectionId) throw new NotFoundException('Student profile not found');
+
+        return this.prisma.quiz.findMany({
+            where: { sectionId: student.sectionId, isPublished: true },
+            include: {
+                subject: { select: { name: true, code: true } },
+                teacher: { select: { firstName: true, lastName: true } },
+                _count: { select: { questions: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getLiveClasses(user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id }
+        });
+        if (!student || !student.sectionId) throw new NotFoundException('Student profile not found');
+
+        return this.prisma.liveClass.findMany({
+            where: { sectionId: student.sectionId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                teacher: { select: { firstName: true, lastName: true } }
+            },
+            orderBy: { scheduledFor: 'asc' }
         });
     }
 }

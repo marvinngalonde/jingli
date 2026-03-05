@@ -2,22 +2,20 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import {
     Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center,
-    Button, Avatar, SimpleGrid, Table, Anchor, ActionIcon, Tooltip
+    SimpleGrid, Table, Select
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-    IconVideo, IconBrandZoom, IconExternalLink, IconClock,
-    IconCalendar, IconPlayerPlay, IconCheck, IconUsers,
+    IconVideo, IconClock, IconCalendar, IconUsers
 } from '@tabler/icons-react';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { format, isPast } from 'date-fns';
+import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
 interface LiveClass {
     id: string;
     title: string;
     provider: string;
-    meetingUrl: string;
-    meetingId: string;
     scheduledFor: string;
     duration: number;
     status: 'SCHEDULED' | 'LIVE' | 'COMPLETED';
@@ -32,30 +30,47 @@ const platformColor = (p: string) =>
 const statusColor = (s: string) =>
     s === 'LIVE' ? 'green' : s === 'SCHEDULED' ? 'blue' : 'gray';
 
-export default function StudentLiveClasses() {
-    const [classes, setClasses] = useState<LiveClass[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function ParentPortalLiveClasses() {
+    const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+    const { data: childrenData, isLoading: loadingChildren } = useQuery({
+        queryKey: ['parentChildren'],
+        queryFn: async () => {
+            const res = await api.get('/parent/children');
+            return res.data;
+        }
+    });
+
+    const children = childrenData || [];
 
     useEffect(() => {
-        const fetch = async () => {
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
+        }
+    }, [children, selectedChildId]);
+
+    const { data: classesData = [], isLoading: loadingClasses } = useQuery({
+        queryKey: ['parentChildLiveClasses', selectedChildId],
+        queryFn: async () => {
+            if (!selectedChildId) return [];
             try {
-                const { data } = await api.get('/student/live-classes');
-                setClasses(Array.isArray(data) ? data : []);
+                const { data } = await api.get(`/parent/children/${selectedChildId}/live-classes`);
+                return Array.isArray(data) ? data : [];
             } catch {
                 notifications.show({ title: 'Error', message: 'Failed to load live classes', color: 'red' });
-            } finally {
-                setLoading(false);
+                return [];
             }
-        };
-        fetch();
-    }, []);
+        },
+        enabled: !!selectedChildId,
+        retry: false
+    });
 
+    const loading = loadingChildren || (!!selectedChildId && loadingClasses);
     if (loading) return <Center h={400}><Loader /></Center>;
 
+    const classes: LiveClass[] = classesData;
     const upcoming = classes.filter(c => c.status === 'SCHEDULED' || c.status === 'LIVE');
     const past = classes.filter(c => c.status === 'COMPLETED');
-
-    const joinClass = (meetingUrl: string) => window.open(meetingUrl, '_blank');
 
     const ClassCard = ({ cls }: { cls: LiveClass }) => (
         <Card withBorder radius="md" p="lg" shadow="sm" bg="var(--app-surface)">
@@ -91,25 +106,28 @@ export default function StudentLiveClasses() {
             </Group>
 
             {cls.description && <Text size="xs" c="dimmed" lineClamp={2} mb="md">{cls.description}</Text>}
-
-            <Button
-                fullWidth
-                color={cls.status === 'LIVE' ? 'green' : 'blue'}
-                leftSection={cls.status === 'LIVE' ? <IconPlayerPlay size={16} /> : <IconExternalLink size={16} />}
-                disabled={cls.status === 'COMPLETED'}
-                onClick={() => joinClass(cls.meetingUrl)}
-            >
-                {cls.status === 'LIVE' ? 'Join Now' : cls.status === 'COMPLETED' ? 'Ended' : 'Join Class'}
-            </Button>
         </Card>
     );
 
     return (
-        <div>
-            <PageHeader
-                title="Live Classes"
-                subtitle="Join scheduled online classes with your teachers"
-            />
+        <Stack gap="lg">
+            <Group justify="space-between" align="flex-start">
+                <PageHeader
+                    title="Live Classes Schedule"
+                    subtitle="Monitor upcoming online classes for your child."
+                />
+
+                {children.length > 0 && (
+                    <Select
+                        leftSection={<IconUsers size={16} />}
+                        placeholder="Select Child"
+                        data={children.map((c: any) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))}
+                        value={selectedChildId}
+                        onChange={setSelectedChildId}
+                        style={{ width: 250 }}
+                    />
+                )}
+            </Group>
 
             {upcoming.length === 0 && past.length === 0 ? (
                 <Card withBorder radius="md" p="xl" ta="center" bg="var(--app-surface)">
@@ -117,7 +135,7 @@ export default function StudentLiveClasses() {
                         <IconVideo size={30} />
                     </ThemeIcon>
                     <Text size="lg" fw={500}>No Live Classes</Text>
-                    <Text c="dimmed" mt="xs">Your teachers haven't scheduled any live classes yet.</Text>
+                    <Text c="dimmed" mt="xs">Your child has no scheduled live classes.</Text>
                 </Card>
             ) : (
                 <Stack gap="xl">
@@ -160,6 +178,6 @@ export default function StudentLiveClasses() {
                     )}
                 </Stack>
             )}
-        </div>
+        </Stack>
     );
 }

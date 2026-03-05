@@ -79,7 +79,7 @@ export default function StudentCBT() {
     const fetchQuizzes = async () => {
         try {
             setLoading(true);
-            const { data } = await api.get('/cbt/quizzes');
+            const { data } = await api.get('/student/quizzes');
             const published = (Array.isArray(data) ? data : []).filter((q: Quiz) => q.isPublished);
             setQuizzes(published);
         } catch {

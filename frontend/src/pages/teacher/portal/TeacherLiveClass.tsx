@@ -46,7 +46,7 @@ export default function TeacherLiveClass() {
                 setRawClasses(data);
                 setAvailableClasses(data.map((cls: any) => ({
                     value: cls.section.id,
-                    label: `${cls.section.classLevel.name} ${cls.section.name}`
+                    label: `${cls.section.classLevel.name} ${cls.section.classLevel.level ?? ""} ${cls.section.name}`
                 })));
             } catch (e) {
                 console.error("Failed to load classes", e);

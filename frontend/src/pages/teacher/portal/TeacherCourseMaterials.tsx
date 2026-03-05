@@ -70,7 +70,7 @@ export function TeacherCourseMaterials() {
 
     const availableClasses = useMemo(() => {
         if (sectionId) return [];
-        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` }));
+        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.classLevel.level ?? ""} ${c.section.name}` }));
     }, [classesData, sectionId]);
 
     const availableSubjects = useMemo(() => {
@@ -106,7 +106,7 @@ export function TeacherCourseMaterials() {
             let fileType = fileUrl ? fileUrl.split('.').pop() || 'unknown' : 'unknown';
 
             if (file) {
-                const path = await storageService.uploadDocument('materials', file.name, file);
+                const path = await storageService.uploadDocument('documents', file.name, file);
                 uploadedUrl = storageService.getPublicUrl('documents', path);
                 fileType = file.name.split('.').pop() || 'unknown';
             }

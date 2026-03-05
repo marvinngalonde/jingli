@@ -49,19 +49,22 @@ import TeacherExamSchedule from './pages/teacher/admin/TeacherExamSchedule';
 
 // Student Portal
 import StudentLayout from './layouts/StudentLayout';
-import StudentDashboard from './pages/student/portal/StudentDashboard';
-import StudentClasses from './pages/student/portal/StudentClasses';
+import StudentDashboard from './pages/student/admin/StudentDashboard';
+import StudentMySubjects from './pages/student/admin/StudentMySubjects';
 import StudentCourseMaterials from './pages/student/portal/StudentCourseMaterials';
 import StudentAssignments from './pages/student/portal/StudentAssignments';
-import StudentGrades from './pages/student/portal/StudentGrades';
+import StudentGrades from './pages/student/admin/StudentGrades';
 import StudentTimetable from './pages/student/admin/StudentTimetable';
 import StudentFees from './pages/student/admin/StudentFees';
 import StudentAllAssignments from './pages/student/admin/StudentAllAssignments';
-import StudentELearning from './pages/student/admin/StudentELearning';
+import StudentPortalMaterials from './pages/student/portal/StudentPortalMaterials';
+import StudentPortalClasses from './pages/student/portal/StudentPortalClasses';
+import StudentPortalAssignments from './pages/student/portal/StudentPortalAssignments';
 import StudentCBT from './pages/student/portal/StudentCBT';
 import StudentDiscussions from './pages/student/portal/StudentDiscussions';
 import StudentLiveClasses from './pages/student/portal/StudentLiveClasses';
 import StudentLeaderboard from './pages/student/portal/StudentLeaderboard';
+import StudentProfile from './pages/student/admin/StudentProfile';
 import StudentPortalLayout from './layouts/StudentPortalLayout';
 import StudentPortalDashboard from './pages/student/portal/StudentPortalDashboard';
 
@@ -69,10 +72,13 @@ import StudentPortalDashboard from './pages/student/portal/StudentPortalDashboar
 import ParentLayout from './layouts/ParentLayout';
 import ParentPortalLayout from './layouts/ParentPortalLayout';
 import ParentPortalDashboard from './pages/parent/portal/ParentPortalDashboard';
-import ParentDashboard from './pages/parent/portal/ParentDashboard';
+import ParentDashboard from './pages/parent/admin/ParentDashboard';
 import ParentPerformance from './pages/parent/portal/ParentPerformance';
-import ParentFinancials from './pages/parent/portal/ParentFinancials';
+import ParentFinancials from './pages/parent/admin/ParentFinancials';
 import ParentFees from './pages/parent/admin/ParentFees';
+import ParentPortalSubjects from './pages/parent/portal/ParentPortalSubjects';
+import ParentPortalAssignments from './pages/parent/portal/ParentPortalAssignments';
+import ParentPortalLiveClasses from './pages/parent/portal/ParentPortalLiveClasses';
 
 // Admin Pages
 import Users from './pages/admin/Users';
@@ -208,13 +214,12 @@ function AppContent() {
         <Route element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentLayout /></ProtectedRoute>}>
           <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
           <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/classes" element={<StudentClasses />} />
-          <Route path="/student/classes/:subjectId/materials" element={<StudentCourseMaterials />} />
-          <Route path="/student/classes/:subjectId/assignments" element={<StudentAssignments />} />
+          <Route path="/student/classes" element={<StudentMySubjects />} />
           <Route path="/student/grades" element={<StudentGrades />} />
           <Route path="/student/timetable" element={<StudentTimetable />} />
           <Route path="/student/fees" element={<StudentFees />} />
           <Route path="/student/assignments" element={<StudentAllAssignments />} />
+          <Route path="/student/profile" element={<StudentProfile />} />
           <Route path="/student/communication" element={<Communication />} />
         </Route>
 
@@ -222,11 +227,11 @@ function AppContent() {
         <Route element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentPortalLayout /></ProtectedRoute>}>
           <Route path="/student-portal" element={<Navigate to="/student-portal/dashboard" replace />} />
           <Route path="/student-portal/dashboard" element={<StudentPortalDashboard />} />
-          <Route path="/student-portal/classes" element={<StudentClasses />} />
+          <Route path="/student-portal/classes" element={<StudentPortalClasses />} />
           <Route path="/student-portal/classes/:subjectId/materials" element={<StudentCourseMaterials />} />
           <Route path="/student-portal/classes/:subjectId/assignments" element={<StudentAssignments />} />
-          <Route path="/student-portal/materials" element={<StudentELearning />} />
-          <Route path="/student-portal/assignments" element={<StudentAllAssignments />} />
+          <Route path="/student-portal/materials" element={<StudentPortalMaterials />} />
+          <Route path="/student-portal/assignments" element={<StudentPortalAssignments />} />
           <Route path="/student-portal/cbt" element={<StudentCBT />} />
           <Route path="/student-portal/live-classes" element={<StudentLiveClasses />} />
           <Route path="/student-portal/discussions" element={<StudentDiscussions />} />
@@ -251,9 +256,9 @@ function AppContent() {
           <Route path="/parent-portal" element={<Navigate to="/parent-portal/dashboard" replace />} />
           <Route path="/parent-portal/dashboard" element={<ParentPortalDashboard />} />
           <Route path="/parent-portal/performance" element={<ParentPerformance />} />
-          <Route path="/parent-portal/subjects" element={<StudentClasses />} />
-          <Route path="/parent-portal/assignments" element={<StudentAllAssignments />} />
-          <Route path="/parent-portal/live-classes" element={<StudentLiveClasses />} />
+          <Route path="/parent-portal/subjects" element={<ParentPortalSubjects />} />
+          <Route path="/parent-portal/assignments" element={<ParentPortalAssignments />} />
+          <Route path="/parent-portal/live-classes" element={<ParentPortalLiveClasses />} />
           <Route path="/parent-portal/reports" element={<ParentPerformance />} />
           <Route path="/parent-portal/fees" element={<ParentFees />} />
           <Route path="/parent-portal/communication" element={<Communication />} />

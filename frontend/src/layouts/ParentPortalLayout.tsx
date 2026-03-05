@@ -118,14 +118,6 @@ export function ParentPortalLayout() {
                         </Group>
                     </Group>
 
-                    <Group gap="sm" visibleFrom="sm" style={{ flex: 1, maxWidth: 400, margin: '0 auto' }}>
-                        <TextInput
-                            placeholder="Search children, assignments, reports..."
-                            leftSection={<IconSearch size={16} />}
-                            radius="xl" style={{ width: '100%' }}
-                            styles={{ input: { background: 'var(--mantine-color-gray-0)' } }}
-                        />
-                    </Group>
 
                     <Group gap="sm">
                         <Tooltip label="Notifications">
@@ -160,6 +152,7 @@ export function ParentPortalLayout() {
                                     <Text size="xs" c="dimmed">{user?.email}</Text>
                                 </Menu.Label>
                                 <Menu.Divider />
+                                <Menu.Item leftSection={<IconUsers size={14} />} onClick={() => navigate('/parent-portal/performance')}>My Children</Menu.Item>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
                                 <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={() => { logout(); navigate('/login'); }}>Logout</Menu.Item>
                             </Menu.Dropdown>

@@ -51,7 +51,7 @@ export function TeacherClasses() {
                             <Card.Section withBorder inheritPadding py="xs">
                                 <Group justify="space-between">
                                     <Badge size="lg" variant="light">
-                                        {cls.section.classLevel.name} {cls.section.name}
+                                        {cls.section.classLevel.name} {cls.section.classLevel.level || ""} {cls.section.name}
                                     </Badge>
                                     <Menu withinPortal position="bottom-end" shadow="sm">
                                         <Menu.Target>

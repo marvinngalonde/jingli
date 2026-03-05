@@ -1,9 +1,9 @@
-import { useAuth } from '../../../context/AuthContext';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { IconClipboardList, IconClock, IconCheck, IconAlertCircle, IconChevronRight } from '@tabler/icons-react';
+import { IconClipboardList, IconClock, IconCheck, IconAlertCircle, IconUsers } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, Table, Avatar, ActionIcon, SimpleGrid } from '@mantine/core';
+import { Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, Table, SimpleGrid, Select } from '@mantine/core';
 import { format } from 'date-fns';
 
 interface Assignment {
@@ -14,38 +14,72 @@ interface Assignment {
     maxMarks: number;
     subject: { name: string; code: string };
     section: { name: string };
-    submission?: {
+    submissions?: {
         id: string;
         submittedAt: string;
         marks: number | null;
         feedback: string | null;
-    } | null;
+    }[];
 }
 
-export default function StudentAllAssignments() {
-    const { user } = useAuth();
-    const { data: assignmentsData = [], isLoading: loading } = useQuery({
-        queryKey: ['studentAllAssignments'],
+export default function ParentPortalAssignments() {
+    const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+    const { data: childrenData, isLoading: loadingChildren } = useQuery({
+        queryKey: ['parentChildren'],
         queryFn: async () => {
-            const assignRes = await api.get('/student/assignments');
-            return assignRes.data || [];
+            const res = await api.get('/parent/children');
+            return res.data;
         }
+    });
+
+    const children = childrenData || [];
+
+    useEffect(() => {
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
+        }
+    }, [children, selectedChildId]);
+
+    const { data: assignmentsData = [], isLoading: loadingAssignments } = useQuery({
+        queryKey: ['parentChildAssignments', selectedChildId],
+        queryFn: async () => {
+            if (!selectedChildId) return [];
+            const assignRes = await api.get(`/parent/children/${selectedChildId}/assignments`);
+            return assignRes.data || [];
+        },
+        enabled: !!selectedChildId,
+        retry: false
     });
 
     const assignments: Assignment[] = assignmentsData;
 
+    const loading = loadingChildren || (!!selectedChildId && loadingAssignments);
     if (loading) return <Center h={400}><Loader /></Center>;
 
-    const pending = assignments.filter((a: Assignment) => !a.submission);
-    const submitted = assignments.filter((a: Assignment) => a.submission && a.submission.marks === null);
-    const graded = assignments.filter((a: Assignment) => a.submission && a.submission.marks !== null);
+    const pending = assignments.filter((a) => !a.submissions || a.submissions.length === 0);
+    const submitted = assignments.filter((a) => a.submissions && a.submissions.length > 0 && a.submissions[0].marks === null);
+    const graded = assignments.filter((a) => a.submissions && a.submissions.length > 0 && a.submissions[0].marks !== null);
 
     return (
-        <div>
-            <PageHeader
-                title="My Assignments"
-                subtitle="View and track all your assignments"
-            />
+        <Stack gap="lg">
+            <Group justify="space-between" align="flex-start">
+                <PageHeader
+                    title="Children's Assignments"
+                    subtitle="Track your child's pending and completed tasks"
+                />
+
+                {children.length > 0 && (
+                    <Select
+                        leftSection={<IconUsers size={16} />}
+                        placeholder="Select Child"
+                        data={children.map((c: any) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))}
+                        value={selectedChildId}
+                        onChange={setSelectedChildId}
+                        style={{ width: 250 }}
+                    />
+                )}
+            </Group>
 
             <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
                 <Paper withBorder radius="md" p="lg" bg="var(--app-surface)">
@@ -83,7 +117,7 @@ export default function StudentAllAssignments() {
                         <IconClipboardList size={30} />
                     </ThemeIcon>
                     <Text size="lg" fw={500}>No Assignments</Text>
-                    <Text c="dimmed" mt="xs">You have no assignments at the moment.</Text>
+                    <Text c="dimmed" mt="xs">This child has no assignments at the moment.</Text>
                 </Card>
             ) : (
                 <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
@@ -101,10 +135,12 @@ export default function StudentAllAssignments() {
                             {assignments.map((a) => {
                                 let status = 'Pending';
                                 let statusColor = 'orange';
-                                if (a.submission && a.submission.marks !== null) {
+                                const submission = a.submissions && a.submissions.length > 0 ? a.submissions[0] : null;
+
+                                if (submission && submission.marks !== null) {
                                     status = 'Graded';
                                     statusColor = 'green';
-                                } else if (a.submission) {
+                                } else if (submission) {
                                     status = 'Submitted';
                                     statusColor = 'blue';
                                 } else if (new Date(a.dueDate) < new Date()) {
@@ -128,8 +164,8 @@ export default function StudentAllAssignments() {
                                             <Badge variant="light" color={statusColor}>{status}</Badge>
                                         </Table.Td>
                                         <Table.Td>
-                                            {a.submission?.marks !== null && a.submission?.marks !== undefined ? (
-                                                <Text size="sm" fw={500}>{a.submission.marks} / {a.maxMarks}</Text>
+                                            {submission?.marks !== null && submission?.marks !== undefined ? (
+                                                <Text size="sm" fw={500}>{submission.marks} / {a.maxMarks}</Text>
                                             ) : (
                                                 <Text size="sm" c="dimmed">—</Text>
                                             )}
@@ -141,6 +177,6 @@ export default function StudentAllAssignments() {
                     </Table>
                 </Paper>
             )}
-        </div>
+        </Stack>
     );
 }

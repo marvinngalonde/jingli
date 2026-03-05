@@ -271,7 +271,6 @@ export function DashboardLayout() {
                             2026 - Term 1
                         </Badge>
 
-                        
 
                         <Tooltip label="Notifications">
                             <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">

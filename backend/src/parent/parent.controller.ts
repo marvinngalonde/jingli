@@ -26,4 +26,19 @@ export class ParentController {
     getFinancials(@Req() req: any, @Param('studentId') studentId: string) {
         return this.parentService.getFinancials(req.user, studentId);
     }
+
+    @Get('children/:studentId/assignments')
+    getChildAssignments(@Req() req: any, @Param('studentId') studentId: string) {
+        return this.parentService.getChildAssignments(req.user, studentId);
+    }
+
+    @Get('children/:studentId/live-classes')
+    getChildLiveClasses(@Req() req: any, @Param('studentId') studentId: string) {
+        return this.parentService.getChildLiveClasses(req.user, studentId);
+    }
+
+    @Get('children/:studentId/subjects')
+    getChildSubjects(@Req() req: any, @Param('studentId') studentId: string) {
+        return this.parentService.getChildSubjects(req.user, studentId);
+    }
 }

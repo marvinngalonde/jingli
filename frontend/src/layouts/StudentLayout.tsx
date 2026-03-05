@@ -1,23 +1,46 @@
 import {
-    Box, AppShell, Group, Burger, Title, useMantineTheme, Avatar, Text, Menu,
-    UnstyledButton, NavLink, Stack, ScrollArea, ThemeIcon, Divider, Badge
+    AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu,
+    UnstyledButton, ActionIcon, Indicator, Tooltip, Box, Badge, ThemeIcon, Divider,
+    TextInput
 } from '@mantine/core';
-import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-    IconLayoutDashboard, IconBook, IconFileAnalytics, IconSettings,
-    IconLogout, IconCalendar, IconCurrencyDollar, IconClipboardList,
-    IconChevronRight, IconMessage, IconSchool, IconArrowRight,
-} from '@tabler/icons-react';
+import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import {
+    IconLayoutDashboard,
+    IconBook,
+    IconFileAnalytics,
+    IconSettings,
+    IconLogout,
+    IconBell,
+    IconChevronDown,
+    IconCalendar,
+    IconCurrencyDollar,
+    IconClipboardList,
+    IconMessage,
+    IconSchool,
+    IconMessageCircle,
+    IconSearch,
+    IconUser,
+    IconLayoutSidebarLeftCollapse,
+    IconLayoutSidebarLeftExpand,
+} from '@tabler/icons-react';
+
 import logoFull from '../assets/logos/logo-trans.png';
+import jaiLogo from '../assets/logos/jai-trans.png';
+import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
+import { notificationsService } from '../services/notificationsService';
+import { useEffect, useState, useCallback } from 'react';
 
 const sidebarGroups = [
     {
         title: 'Overview',
         links: [
             { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student/dashboard', color: 'blue' },
+            { icon: IconUser, label: 'My Profile', to: '/student/profile', color: 'indigo' },
             { icon: IconMessage, label: 'Messages', to: '/student/communication', color: 'grape' },
+            { icon: IconSchool, label: 'E-Learning Portal', to: '/student-portal/dashboard', color: 'teal' },
         ],
     },
     {
@@ -37,57 +60,150 @@ const sidebarGroups = [
     },
 ];
 
-// Bottom nav — 5 most important for admin area
-const mobileNavLinks = [
-    { icon: IconLayoutDashboard, label: 'Home', to: '/student/dashboard', color: 'blue' },
-    { icon: IconBook, label: 'Subjects', to: '/student/classes', color: 'teal' },
-    { icon: IconCalendar, label: 'Timetable', to: '/student/timetable', color: 'indigo' },
-    { icon: IconFileAnalytics, label: 'Grades', to: '/student/grades', color: 'green' },
-    { icon: IconSchool, label: 'E-Learn', to: '/student-portal/dashboard', color: 'cyan' },
-];
-
 export function StudentLayout() {
-    const [opened, { toggle, close }] = useDisclosure();
-    const theme = useMantineTheme();
-    const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+    const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
+    const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
+    const [aiOpened, { open: openAi, close: closeAi }] = useDisclosure(false);
+    const [notifOpened, { open: openNotif, close: closeNotif }] = useDisclosure(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
 
-    const isPathActive = (path: string) => {
-        if (path === '/student/dashboard') return location.pathname === '/student/dashboard';
-        return location.pathname.startsWith(path);
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const { count } = await notificationsService.getUnreadCount();
+            setUnreadCount(count);
+        } catch { /* ignore */ }
+    }, []);
+
+    useEffect(() => {
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 60_000);
+        return () => clearInterval(interval);
+    }, [fetchUnreadCount]);
+
+    const handleCloseNotif = () => {
+        closeNotif();
+        fetchUnreadCount();
     };
 
-    const handleSignOut = async () => {
-        await logout();
-        navigate('/login');
+    const renderNavLink = (link: any) => {
+        const isActive = location.pathname === link.to || (link.to !== '/student/dashboard' && location.pathname.startsWith(link.to));
+
+        if (!desktopOpened) {
+            return (
+                <Tooltip label={link.label} key={link.label} position="right" withArrow>
+                    <ActionIcon
+                        size="xl"
+                        variant={isActive ? 'light' : 'subtle'}
+                        color={isActive ? 'brand' : 'gray'}
+                        onClick={() => navigate(link.to)}
+                        radius="md"
+                        my={2}
+                        mx="auto"
+                        style={{ display: 'flex' }}
+                    >
+                        <link.icon size={20} stroke={1.5} />
+                    </ActionIcon>
+                </Tooltip>
+            );
+        }
+
+        return (
+            <NavLink
+                key={link.label}
+                label={<Text size="sm" fw={isActive ? 600 : 400}>{link.label}</Text>}
+                leftSection={
+                    <ThemeIcon
+                        variant={isActive ? 'filled' : 'light'}
+                        color={isActive ? link.color : 'gray'}
+                        size="md"
+                        radius="md"
+                    >
+                        <link.icon size={16} stroke={1.5} />
+                    </ThemeIcon>
+                }
+                active={isActive}
+                onClick={() => navigate(link.to)}
+                variant="light"
+                color="brand"
+                py={8}
+                my={2}
+                style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
+            />
+        );
     };
 
     return (
         <AppShell
-            header={{ height: 60 }}
-            navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+            header={{ height: 64 }}
+            navbar={{
+                width: desktopOpened ? 260 : 80,
+                breakpoint: 'sm',
+                collapsed: { mobile: !mobileOpened },
+            }}
             padding="md"
+            styles={{
+                main: { background: 'var(--app-surface-dim)' },
+            }}
         >
-            {/* Header */}
-            <AppShell.Header>
-                <Group h="100%" px="md" justify="space-between">
+            {/* ─── HEADER ─── */}
+            <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
+                <Group h="100%" px="lg" justify="space-between">
                     <Group>
-                        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+                        <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/student/dashboard')}>
-                            <img src={logoFull} alt="Logo" height={32} style={{ objectFit: 'contain' }} />
-                            <Title order={4} visibleFrom="xs" style={{ fontFamily: 'Outfit, sans-serif' }}>Student</Title>
+                            <img src={logoFull} alt="Logo" height={36} style={{ objectFit: 'contain' }} />
                         </Group>
                     </Group>
 
+
                     <Group gap="sm">
-                        <Menu shadow="md" width={220} position="bottom-end">
+                        <Badge
+                            variant="light"
+                            color="blue"
+                            size="lg"
+                            radius="md"
+                            leftSection={<IconCalendar size={14} />}
+                            styles={{ root: { textTransform: 'none' } }}
+                            visibleFrom="md"
+                        >
+                            2026 - Term 1
+                        </Badge>
+
+                        <Tooltip label="Notifications">
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
+                                <Indicator
+                                    color="red"
+                                    size={unreadCount > 0 ? 16 : 0}
+                                    offset={4}
+                                    processing={unreadCount > 0}
+                                    label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
+                                    disabled={unreadCount === 0}
+                                >
+                                    <IconBell size={20} stroke={1.5} />
+                                </Indicator>
+                            </ActionIcon>
+                        </Tooltip>
+
+                        <Tooltip label="AI Assistant">
+                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
+                            </ActionIcon>
+                        </Tooltip>
+
+                        <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <UnstyledButton>
-                                    <Avatar color="blue" radius="xl" size="sm">
-                                        {user?.profile?.firstName?.[0] || 'S'}
-                                    </Avatar>
+                                    <Group gap="xs">
+                                        <Avatar color="brand" radius="md" size={34}>
+                                            {user?.profile?.firstName?.[0]?.toUpperCase() || 'S'}
+                                        </Avatar>
+                                        <Box visibleFrom="xs">
+                                            <IconChevronDown size={14} color="gray" />
+                                        </Box>
+                                    </Group>
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
@@ -96,121 +212,75 @@ export function StudentLayout() {
                                     <Text size="xs" c="dimmed">{user?.email}</Text>
                                 </Menu.Label>
                                 <Menu.Divider />
+                                <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate('/student/profile')}>My Profile</Menu.Item>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
                                 <Menu.Divider />
-                                <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={handleSignOut}>Sign out</Menu.Item>
+                                <Menu.Item
+                                    color="red"
+                                    leftSection={<IconLogout size={14} />}
+                                    onClick={() => { logout(); navigate('/login'); }}
+                                >
+                                    Logout
+                                </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
                     </Group>
                 </Group>
             </AppShell.Header>
 
-            {/* Sidebar */}
-            <AppShell.Navbar p="sm" style={{ backgroundColor: 'var(--app-sidebar-bg)' }}>
-                <AppShell.Section grow component={ScrollArea}>
-                    <Stack gap={0}>
-                        {sidebarGroups.map((group, gidx) => (
-                            <Box key={group.title}>
-                                {gidx > 0 && <Divider my="xs" />}
-                                <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4} mt={gidx > 0 ? 4 : 0}>
-                                    {group.title}
-                                </Text>
-                                {group.links.map((link) => {
-                                    const active = isPathActive(link.to);
-                                    return (
-                                        <NavLink
-                                            key={link.to}
-                                            label={link.label}
-                                            leftSection={
-                                                <ThemeIcon variant={active ? 'filled' : 'light'} color={link.color} size="sm" radius="md">
-                                                    <link.icon size={14} stroke={1.5} />
-                                                </ThemeIcon>
-                                            }
-                                            rightSection={active ? <IconChevronRight size={14} /> : null}
-                                            active={active}
-                                            onClick={() => { navigate(link.to); close(); }}
-                                            py={8}
-                                            style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
-                                        />
-                                    );
-                                })}
-                            </Box>
-                        ))}
-                    </Stack>
+            {/* ─── SIDEBAR ─── */}
+            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
+                {/* User Profile + Collapse Toggle */}
+                <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
+                    {desktopOpened ? (
+                        <Group justify="space-between">
+                            <Group>
+                                <Avatar color="brand" radius="md" size={36}>
+                                    {user?.profile?.firstName?.[0]?.toUpperCase() || 'S'}
+                                </Avatar>
+                                <div>
+                                    <Text size="sm" fw={600} lh={1.2}>{user?.profile?.firstName}</Text>
+                                    <Text size="xs" c="dimmed">Student</Text>
+                                </div>
+                            </Group>
+                            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm" title="Collapse sidebar">
+                                <IconLayoutSidebarLeftCollapse size={18} stroke={1.5} />
+                            </ActionIcon>
+                        </Group>
+                    ) : (
+                        <Tooltip label="Expand sidebar" position="right">
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleDesktop} mx="auto" style={{ display: 'flex' }}>
+                                <IconLayoutSidebarLeftExpand size={20} stroke={1.5} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
                 </AppShell.Section>
 
-                <AppShell.Section>
-                    <Divider my="sm" />
-                    {/* E-Learning Portal Entry */}
-                    <NavLink
-                        label={
-                            <Group justify="space-between" w="100%">
-                                <Text size="sm" fw={600} c="teal">E-Learning Portal</Text>
-                                <Badge variant="filled" color="teal" size="xs">Open</Badge>
-                            </Group>
-                        }
-                        leftSection={
-                            <ThemeIcon variant="filled" color="teal" size="sm" radius="md">
-                                <IconSchool size={14} stroke={1.5} />
-                            </ThemeIcon>
-                        }
-                        rightSection={<IconArrowRight size={14} color="var(--mantine-color-teal-6)" />}
-                        onClick={() => { navigate('/student-portal/dashboard'); close(); }}
-                        py={8}
-                        mb="xs"
-                        style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
-                    />
-                    <NavLink
-                        label="Sign Out"
-                        leftSection={
-                            <ThemeIcon variant="light" color="red" size="sm" radius="md">
-                                <IconLogout size={14} stroke={1.5} />
-                            </ThemeIcon>
-                        }
-                        onClick={handleSignOut}
-                        py={8}
-                        style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
-                    />
+                {/* Nav Links */}
+                <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
+                    <Box p="sm">
+                        {sidebarGroups.map((group, i) => (
+                            <Box key={group.title}>
+                                {i > 0 && <Divider my="sm" />}
+                                {desktopOpened && (
+                                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>
+                                        {group.title}
+                                    </Text>
+                                )}
+                                {group.links.map(renderNavLink)}
+                            </Box>
+                        ))}
+                    </Box>
                 </AppShell.Section>
             </AppShell.Navbar>
 
-            {/* Main Content */}
-            <AppShell.Main pb={isMobile ? 80 : undefined}>
-                <Box maw={1200} mx="auto">
-                    <Outlet />
-                </Box>
+            {/* ─── MAIN CONTENT ─── */}
+            <AppShell.Main>
+                <Outlet />
             </AppShell.Main>
 
-            {/* Mobile Bottom Nav */}
-            {isMobile && (
-                <Box
-                    style={{
-                        position: 'fixed', bottom: 0, left: 0, right: 0, height: 70,
-                        background: 'var(--mantine-color-body)',
-                        borderTop: '1px solid var(--mantine-color-default-border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-                        zIndex: 200, paddingBottom: 'env(safe-area-inset-bottom)',
-                    }}
-                >
-                    {mobileNavLinks.map((link) => {
-                        const active = isPathActive(link.to);
-                        return (
-                            <UnstyledButton
-                                key={link.to}
-                                onClick={() => { navigate(link.to); close(); }}
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flex: 1, padding: '8px 4px' }}
-                            >
-                                <link.icon size={22} stroke={active ? 2 : 1.5}
-                                    color={active ? theme.colors[link.color]?.[6] || theme.colors.blue[6] : theme.colors.gray[5]} />
-                                <Text size="0.6rem" fw={active ? 700 : 400}
-                                    c={active ? `${link.color}.6` : 'dimmed'} ta="center" lineClamp={1}>
-                                    {link.label}
-                                </Text>
-                            </UnstyledButton>
-                        );
-                    })}
-                </Box>
-            )}
+            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
         </AppShell>
     );
 }

@@ -111,7 +111,7 @@ export function TeacherAssignments() {
     // ─── Derived Dropdowns ───
     const availableClasses = useMemo(() => {
         if (sectionId) return [];
-        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.name}` }));
+        return classesData.map((c: any) => ({ value: c.section.id, label: `${c.section.classLevel.name} ${c.section.classLevel.level ?? ""} ${c.section.name}` }));
     }, [classesData, sectionId]);
 
     const targetSectionId = activeTab === 'cala' && calaClassFilter ? calaClassFilter : (sectionId || selectedGlobalSectionId);
@@ -391,7 +391,7 @@ export function TeacherAssignments() {
                                                         <Group gap="xs">
                                                             <Badge variant="light" color="grape">{a.subject?.name || '—'}</Badge>
                                                             {!sectionId && a.section && (
-                                                                <Badge variant="outline" color="gray" size="xs">{a.section.classLevel?.name} {a.section.name}</Badge>
+                                                                <Badge variant="outline" color="gray" size="xs">{a.section.classLevel?.name} {a.section.classLevel?.level ?? ''} {a.section.name}</Badge>
                                                             )}
                                                         </Group>
                                                     </Table.Td>

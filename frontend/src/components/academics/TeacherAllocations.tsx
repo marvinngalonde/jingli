@@ -88,7 +88,7 @@ export function TeacherAllocations() {
         {
             accessor: 'class',
             header: 'Class & Section',
-            render: (item) => <Text>{item.section ? `${item.section.classLevel?.name || ''} - ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
+            render: (item) => <Text>{item.section ? `${item.section.classLevel?.name || ''} ${item.section.classLevel?.level ?? ''} - ${item.section.name || ''}`.trim() : 'Unassigned'}</Text>
         },
         {
             accessor: 'actions',

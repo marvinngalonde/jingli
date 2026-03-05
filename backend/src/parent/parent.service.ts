@@ -201,4 +201,65 @@ export class ParentService {
             transactions
         };
     }
+
+    async getChildAssignments(user: any, studentId: string) {
+        const guardian = await this.prisma.guardian.findFirst({ where: { userId: user.id } });
+        if (!guardian) throw new NotFoundException('Guardian profile not found');
+        const linkage = await this.prisma.studentGuardian.findFirst({ where: { guardianId: guardian.id, studentId } });
+        if (!linkage) throw new NotFoundException('Student is not linked to this guardian');
+
+        const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+        if (!student || !student.sectionId) return [];
+
+        return this.prisma.assignment.findMany({
+            where: { sectionId: student.sectionId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                submissions: { where: { studentId: student.id } }
+            },
+            orderBy: { dueDate: 'asc' }
+        });
+    }
+
+    async getChildLiveClasses(user: any, studentId: string) {
+        const guardian = await this.prisma.guardian.findFirst({ where: { userId: user.id } });
+        if (!guardian) throw new NotFoundException('Guardian profile not found');
+        const linkage = await this.prisma.studentGuardian.findFirst({ where: { guardianId: guardian.id, studentId } });
+        if (!linkage) throw new NotFoundException('Student is not linked to this guardian');
+
+        const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+        if (!student || !student.sectionId) return [];
+
+        return this.prisma.liveClass.findMany({
+            where: { sectionId: student.sectionId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                teacher: { select: { firstName: true, lastName: true } }
+            },
+            orderBy: { scheduledFor: 'asc' }
+        });
+    }
+
+    async getChildSubjects(user: any, studentId: string) {
+        const guardian = await this.prisma.guardian.findFirst({ where: { userId: user.id } });
+        if (!guardian) throw new NotFoundException('Guardian profile not found');
+        const linkage = await this.prisma.studentGuardian.findFirst({ where: { guardianId: guardian.id, studentId } });
+        if (!linkage) throw new NotFoundException('Student is not linked to this guardian');
+
+        const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+        if (!student || !student.sectionId) return [];
+
+        return this.prisma.subjectAllocation.findMany({
+            where: { sectionId: student.sectionId },
+            include: {
+                subject: { select: { id: true, name: true, code: true } },
+                staff: { select: { firstName: true, lastName: true } }
+            }
+        }).then(allocations => allocations.map((a: any) => ({
+            id: a.id,
+            subjectId: a.subject.id,
+            subject: a.subject,
+            teacher: a.staff
+        })));
+    }
 }

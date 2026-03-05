@@ -1,8 +1,9 @@
-import { Title, Text, Stack, Card, Group, LoadingOverlay, Table, Badge } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, LoadingOverlay, Table, Badge, Center, Loader } from '@mantine/core';
 import { IconAward } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { format } from 'date-fns';
+import { PageHeader } from '../../../components/common/PageHeader';
 
 interface GradedSubmission {
     id: string;
@@ -17,34 +18,25 @@ interface GradedSubmission {
 }
 
 export function StudentGrades() {
-    const [submissions, setSubmissions] = useState<GradedSubmission[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: submissions = [], isLoading: loading } = useQuery({
+        queryKey: ['studentGrades'],
+        queryFn: async () => {
+            const { data } = await api.get(`/student/grades`);
+            return data;
+        }
+    });
 
-    useEffect(() => {
-        const fetchGrades = async () => {
-            try {
-                const { data } = await api.get(`/student/grades`);
-                setSubmissions(data);
-            } catch (error) {
-                console.error("Failed to fetch grades", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchGrades();
-    }, []);
+    if (loading) return <Center h={400}><Loader /></Center>;
 
     return (
         <Stack gap="lg" pos="relative">
-            <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+            <PageHeader
+                title="Academic Record"
+                subtitle="View your assignment grades and teacher feedback."
+            />
 
-            <div>
-                <Title order={2}>Academic Record</Title>
-                <Text c="dimmed">View your assignment grades and teacher feedback.</Text>
-            </div>
-
-            <Card withBorder radius="md" p={0}>
-                {submissions.length === 0 && !loading ? (
+            <Card withBorder radius="md" p={0} bg="var(--app-surface)">
+                {submissions.length === 0 ? (
                     <Text p="xl" ta="center" c="dimmed" fs="italic">No graded assignments yet.</Text>
                 ) : (
                     <Table verticalSpacing="md" striped highlightOnHover>
@@ -57,7 +49,7 @@ export function StudentGrades() {
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {submissions.map((s) => (
+                            {submissions.map((s: GradedSubmission) => (
                                 <Table.Tr key={s.id}>
                                     <Table.Td>
                                         <Text size="sm" fw={500}>{s.assignment.title}</Text>

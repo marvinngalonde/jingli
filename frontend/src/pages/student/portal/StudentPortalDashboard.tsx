@@ -54,8 +54,8 @@ export default function StudentPortalDashboard() {
             const [classesRes, assignRes, quizRes, liveRes, gradesRes] = await Promise.allSettled([
                 api.get('/student/classes'),
                 api.get('/student/assignments'),
-                api.get('/cbt/quizzes'),
-                api.get('/live-classes'),
+                api.get('/student/quizzes'),
+                api.get('/student/live-classes'),
                 api.get('/student/grades'),
             ]);
 
@@ -148,15 +148,21 @@ export default function StudentPortalDashboard() {
                         <Text c="dimmed" size="sm" ta="center" py="md">No pending assignments 🎉</Text>
                     ) : (
                         <Stack gap="xs">
-                            {assignments.map(a => (
-                                <Paper key={a.id} withBorder radius="md" p="sm" bg="var(--app-surface-dim)">
+                            {assignments.map((a: any) => (
+                                <Paper
+                                    key={a.id} withBorder radius="md" p="sm" bg="var(--app-surface-dim)"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => navigate(`/student-portal/classes/${a.subjectId}/assignments`)}
+                                >
                                     <Group justify="space-between">
                                         <div>
                                             <Text size="sm" fw={500} lineClamp={1}>{a.title}</Text>
-                                            <Text size="xs" c="dimmed">{a.subject}</Text>
+                                            <Text size="xs" c="dimmed">{a.subject?.name || a.subject}</Text>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <Badge variant="light" color={getStatusColor(a.status)} size="xs">{a.status}</Badge>
+                                            <Badge variant="light" color={getStatusColor(a.status || (a.submission ? 'SUBMITTED' : 'PENDING'))} size="xs">
+                                                {a.status || (a.submission ? 'SUBMITTED' : 'PENDING')}
+                                            </Badge>
                                             {a.dueDate && (
                                                 <Text size="xs" c="dimmed" mt={2}>
                                                     {new Date(a.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}

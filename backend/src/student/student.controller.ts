@@ -41,4 +41,19 @@ export class StudentController {
     getGrades(@Req() req: any) {
         return this.studentService.getGrades(req.user);
     }
+
+    @Get('assignments')
+    getAllAssignments(@Req() req: any) {
+        return this.studentService.getAllAssignments(req.user);
+    }
+
+    @Get('quizzes')
+    getQuizzes(@Req() req: any) {
+        return this.studentService.getQuizzes(req.user);
+    }
+
+    @Get('live-classes')
+    getLiveClasses(@Req() req: any) {
+        return this.studentService.getLiveClasses(req.user);
+    }
 }

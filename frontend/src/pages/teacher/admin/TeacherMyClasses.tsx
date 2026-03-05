@@ -45,7 +45,7 @@ export default function TeacherMyClasses() {
 
     // Group by class level
     const grouped = classes.reduce((acc, cls) => {
-        const key = cls.section?.classLevel?.name || 'Unknown';
+        const key = `${cls.section?.classLevel?.name || 'Unknown'} ${cls.section?.classLevel?.level ?? ''}`.trim();
         if (!acc[key]) acc[key] = [];
         acc[key].push(cls);
         return acc;

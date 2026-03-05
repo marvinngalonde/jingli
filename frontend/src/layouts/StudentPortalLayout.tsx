@@ -10,7 +10,7 @@ import {
     IconLayoutDashboard, IconBook, IconClipboardList, IconFiles,
     IconBell, IconChevronDown, IconLogout, IconSettings, IconSearch,
     IconMessage, IconBrandZoom, IconTrophy, IconArrowLeft, IconSchool,
-    IconMessageCircle, IconCalendar, IconBrain,
+    IconMessageCircle, IconCalendar, IconBrain, IconUser,
     IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
 import jaiLogo from '../assets/logos/jai-trans.png';
@@ -21,7 +21,6 @@ import { useEffect, useState, useCallback } from 'react';
 
 const mainNavLinks = [
     { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
-    { icon: IconBook, label: 'My Subjects', to: '/student-portal/classes', color: 'teal' },
     { icon: IconFiles, label: 'Course Materials', to: '/student-portal/materials', color: 'indigo' },
     { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
     { icon: IconBrain, label: 'CBT Quizzes', to: '/student-portal/cbt', color: 'grape' },
@@ -127,17 +126,20 @@ export function StudentPortalLayout() {
                         </Group>
                     </Group>
 
-                    <Group gap="sm" visibleFrom="sm" style={{ flex: 1, maxWidth: 400, margin: '0 auto' }}>
-                        <TextInput
-                            placeholder="Search subjects, materials, quizzes..."
-                            leftSection={<IconSearch size={16} />}
-                            radius="xl"
-                            style={{ width: '100%' }}
-                            styles={{ input: { background: 'var(--mantine-color-gray-0)' } }}
-                        />
-                    </Group>
 
                     <Group gap="sm">
+                        <Badge
+                            variant="light"
+                            color="blue"
+                            size="lg"
+                            radius="md"
+                            leftSection={<IconCalendar size={14} />}
+                            styles={{ root: { textTransform: 'none' } }}
+                            visibleFrom="md"
+                        >
+                            2026 - Term 1
+                        </Badge>
+
                         <Tooltip label="Notifications">
                             <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
                                 <Indicator
@@ -178,6 +180,7 @@ export function StudentPortalLayout() {
                                     <Text size="xs" c="dimmed">{user?.email}</Text>
                                 </Menu.Label>
                                 <Menu.Divider />
+                                <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate('/student/profile')}>My Profile</Menu.Item>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
                                 <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={() => { logout(); navigate('/login'); }}>
                                     Logout
