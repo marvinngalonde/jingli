@@ -85,7 +85,9 @@ export function DashboardLayout() {
 
     const hasRole = (check: string) => {
         const lcCheck = check.toLowerCase();
-        if (lcCheck === 'admin') return isAdmin;
+        if (lcCheck === 'admin') {
+            return ['SUPER_ADMIN', 'ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD'].includes(r.toUpperCase());
+        }
         if (lcCheck === 'teacher') return isTeacher;
         if (lcCheck === 'student') return isStudent;
         if (lcCheck === 'parent') return isParent;
