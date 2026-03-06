@@ -10,7 +10,14 @@ import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
 import './index.css'
 import App from './App.tsx'
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000, // 1 minute
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

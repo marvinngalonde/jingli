@@ -80,7 +80,7 @@ export function Messenger() {
     if (loading) return <Center h="400px"><Loader /></Center>;
 
     return (
-        <Paper elevation={0} style={{ backgroundColor: 'transparent' }}>
+        <Paper shadow="none" style={{ backgroundColor: 'transparent' }}>
             <Grid gutter="xs">
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <Paper withBorder radius="md" p={0} style={{ overflow: 'hidden', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>

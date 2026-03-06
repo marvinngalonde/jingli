@@ -14,21 +14,21 @@ export class DisciplineController {
     constructor(private readonly service: DisciplineService) { }
 
     @Post()
-    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
+    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     @ApiOperation({ summary: 'Add Discipline Record' })
     create(@Req() req: any, @Body() dto: any) { return this.service.create(dto, req.user.schoolId); }
 
     @Get()
     @ApiQuery({ name: 'studentId', required: false })
     @ApiQuery({ name: 'type', required: false })
-    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
+    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     @ApiOperation({ summary: 'List Records' })
     findAll(@Req() req: any, @Query('studentId') studentId?: string, @Query('type') type?: string) {
         return this.service.findAll(req.user.schoolId, studentId, type);
     }
 
     @Get('summary/:studentId')
-    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.PARENT)
+    @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.PARENT, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     @ApiOperation({ summary: 'Student Summary' })
     getSummary(@Req() req: any, @Param('studentId') studentId: string) {
         return this.service.getStudentSummary(req.user.schoolId, studentId);

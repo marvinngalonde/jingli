@@ -22,7 +22,7 @@ export default function TeacherAnalytics() {
 
     const { overallStats, classSyllabus, assignmentStats, atRiskStudents, weeklyActivity, subjectPerformance } = data;
 
-    const maxLogins = Math.max(...weeklyActivity.map(w => w.logins));
+    const maxLogins = Math.max(...weeklyActivity.map((w: any) => w.logins));
 
     return (
         <div>
@@ -84,7 +84,7 @@ export default function TeacherAnalytics() {
                     <Paper p="lg" radius="md" shadow="sm" withBorder h="100%">
                         <Text fw={600} mb="md">Weekly Activity</Text>
                         <Stack gap="sm">
-                            {weeklyActivity.map(day => (
+                            {weeklyActivity.map((day: any) => (
                                 <Group key={day.day} gap="sm">
                                     <Text size="sm" fw={500} w={35}>{day.day}</Text>
                                     <Box style={{ flex: 1 }}>
@@ -116,7 +116,7 @@ export default function TeacherAnalytics() {
                     <Paper p="lg" radius="md" shadow="sm" withBorder h="100%">
                         <Text fw={600} mb="md">Subject Performance</Text>
                         <Stack gap="sm">
-                            {subjectPerformance.map(s => (
+                            {subjectPerformance.map((s: any) => (
                                 <Paper key={s.subject} p="sm" withBorder radius="md">
                                     <Group justify="space-between">
                                         <div>
@@ -143,7 +143,7 @@ export default function TeacherAnalytics() {
             <Paper p="lg" radius="md" shadow="sm" withBorder mb="lg">
                 <Text fw={600} mb="md">Syllabus Coverage by Class</Text>
                 <SimpleGrid cols={{ base: 1, md: 2 }}>
-                    {classSyllabus.map(c => (
+                    {classSyllabus.map((c: any) => (
                         <Paper key={c.name} p="md" withBorder radius="md">
                             <Group justify="space-between" mb="xs">
                                 <Text size="sm" fw={600}>{c.name}</Text>
@@ -171,7 +171,7 @@ export default function TeacherAnalytics() {
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {assignmentStats.map((a, i) => {
+                            {assignmentStats.map((a: any, i: number) => {
                                 const rate = Math.round((a.submitted / a.total) * 100);
                                 return (
                                     <Table.Tr key={i}>
@@ -205,7 +205,7 @@ export default function TeacherAnalytics() {
                     </div>
                 </Group>
                 <SimpleGrid cols={{ base: 1, md: 2 }}>
-                    {atRiskStudents.map(s => (
+                    {atRiskStudents.map((s: any) => (
                         <Paper key={s.name} p="md" withBorder radius="md">
                             <Group justify="space-between" mb="xs">
                                 <Text fw={600}>{s.name}</Text>
@@ -226,7 +226,7 @@ export default function TeacherAnalytics() {
                                 </div>
                             </Group>
                             <Group gap={4}>
-                                {s.issues.map(issue => <Badge key={issue} size="xs" color="red" variant="light">{issue}</Badge>)}
+                                {s.issues.map((issue: any) => <Badge key={issue} size="xs" color="red" variant="light">{issue}</Badge>)}
                             </Group>
                         </Paper>
                     ))}

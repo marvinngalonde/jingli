@@ -106,8 +106,8 @@ export function DashboardLayout() {
             links: [
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'reception', 'finance', 'librarian', 'security', 'hr'] },
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/teacher/dashboard', roles: ['teacher'] },
-                { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'reception'] },
-                { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'reception'] },
+                { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'reception', 'finance'] },
+                { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'reception', 'finance'] },
                 { icon: IconMessage, label: 'Messages', to: '/teacher/communication', roles: ['teacher'] },
                 { icon: IconSchool, label: 'E-Learning Portal', to: '/portal/dashboard', roles: ['teacher'] },
             ]
@@ -126,21 +126,21 @@ export function DashboardLayout() {
         },
         {
             title: 'Academic',
-            roles: ['admin', 'teacher', 'student', 'parent'],
+            roles: ['admin', 'teacher', 'student', 'parent', 'finance'],
             links: [
-                { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'reception'] },
+                { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'reception', 'finance'] },
                 { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'hr'] },
                 { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'student', 'parent'] },
                 { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'student', 'parent'] },
                 { icon: IconClipboardCheck, label: 'Attendance', to: '/attendance', roles: ['admin'] },
-                { icon: IconCalendarEvent, label: 'Events', to: '/reception/events', roles: ['admin', 'reception'] },
+                { icon: IconCalendarEvent, label: 'Events', to: '/events', roles: ['admin', 'reception'] },
             ]
         },
         {
             title: 'Logistics',
             roles: ['admin', 'reception', 'student', 'librarian', 'security'],
             links: [
-                { icon: IconUsers, label: 'Visitors', to: '/reception/visitors', roles: ['admin', 'reception', 'security'] },
+                { icon: IconUsers, label: 'Visitors', to: '/visitors', roles: ['admin', 'reception', 'security'] },
                 { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'student', 'librarian'] },
             ]
         },
@@ -151,24 +151,24 @@ export function DashboardLayout() {
                 { icon: IconCurrencyDollar, label: 'Finance', to: '/finance/dashboard', roles: ['admin', 'finance'] },
                 { icon: IconWallet, label: 'Salaries', to: '/finance/salaries', roles: ['admin', 'finance'] },
                 { icon: IconReceipt, label: 'Expenses', to: '/finance/expenses', roles: ['admin', 'finance'] },
-                { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin'] },
+                { icon: IconFileAnalytics, label: 'Reports', to: '/reports', roles: ['admin', 'finance'] },
             ]
         },
         {
             title: 'Transport & Ops',
             roles: ['admin', 'reception', 'security'],
             links: [
-                { icon: IconBus, label: 'Transport', to: '/reception/transport', roles: ['admin'] },
-                { icon: IconBuildingFortress, label: 'Facilities', to: '/reception/facilities', roles: ['admin'] },
+                { icon: IconBus, label: 'Transport', to: '/transport', roles: ['admin'] },
+                { icon: IconBuildingFortress, label: 'Facilities', to: '/facilities', roles: ['admin'] },
             ]
         },
         {
             title: 'Student Welfare',
             roles: ['admin', 'teacher', 'reception'],
             links: [
-                { icon: IconHeartbeat, label: 'Health', to: '/reception/health', roles: ['admin', 'reception'] },
-                { icon: IconShield, label: 'Discipline', to: '/reception/discipline', roles: ['admin', 'teacher'] },
-                { icon: IconHome2, label: 'Hostel', to: '/reception/hostel', roles: ['admin', 'reception'] },
+                { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception'] },
+                { icon: IconShield, label: 'Discipline', to: '/discipline', roles: ['admin', 'teacher'] },
+                { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception'] },
             ]
         },
         {

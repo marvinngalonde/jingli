@@ -8,7 +8,7 @@ interface TeacherClass {
     section: {
         id: string;
         name: string;
-        classLevel: { name: string };
+        classLevel: { name: string; level?: number };
         _count: { students: number };
     };
     subjects: { id: string; name: string; code: string }[];
@@ -20,7 +20,7 @@ export function TeacherClasses() {
     const location = useLocation();
     const basePath = location.pathname.startsWith('/teacher') ? '/teacher' : '/portal';
 
-    const { data: classes = [], isLoading: loading } = useQuery({
+    const { data: classes = [] as TeacherClass[], isLoading: loading } = useQuery<TeacherClass[]>({
         queryKey: ['teacherClasses'],
         queryFn: () => api.get('/teacher/classes').then(res => res.data)
     });
@@ -46,7 +46,7 @@ export function TeacherClasses() {
                 </Card>
             ) : (
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
-                    {classes.map((cls) => (
+                    {classes.map((cls: TeacherClass) => (
                         <Card key={cls.section.id} withBorder radius="md" p="md" shadow="sm">
                             <Card.Section withBorder inheritPadding py="xs">
                                 <Group justify="space-between">
@@ -72,7 +72,7 @@ export function TeacherClasses() {
                                     <IconBooks size={16} color="var(--mantine-color-gray-6)" />
                                     <Text size="sm" fw={500}>Subjects:</Text>
                                     {cls.isClassTeacher && <Badge variant="filled" color="blue" size="sm">Class Teacher</Badge>}
-                                    {cls.subjects.map(s => (
+                                    {cls.subjects.map((s: any) => (
                                         <Badge key={s.id} variant="dot" size="sm">{s.name}</Badge>
                                     ))}
                                     {!cls.isClassTeacher && cls.subjects.length === 0 && (

@@ -25,7 +25,7 @@ interface SchoolEvent {
 
 const CalendarPage = () => {
     const { user } = useAuth();
-    const isAdmin = isAdminRole(user?.role);
+    const isAdmin = isAdminRole(user?.role || '');
     const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [opened, setOpened] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<SchoolEvent | null>(null);

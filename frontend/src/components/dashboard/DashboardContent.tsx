@@ -11,11 +11,11 @@ import {
 } from '@mantine/core';
 import { AlertTriangle, Users, DollarSign, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { studentService } from '../services/studentService';
-import { staffService } from '../services/staffService';
-import { financeService } from '../services/financeService';
-import { attendanceService } from '../services/attendanceService';
-import { showErrorNotification } from '../utils/notifications';
+import { studentService } from '../../services/studentService';
+import { staffService } from '../../services/staffService';
+import { financeService } from '../../services/financeService';
+import { attendanceService } from '../../services/attendanceService';
+import { showErrorNotification } from '../../utils/notifications';
 
 export default function DashboardContent() {
     const [loading, setLoading] = useState(true);
@@ -40,14 +40,14 @@ export default function DashboardContent() {
             const [students, staff, transactions, attendance] = await Promise.all([
                 studentService.getAll(),
                 staffService.getAll(),
-                financeService.getAll(),
+                financeService.getTransactions(),
                 attendanceService.getByDate(new Date().toISOString().split('T')[0]),
             ]);
 
             // Calculate stats
             const totalStudents = students?.length || 0;
             const totalStaff = staff?.length || 0;
-            const presentToday = attendance?.filter(a => a.status === 'PRESENT').length || 0;
+            const presentToday = attendance?.filter((a: any) => a.status === 'PRESENT').length || 0;
             const attendanceRate = attendance?.length > 0
                 ? Math.round((presentToday / attendance.length) * 100)
                 : 0;

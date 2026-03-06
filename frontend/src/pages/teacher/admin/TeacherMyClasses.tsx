@@ -11,7 +11,7 @@ interface TeacherClassInfo {
     section: {
         id: string;
         name: string;
-        classLevel: { id: string; name: string };
+        classLevel: { id: string; name: string; level?: number };
         _count?: { students: number };
     };
     subjects: { id: string; name: string; code: string }[];

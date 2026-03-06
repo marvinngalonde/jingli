@@ -32,7 +32,7 @@ export class InvoicesController {
 
     @Post('collect')
     @ApiOperation({ summary: 'Collect Payment (Record Transaction)' })
-    @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN)
+    @Roles(UserRole.BURSAR, UserRole.RECEPTION, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN)
     collectPayment(@Req() req: any, @Body() createDto: CreateTransactionDto) {
         return this.invoicesService.collectPayment(createDto, req.user.schoolId, req.user.id);
     }
@@ -47,7 +47,7 @@ export class InvoicesController {
     @Get()
     @ApiOperation({ summary: 'List Invoices' })
     @ApiQuery({ name: 'studentId', required: false })
-    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
+    @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.RECEPTION, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
     findAll(@Req() req: any, @Query('studentId') studentId?: string) {
         return this.invoicesService.findAll(req.user.schoolId, studentId);
     }

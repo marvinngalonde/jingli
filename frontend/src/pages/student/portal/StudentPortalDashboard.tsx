@@ -193,7 +193,7 @@ export default function StudentPortalDashboard() {
                         <Text c="dimmed" size="sm" ta="center" py="md">No upcoming live classes</Text>
                     ) : (
                         <Stack gap="xs">
-                            {liveClasses.map(c => (
+                            {liveClasses.map((c: any) => (
                                 <Paper key={c.id} withBorder radius="md" p="sm" bg="var(--app-surface-dim)">
                                     <Group justify="space-between">
                                         <div>
@@ -229,7 +229,7 @@ export default function StudentPortalDashboard() {
                         <Text c="dimmed" size="sm" ta="center" py="md">No grades available yet</Text>
                     ) : (
                         <Stack gap="xs">
-                            {grades.map((g, i) => {
+                            {grades.map((g: any, i: number) => {
                                 const pct = Math.round((g.score / g.total) * 100);
                                 return (
                                     <div key={i}>

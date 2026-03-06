@@ -14,7 +14,7 @@ export class HostelController {
     constructor(private readonly service: HostelService) { }
 
     @Get('stats')
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     getStats(@Req() req: any) { return this.service.getStats(req.user.schoolId); }
 
     @Post('hostels')
@@ -22,7 +22,7 @@ export class HostelController {
     createHostel(@Req() req: any, @Body() dto: any) { return this.service.createHostel(dto, req.user.schoolId); }
 
     @Get('hostels')
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     findAllHostels(@Req() req: any) { return this.service.findAllHostels(req.user.schoolId); }
 
     @Delete('hostels/:id')
@@ -39,7 +39,7 @@ export class HostelController {
 
     @Get('rooms')
     @ApiQuery({ name: 'hostelId', required: false })
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     findAllRooms(@Req() req: any, @Query('hostelId') hostelId?: string) { return this.service.findAllRooms(req.user.schoolId, hostelId); }
 
     @Delete('rooms/:id')
@@ -47,7 +47,7 @@ export class HostelController {
     removeRoom(@Req() req: any, @Param('id') id: string) { return this.service.removeRoom(id, req.user.schoolId); }
 
     @Post('beds')
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     allocateBed(@Req() req: any, @Body() dto: any) { return this.service.allocateBed(dto, req.user.schoolId); }
 
     @Delete('beds/:id')
@@ -55,12 +55,12 @@ export class HostelController {
     deallocateBed(@Req() req: any, @Param('id') id: string) { return this.service.deallocateBed(id, req.user.schoolId); }
 
     @Post('exeats')
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     createExeat(@Req() req: any, @Body() dto: any) { return this.service.createExeat(dto, req.user.schoolId); }
 
     @Get('exeats')
     @ApiQuery({ name: 'status', required: false })
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     findAllExeats(@Req() req: any, @Query('status') status?: string) { return this.service.findAllExeats(req.user.schoolId, status); }
 
     @Patch('exeats/:id/approve')
@@ -68,6 +68,6 @@ export class HostelController {
     approveExeat(@Req() req: any, @Param('id') id: string) { return this.service.approveExeat(id, req.user.schoolId, req.user.id); }
 
     @Patch('exeats/:id/return')
-    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     markReturned(@Req() req: any, @Param('id') id: string) { return this.service.markReturned(id, req.user.schoolId); }
 }

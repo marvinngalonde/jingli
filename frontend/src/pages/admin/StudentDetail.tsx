@@ -123,7 +123,9 @@ export default function StudentDetail() {
                     </Avatar>
                     <div style={{ flex: 1, paddingBottom: 10 }}>
                         <Title order={2}>{student.firstName} {student.lastName}</Title>
-                        <Text c="dimmed" size="sm">Admission No: {student.admissionNo}</Text>
+                        <Text c="dimmed" size="sm">
+                            Admission No: {student.admissionNo} | Class: {student.section ? `${student.section.classLevel?.name || ''} ${student.section.classLevel?.level ?? ''} - ${student.section.name || ''}`.trim() : 'Unassigned'}
+                        </Text>
                     </div>
                     <Group style={{ paddingBottom: 10 }}>
                         <StatusBadge status={student.status || 'ACTIVE'} size="lg" />

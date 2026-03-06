@@ -94,14 +94,14 @@ export default function Events() {
         deleteMutation.mutate(deleteModal.id);
     };
 
-    const filtered = events.filter(e =>
+    const filtered = events.filter((e: any) =>
         e.title?.toLowerCase().includes(search.toLowerCase()) ||
         e.location?.toLowerCase().includes(search.toLowerCase())
     );
 
     const now = new Date();
-    const upcoming = events.filter(e => new Date(e.startDate) > now).length;
-    const completed = events.filter(e => new Date(e.endDate) < now).length;
+    const upcoming = events.filter((e: any) => new Date(e.startDate) > now).length;
+    const completed = events.filter((e: any) => new Date(e.endDate) < now).length;
 
     return (
         <div>
@@ -139,7 +139,7 @@ export default function Events() {
                 ) : (
                     <Table striped highlightOnHover>
                         <Table.Thead><Table.Tr><Table.Th>Title</Table.Th><Table.Th>Date</Table.Th><Table.Th>Location</Table.Th><Table.Th>Type</Table.Th><Table.Th>Status</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
-                        <Table.Tbody>{filtered.map(e => (
+                        <Table.Tbody>{filtered.map((e: any) => (
                             <Table.Tr key={e.id}>
                                 <Table.Td fw={500}>{e.title}</Table.Td>
                                 <Table.Td>{e.startDate ? new Date(e.startDate).toLocaleDateString() : '—'} {e.endDate && e.startDate.split('T')[0] !== e.endDate.split('T')[0] ? `- ${new Date(e.endDate).toLocaleDateString()}` : ''}</Table.Td>

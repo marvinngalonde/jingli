@@ -99,6 +99,9 @@ import Hostel from './pages/reception/Hostel';
 import Events from './pages/reception/Events';
 import Salaries from './pages/finance/Salaries';
 import Expenses from './pages/finance/Expenses';
+import { ReceptionLayout } from './layouts/ReceptionLayout';
+import ReceptionDashboard from './pages/reception/ReceptionDashboard';
+import FeeCollection from './pages/reception/FeeCollection';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -129,8 +132,8 @@ function AppContent() {
           <Route path="/students" element={<Students />} />
           <Route path="/students/:id" element={<StudentDetail />} />
           <Route path="/admissions" element={<Admissions />} />
+          <Route path="/fees" element={<FeeCollection />} />
           <Route path="/staff" element={<Staff />} />
-          <Route path="/staff/:id" element={<StaffDetail />} />
           <Route path="/staff/:id" element={<StaffDetail />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/academics" element={<Academics />} />
@@ -143,9 +146,14 @@ function AppContent() {
           <Route path="/marks" element={<Marks />} />
           <Route path="/library" element={<Library />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/visitors" element={<Visitors />} />
+          <Route path="/transport" element={<Transport />} />
+          <Route path="/facilities" element={<Facilities />} />
+          <Route path="/health" element={<Health />} />
+          <Route path="/discipline" element={<Discipline />} />
+          <Route path="/hostel" element={<Hostel />} />
 
-          {/* Reception Routes */}
-          <Route path="/reception/visitors" element={<Visitors />} />
 
           {/* Communication Route */}
           <Route path="/communication" element={<Communication />} />
@@ -156,17 +164,6 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/reports" element={<Reports />} />
 
-          {/* Operations Routes */}
-          <Route path="/reception/transport" element={<Transport />} />
-          <Route path="/reception/facilities" element={<Facilities />} />
-
-          {/* Student Welfare Routes */}
-          <Route path="/reception/health" element={<Health />} />
-          <Route path="/reception/discipline" element={<Discipline />} />
-          <Route path="/reception/hostel" element={<Hostel />} />
-
-          {/* Events Route */}
-          <Route path="/reception/events" element={<Events />} />
 
           {/* Finance Sub-Routes */}
           <Route path="/finance/dashboard" element={<Finance />} />
@@ -263,6 +260,25 @@ function AppContent() {
           <Route path="/parent-portal/fees" element={<ParentFees />} />
           <Route path="/parent-portal/communication" element={<Communication />} />
           <Route path="/parent-portal/calendar" element={<CalendarPage />} />
+        </Route>
+
+        {/* Receptionist Portal Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['RECEPTION', 'SENIOR_CLERK', 'ADMIN', 'SUPER_ADMIN']}><ReceptionLayout /></ProtectedRoute>}>
+          <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
+          <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
+          <Route path="/reception/visitors" element={<Visitors />} />
+          <Route path="/reception/admissions" element={<Admissions />} />
+          <Route path="/reception/fees" element={<FeeCollection />} />
+          <Route path="/reception/students" element={<Students />} />
+          <Route path="/reception/attendance" element={<AttendancePage />} />
+          <Route path="/reception/calendar" element={<CalendarPage />} />
+          <Route path="/reception/communication" element={<Communication />} />
+          <Route path="/reception/transport" element={<Transport />} />
+          <Route path="/reception/health" element={<Health />} />
+          <Route path="/reception/discipline" element={<Discipline />} />
+          <Route path="/reception/hostel" element={<Hostel />} />
+          <Route path="/reception/events" element={<Events />} />
+          <Route path="/reception/facilities" element={<Facilities />} />
         </Route>
       </Routes>
     </BrowserRouter >

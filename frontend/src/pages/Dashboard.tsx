@@ -2,7 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '../services/dashboardService';
 import { api } from '../services/api';
-import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Timeline, RingProgress, Center, SimpleGrid, Button } from '@mantine/core';
+import { Title, Text, Grid, Paper, Group, ThemeIcon, rem, Badge, Button } from '@mantine/core';
 import {
     IconUsers,
     IconCurrencyDollar,
@@ -11,11 +11,7 @@ import {
     IconFileInvoice,
     IconSpeakerphone,
     IconCalendarEvent,
-    IconBook,
-    IconClock,
     IconSchool,
-    IconUserPlus,
-    IconSearch,
     IconArrowRight,
     IconHeartbeat,
     IconBus,
@@ -24,48 +20,23 @@ import {
 } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RecentNotices } from '../components/communication/RecentNotices';
-import { useNavigate } from 'react-router-dom';
-import { isTeacherRole } from '../utils/roles';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { StatsCard } from '../components/dashboard/StatsCard';
+import { QuickAction } from '../components/dashboard/QuickAction';
 
 export function Dashboard() {
     const { user } = useAuth();
     const role = (user?.role || 'admin').toUpperCase();
 
-    if (role === 'RECEPTION' || role === 'SENIOR_CLERK' || role === 'SECURITY_GUARD') return <ReceptionDashboard />;
+    if (['RECEPTION', 'SENIOR_CLERK'].includes(role)) {
+        return <Navigate to="/reception/dashboard" replace />;
+    }
+
+    if (['BURSAR', 'FINANCE'].includes(role)) {
+        return <Navigate to="/finance/dashboard" replace />;
+    }
 
     return <AdminDashboard />;
-}
-
-function ReceptionDashboard() {
-    return (
-        <div>
-            <Title order={2} mb="lg">Reception Desk</Title>
-            <Grid gutter="lg">
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Visitors Today" value="12" subtext="4 Currently In" icon={IconUsers} color="blue" iconBg="blue.1" />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Todays Attendance" value="94%" subtext="12 Late Arrivals" icon={IconCalendarStats} color="orange" iconBg="orange.1" />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <StatsCard title="Pending Inquiries" value="5" subtext="New admissions" icon={IconSpeakerphone} color="teal" iconBg="teal.1" />
-                </Grid.Col>
-            </Grid>
-            <Grid mt="xl">
-                <Grid.Col span={12}>
-                    <Paper p="lg" radius="md" shadow="sm" withBorder>
-                        <Title order={4} mb="md">Quick Actions</Title>
-                        <Group>
-                            <QuickAction title="Check In Visitor" icon={IconUserPlus} color="blue" />
-                            <QuickAction title="New Admission" icon={IconPlus} color="green" />
-                            <QuickAction title="Student Search" icon={IconSearch} color="violet" />
-                            <QuickAction title="Collect Fees" icon={IconCurrencyDollar} color="teal" />
-                        </Group>
-                    </Paper>
-                </Grid.Col>
-            </Grid>
-        </div>
-    )
 }
 
 function AdminDashboard() {
@@ -107,7 +78,7 @@ function AdminDashboard() {
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
                         title="Total Students"
-                        value={loading ? '...' : stats?.students.toLocaleString()}
+                        value={loading ? '...' : (stats?.students.toLocaleString() || '0')}
                         subtext={loading ? '' : "Active Students"}
                         subtextColor="teal"
                         icon={IconUsers}
@@ -118,7 +89,7 @@ function AdminDashboard() {
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
                         title="Total Staff"
-                        value={loading ? '...' : stats?.staff.toLocaleString()}
+                        value={loading ? '...' : (stats?.staff.toLocaleString() || '0')}
                         subtext="Teachers & Admin"
                         subtextColor="c"
                         icon={IconUsers}
@@ -129,7 +100,7 @@ function AdminDashboard() {
                 <Grid.Col span={{ base: 12, md: 4 }}>
                     <StatsCard
                         title="Total Classes"
-                        value={loading ? '...' : stats?.classes.toLocaleString()}
+                        value={loading ? '...' : (stats?.classes.toLocaleString() || '0')}
                         isProgress={false}
                         subtext="Active Sections"
                         icon={IconSchool}
@@ -232,62 +203,3 @@ function AdminDashboard() {
         </div>
     );
 }
-
-function StatsCard({ title, value, subtext, subtextColor, icon: Icon, color, iconBg, isProgress }: any) {
-    return (
-        <Paper shadow="sm" p="lg" radius="md" withBorder>
-            <Group align="flex-start" mb="xs">
-                <ThemeIcon size={42} radius="md" color={iconBg || 'gray.1'}>
-                    <Icon style={{ width: rem(24), height: rem(24) }} color={`var(--mantine-color-${color}-6)`} />
-                </ThemeIcon>
-                <div style={{ flex: 1 }}>
-                    <Text size="sm" c="dimmed" fw={500}>
-                        {title}
-                    </Text>
-                </div>
-            </Group>
-
-            {isProgress ? (
-                <Group justify="center" mt="md">
-                    <RingProgress
-                        size={100}
-                        roundCaps
-                        thickness={8}
-                        sections={[{ value: 94, color: color }]}
-                        label={
-                            <Center>
-                                <Text c="dark" fw={700} size="xl">
-                                    94%
-                                </Text>
-                            </Center>
-                        }
-                    />
-                </Group>
-            ) : (
-                <div>
-                    <Text fw={700} style={{ fontSize: rem(32), lineHeight: 1 }}>{value}</Text>
-                    {subtext && (
-                        <Badge variant="light" color={subtextColor || 'gray'} mt="sm" size="lg" radius="sm">
-                            {subtext}
-                        </Badge>
-                    )}
-                </div>
-            )}
-        </Paper>
-    );
-}
-
-function QuickAction({ title, icon: Icon, color, onClick }: any) {
-    return (
-        <Paper shadow="sm" p="md" radius="md" withBorder style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={onClick}>
-            <Group>
-                <ThemeIcon variant="light" color={color} size="lg" radius="md">
-                    <Icon size={20} />
-                </ThemeIcon>
-                <Text fw={600} size="sm">{title}</Text>
-            </Group>
-        </Paper>
-    )
-}
-
-

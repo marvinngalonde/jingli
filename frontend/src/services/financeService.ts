@@ -84,5 +84,10 @@ export const financeService = {
     collectPayment: async (data: { invoiceId: string; amount: number; method: string; referenceNo?: string }) => {
         const response = await api.post('/invoices/collect', data);
         return response.data;
+    },
+
+    getTransactions: async (): Promise<any[]> => {
+        const response = await api.get('/invoices/transactions');
+        return response.data;
     }
 };

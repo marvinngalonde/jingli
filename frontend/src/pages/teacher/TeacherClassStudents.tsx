@@ -98,7 +98,7 @@ export function TeacherClassStudents() {
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {students.map((student) => (
+                            {students.map((student: any) => (
                                 <Table.Tr key={student.id}>
                                     <Table.Td>
                                         <Group gap="sm">

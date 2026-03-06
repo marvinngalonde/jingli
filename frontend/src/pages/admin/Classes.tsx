@@ -28,6 +28,7 @@ import { DeleteClassModal } from '../../components/modals/DeleteClassModal';
 // API
 import { classesApi } from '../../services/academics';
 import { staffService } from '../../services/staffService';
+import type { Staff } from '../../types/staff';
 import type { ClassLevel, ClassSection } from '../../types/academics';
 
 import { useAuth } from '../../context/AuthContext';
@@ -64,7 +65,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         queryFn: () => classesApi.getAll()
     });
 
-    const { data: staffList = [], isLoading: staffLoading, error: staffError } = useQuery({
+    const { data: staffList = [] as Staff[], isLoading: staffLoading, error: staffError } = useQuery({
         queryKey: ['staff'],
         queryFn: () => staffService.getAll()
     });
@@ -79,8 +80,8 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     }, [staffList]);
 
     // Flatten class levels into rows (one row per section)
-    const rows: ClassRow[] = classLevels.flatMap(level =>
-        (level.sections || []).map(section => ({
+    const rows: ClassRow[] = classLevels.flatMap((level: any) =>
+        (level.sections || []).map((section: any) => ({
             id: section.id,
             levelId: level.id,
             levelName: level.name,
@@ -92,11 +93,11 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
         }))
     );
 
-    const filteredSectionData = rows.filter(item => {
+    const filteredSectionData = rows.filter((item: any) => {
         return item.fullName.toLowerCase().includes(search.toLowerCase());
     });
 
-    const filteredClassData = classLevels.filter(item => {
+    const filteredClassData = classLevels.filter((item: any) => {
         return item.name.toLowerCase().includes(search.toLowerCase());
     });
 
@@ -110,7 +111,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
     );
 
     const handleEdit = (item: ClassRow) => {
-        const level = classLevels.find(l => l.id === item.levelId);
+        const level = classLevels.find((l: any) => l.id === item.levelId);
         setSelectedSection(item.section);
         setEditModalOpened(true);
         setSelectedClassLevel(level || null);
@@ -145,7 +146,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
             accessor: 'classTeacher',
             header: 'Class Teacher',
             render: (item) => {
-                const teacher = teachers.find(t => t.user?.id === item.classTeacherId || t.id === item.classTeacherId);
+                const teacher = teachers.find((t: any) => t.user?.id === item.classTeacherId || t.id === item.classTeacherId);
                 return <Text size="sm" c={item.classTeacherId ? "dark" : "dimmed"}>
                     {teacher ? `${teacher.firstName} ${teacher.lastName}` : (item.classTeacherId ? 'Assigned' : 'Not Assigned')}
                 </Text>;
@@ -338,7 +339,7 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
                 }}
                 onSuccess={fetchClasses}
                 sectionId={selectedSection?.id || null}
-                sectionName={selectedSection ? `${classLevels.find(l => l.id === selectedSection.classLevelId)?.name}-${selectedSection.name}` : null}
+                sectionName={selectedSection ? `${classLevels.find((l: any) => l.id === selectedSection.classLevelId)?.name}-${selectedSection.name}` : null}
             />
         </>
     );

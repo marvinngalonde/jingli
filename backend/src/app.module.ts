@@ -49,6 +49,7 @@ import { HostelModule } from './hostel/hostel.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { LiveClassesModule } from './live-classes/live-classes.module';
+import { InquiriesModule } from './inquiries/inquiries.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { LiveClassesModule } from './live-classes/live-classes.module';
     AlertsModule,
     QuizzesModule,
     LiveClassesModule,
+    InquiriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

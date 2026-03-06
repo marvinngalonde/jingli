@@ -16,7 +16,7 @@ interface Assignment {
     maxMarks: number;
     type: string;
     subject: { name: string; code: string };
-    section?: { name: string; classLevel?: { name: string } };
+    section?: { name: string; classLevel?: { name: string; level?: number } };
     _count: { submissions: number };
 }
 
@@ -31,6 +31,11 @@ interface CalaRecord {
     subject: { id: string; name: string };
     student: { id: string; firstName: string; lastName: string; admissionNo: string };
     term?: { id: string; name: string };
+    taskName?: string;
+    score?: number;
+    maxScore?: number;
+    date?: string;
+    teacherRemarks?: string;
     createdAt: string;
 }
 
@@ -280,7 +285,7 @@ export function TeacherAssignments() {
             matchSubject = c.subject?.id === calaSubjectFilter;
         }
         if (calaClassFilter && availableStudents.length > 0) {
-            matchClass = availableStudents.some(s => s.value === c.student?.id);
+            matchClass = availableStudents.some((s: any) => s.value === c.student?.id);
         }
         return matchSubject && matchClass;
     });

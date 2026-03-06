@@ -1,3 +1,5 @@
+import type { AcademicYear, ClassLevel } from './academics';
+
 export const FeeFrequency = {
     MONTHLY: 'MONTHLY',
     TERM: 'TERM',
@@ -45,8 +47,8 @@ export interface FeeStructure {
     // Relations
     items?: FeeStructureItem[];
     feeHead?: FeeHead;
-    classLevel?: { id: string; name: string };
-    academicYear?: { id: string; name: string };
+    classLevel?: ClassLevel;
+    academicYear?: AcademicYear;
 }
 
 export interface Transaction {
