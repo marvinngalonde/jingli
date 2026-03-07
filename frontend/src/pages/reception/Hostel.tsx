@@ -20,22 +20,26 @@ export default function Hostel() {
     // Queries
     const { data: hostels = [], isLoading: hostelsLoading } = useQuery({
         queryKey: ['hostels'],
-        queryFn: hostelService.getAllHostels
+        queryFn: hostelService.getAllHostels,
+        staleTime: 5 * 60 * 1000,
     });
 
     const { data: rooms = [], isLoading: roomsLoading } = useQuery({
         queryKey: ['rooms'],
-        queryFn: () => hostelService.getAllRooms()
+        queryFn: () => hostelService.getAllRooms(),
+        staleTime: 5 * 60 * 1000,
     });
 
     const { data: exeats = [], isLoading: exeatsLoading } = useQuery({
         queryKey: ['hostelExeats'],
-        queryFn: () => hostelService.getAllExeats()
+        queryFn: () => hostelService.getAllExeats(),
+        staleTime: 5 * 60 * 1000,
     });
 
     const { data: stats = { hostels: 0, rooms: 0, occupiedBeds: 0, pendingExeats: 0 }, isLoading: statsLoading } = useQuery({
         queryKey: ['hostelStats'],
-        queryFn: hostelService.getStats
+        queryFn: hostelService.getStats,
+        staleTime: 5 * 60 * 1000,
     });
 
     // Edit hostel state
@@ -253,16 +257,16 @@ export default function Hostel() {
                         {filteredHostels.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl">No hostels found. Click "Add Hostel" to get started.</Text>
                         ) : (
-                            <Table striped highlightOnHover>
+                            <Table striped highlightOnHover className="mobile-stack-table">
                                 <Table.Thead><Table.Tr><Table.Th>Name</Table.Th><Table.Th>Gender</Table.Th><Table.Th>Capacity</Table.Th><Table.Th>Rooms</Table.Th><Table.Th>Warden</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                                 <Table.Tbody>{filteredHostels.map((h: IHostel) => (
                                     <Table.Tr key={h.id}>
-                                        <Table.Td fw={500}>{h.name}</Table.Td>
-                                        <Table.Td><Badge variant="light">{h.gender}</Badge></Table.Td>
-                                        <Table.Td>{h.capacity}</Table.Td>
-                                        <Table.Td>{h.rooms?.length || 0}</Table.Td>
-                                        <Table.Td>{h.warden || '—'}</Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Name" fw={500}>{h.name}</Table.Td>
+                                        <Table.Td data-label="Gender"><Badge variant="light">{h.gender}</Badge></Table.Td>
+                                        <Table.Td data-label="Capacity">{h.capacity}</Table.Td>
+                                        <Table.Td data-label="Rooms">{h.rooms?.length || 0}</Table.Td>
+                                        <Table.Td data-label="Warden">{h.warden || '—'}</Table.Td>
+                                        <Table.Td data-label="Actions">
                                             <Group gap={4}>
                                                 <ActionIcon color="blue" variant="subtle" onClick={() => openEditHostel(h)}>
                                                     <IconEdit size={16} />
@@ -289,22 +293,22 @@ export default function Hostel() {
                         {filteredRooms.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl">No rooms found. Click "Add Room" to get started.</Text>
                         ) : (
-                            <Table striped highlightOnHover>
+                            <Table striped highlightOnHover className="mobile-stack-table">
                                 <Table.Thead><Table.Tr><Table.Th>Room Name</Table.Th><Table.Th>Hostel</Table.Th><Table.Th>Capacity</Table.Th><Table.Th>Occupied</Table.Th><Table.Th>Occupants</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                                 <Table.Tbody>{filteredRooms.map((r: IRoom) => {
                                     const occupied = r.beds?.length || 0;
                                     const isFull = occupied >= r.capacity;
                                     return (
                                         <Table.Tr key={r.id}>
-                                            <Table.Td fw={500}>{r.number}</Table.Td>
-                                            <Table.Td>{r.hostel?.name}</Table.Td>
-                                            <Table.Td>{r.capacity}</Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Room Name" fw={500}>{r.number}</Table.Td>
+                                            <Table.Td data-label="Hostel">{r.hostel?.name}</Table.Td>
+                                            <Table.Td data-label="Capacity">{r.capacity}</Table.Td>
+                                            <Table.Td data-label="Occupied">
                                                 <Badge color={isFull ? 'red' : 'green'} variant="light">
                                                     {occupied} / {r.capacity}
                                                 </Badge>
                                             </Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Occupants">
                                                 <Stack gap={2}>
                                                     {r.beds?.map(b => (
                                                         <Group key={b.id} gap="xs" justify="space-between" wrap="nowrap">
@@ -325,7 +329,7 @@ export default function Hostel() {
                                                     {occupied === 0 && <Text size="xs" c="dimmed">Vacant</Text>}
                                                 </Stack>
                                             </Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Actions">
                                                 <Group gap={4}>
                                                     <Button
                                                         size="xs"
@@ -334,7 +338,7 @@ export default function Hostel() {
                                                         disabled={isFull}
                                                         onClick={() => {
                                                             allocationForm.setFieldValue('bedNumber', `Bed ${occupied + 1}`);
-                                                            setAllocationModal({ opened: true, room: r });
+                                                            setAllocationModal({ opened: false, room: r });
                                                         }}
                                                     >
                                                         Allocate
@@ -373,16 +377,16 @@ export default function Hostel() {
                         {filteredExeats.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl">No exeat requests found.</Text>
                         ) : (
-                            <Table striped highlightOnHover>
+                            <Table striped highlightOnHover className="mobile-stack-table">
                                 <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Reason</Table.Th><Table.Th>Depart</Table.Th><Table.Th>Return</Table.Th><Table.Th>Status</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                                 <Table.Tbody>{filteredExeats.map((e: any) => (
                                     <Table.Tr key={e.id}>
-                                        <Table.Td fw={500}>{e.student?.firstName} {e.student?.lastName}</Table.Td>
-                                        <Table.Td>{e.reason}</Table.Td>
-                                        <Table.Td>{new Date(e.departDate).toLocaleDateString()}</Table.Td>
-                                        <Table.Td>{new Date(e.returnDate).toLocaleDateString()}</Table.Td>
-                                        <Table.Td><Badge color={e.status === 'APPROVED' ? 'green' : e.status === 'RETURNED' ? 'blue' : 'orange'} variant="light">{e.status}</Badge></Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Student" fw={500}>{e.student?.firstName} {e.student?.lastName}</Table.Td>
+                                        <Table.Td data-label="Reason">{e.reason}</Table.Td>
+                                        <Table.Td data-label="Depart">{new Date(e.departDate).toLocaleDateString()}</Table.Td>
+                                        <Table.Td data-label="Return">{new Date(e.returnDate).toLocaleDateString()}</Table.Td>
+                                        <Table.Td data-label="Status"><Badge color={e.status === 'APPROVED' ? 'green' : e.status === 'RETURNED' ? 'blue' : 'orange'} variant="light">{e.status}</Badge></Table.Td>
+                                        <Table.Td data-label="Actions">
                                             <Group gap={4}>
                                                 {e.status === 'PENDING' && <ActionIcon color="green" variant="subtle" loading={approveExeatMutation.isPending && approveExeatMutation.variables === e.id} onClick={() => approveExeatMutation.mutate(e.id)} title="Approve"><IconCheck size={16} /></ActionIcon>}
                                                 {e.status === 'APPROVED' && <ActionIcon color="blue" variant="subtle" loading={returnExeatMutation.isPending && returnExeatMutation.variables === e.id} onClick={() => returnExeatMutation.mutate(e.id)} title="Mark Returned"><IconArrowLeft size={16} /></ActionIcon>}

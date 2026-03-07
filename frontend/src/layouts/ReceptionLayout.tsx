@@ -30,6 +30,7 @@ import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
+import { MobileBottomNav } from '../components/common/MobileBottomNav';
 
 export function ReceptionLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
@@ -86,6 +87,14 @@ export function ReceptionLayout() {
         }
     ];
 
+    const mobileNavLinks = [
+        { icon: IconLayoutDashboard, label: 'Home', to: '/reception/dashboard', color: 'blue' },
+        { icon: IconHeartbeat, label: 'Health', to: '/reception/health', color: 'red' },
+        { icon: IconShield, label: 'Conduct', to: '/reception/discipline', color: 'orange' },
+        { icon: IconHome2, label: 'Hostel', to: '/reception/hostel', color: 'indigo' },
+        { icon: IconUserPlus, label: 'Visitors', to: '/reception/visitors', color: 'teal' },
+    ];
+
     const renderNavLink = (link: any) => {
         const isActive = location.pathname === link.to;
 
@@ -116,18 +125,18 @@ export function ReceptionLayout() {
     return (
         <AppShell
             header={{ height: 64 }}
-            navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !mobileOpened } }}
+            navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: true } }}
             padding="md"
             styles={{ main: { background: 'var(--app-surface-dim)' } }}
         >
             <AppShell.Header px="md">
                 <Group h="100%" justify="space-between">
                     <Group>
-                        <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
                         <img src={logoFull} alt="Logo" style={{ height: 36 }} />
                     </Group>
                     <Group gap="sm">
-                        <Badge variant="light" color="blue" size="lg">Reception Desk</Badge>
+                        <Badge variant="light" color="blue" size="lg" hiddenFrom="sm">Reception</Badge>
+                        <Badge variant="light" color="blue" size="lg" visibleFrom="sm">Reception Desk</Badge>
                         <Tooltip label="Notifications">
                             <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif}>
                                 <Indicator color="red" label={unreadCount} disabled={unreadCount === 0} size={16}>
@@ -171,8 +180,12 @@ export function ReceptionLayout() {
                 <Outlet />
             </AppShell.Main>
 
+            <MobileBottomNav links={mobileNavLinks} />
+
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
         </AppShell>
     );
 }
+
+export default ReceptionLayout;

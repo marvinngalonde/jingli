@@ -6,7 +6,7 @@ export class HealthService {
     constructor(private readonly prisma: PrismaService) { }
 
     // ═══════ Medical Profiles ═══════
-    async upsertProfile(dto: any) {
+    async upsertProfile(dto: any, schoolId: string) {
         // Sanitize dto to only include valid schema fields
         const validFields = {
             studentId: dto.studentId,
@@ -22,6 +22,12 @@ export class HealthService {
             notes: dto.notes || null,
         };
 
+        // Ensure student belongs to school
+        const student = await this.prisma.student.findFirst({
+            where: { id: validFields.studentId, schoolId }
+        });
+        if (!student) throw new Error('Student not found in this school');
+
         return this.prisma.medicalProfile.upsert({
             where: { studentId: validFields.studentId },
             create: validFields,
@@ -29,8 +35,13 @@ export class HealthService {
         });
     }
 
-    async getProfile(studentId: string) {
-        return this.prisma.medicalProfile.findUnique({ where: { studentId } });
+    async getProfile(studentId: string, schoolId: string) {
+        return this.prisma.medicalProfile.findFirst({
+            where: {
+                studentId,
+                student: { schoolId }
+            }
+        });
     }
 
     async findAllProfiles(schoolId: string) {
@@ -84,7 +95,9 @@ export class HealthService {
         const [total, todayVisits, profiles] = await Promise.all([
             this.prisma.clinicVisit.count({ where: { schoolId } }),
             this.prisma.clinicVisit.count({ where: { schoolId, date: { gte: today } } }),
-            this.prisma.medicalProfile.count(),
+            this.prisma.medicalProfile.count({
+                where: { student: { schoolId } }
+            }),
         ]);
         return { totalVisits: total, todayVisits, profilesRecorded: profiles };
     }

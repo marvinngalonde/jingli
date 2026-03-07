@@ -32,6 +32,7 @@ import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
+import { MobileBottomNav } from '../components/common/MobileBottomNav';
 
 const sidebarGroups = [
     {
@@ -58,6 +59,14 @@ const sidebarGroups = [
             { icon: IconCurrencyDollar, label: 'Fees & Invoices', to: '/student/fees', color: 'red' },
         ],
     },
+];
+
+const mobileNavLinks = [
+    { icon: IconLayoutDashboard, label: 'Home', to: '/student/dashboard', color: 'blue' },
+    { icon: IconBook, label: 'Subjects', to: '/student/classes', color: 'teal' },
+    { icon: IconSchool, label: 'E-Learning', to: '/student-portal/dashboard', color: 'indigo' },
+    { icon: IconCurrencyDollar, label: 'Fees', to: '/student/fees', color: 'red' },
+    { icon: IconUser, label: 'Profile', to: '/student/profile', color: 'indigo' },
 ];
 
 export function StudentLayout() {
@@ -137,11 +146,11 @@ export function StudentLayout() {
 
     return (
         <AppShell
-            header={{ height: 64 }}
+            header={{ height: { base: 56, sm: 64 } }}
             navbar={{
                 width: desktopOpened ? 260 : 80,
                 breakpoint: 'sm',
-                collapsed: { mobile: !mobileOpened },
+                collapsed: { mobile: true }, // Always hide sidebar on mobile
             }}
             padding="md"
             styles={{
@@ -150,57 +159,54 @@ export function StudentLayout() {
         >
             {/* ─── HEADER ─── */}
             <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
-                <Group h="100%" px="lg" justify="space-between">
-                    <Group>
-                        <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
+                <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
+                    <Group wrap="nowrap">
+                        {/* Hidden on mobile - replaced by bottom nav */}
+                        <Burger opened={mobileOpened} onClick={toggleMobile} hidden size="sm" />
                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/student/dashboard')}>
-                            <img src={logoFull} alt="Logo" height={36} style={{ objectFit: 'contain' }} />
+                            <img src={logoFull} alt="Logo" height={28} style={{ objectFit: 'contain' }} className="mobile-logo" />
                         </Group>
                     </Group>
 
 
-                    <Group gap="sm">
+                    <Group gap="xs" wrap="nowrap">
                         <Badge
                             variant="light"
                             color="blue"
-                            size="lg"
+                            size="md"
                             radius="md"
                             leftSection={<IconCalendar size={14} />}
                             styles={{ root: { textTransform: 'none' } }}
-                            visibleFrom="md"
+                            visibleFrom="sm"
                         >
                             2026 - Term 1
                         </Badge>
 
-                        <Tooltip label="Notifications">
-                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
-                                <Indicator
-                                    color="red"
-                                    size={unreadCount > 0 ? 16 : 0}
-                                    offset={4}
-                                    processing={unreadCount > 0}
-                                    label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
-                                    disabled={unreadCount === 0}
-                                >
-                                    <IconBell size={20} stroke={1.5} />
-                                </Indicator>
-                            </ActionIcon>
-                        </Tooltip>
+                        <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
+                            <Indicator
+                                color="red"
+                                size={unreadCount > 0 ? 16 : 0}
+                                offset={4}
+                                processing={unreadCount > 0}
+                                label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
+                                disabled={unreadCount === 0}
+                            >
+                                <IconBell size={20} stroke={1.5} />
+                            </Indicator>
+                        </ActionIcon>
 
-                        <Tooltip label="AI Assistant">
-                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
-                            </ActionIcon>
-                        </Tooltip>
+                        <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                            <img src={jaiLogo} alt="AI" style={{ height: 18 }} />
+                        </ActionIcon>
 
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar color="brand" radius="md" size={34}>
+                                        <Avatar color="brand" radius="md" size={32}>
                                             {user?.profile?.firstName?.[0]?.toUpperCase() || 'S'}
                                         </Avatar>
-                                        <Box visibleFrom="xs">
+                                        <Box visibleFrom="sm">
                                             <IconChevronDown size={14} color="gray" />
                                         </Box>
                                     </Group>
@@ -229,7 +235,7 @@ export function StudentLayout() {
             </AppShell.Header>
 
             {/* ─── SIDEBAR ─── */}
-            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
+            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }} visibleFrom="sm">
                 {/* User Profile + Collapse Toggle */}
                 <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
                     {desktopOpened ? (
@@ -278,6 +284,8 @@ export function StudentLayout() {
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
+
+            <MobileBottomNav links={mobileNavLinks} />
 
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />

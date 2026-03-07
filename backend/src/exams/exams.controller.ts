@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Logger, Req } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -19,36 +19,35 @@ export class ExamsController {
     @Post()
     @ApiOperation({ summary: 'Create a new exam' })
     @Roles(UserRole.HOD, UserRole.SENIOR_TEACHER, UserRole.SUPER_ADMIN)
-    create(@Body() createExamDto: any) {
-        return this.examsService.create(createExamDto);
+    create(@Req() req: any, @Body() createExamDto: any) {
+        return this.examsService.create({ ...createExamDto, schoolId: req.user.schoolId });
     }
 
     @Get()
     @ApiOperation({ summary: 'List exams with filters' })
-    @ApiQuery({ name: 'schoolId', required: true })
     @ApiQuery({ name: 'termId', required: false })
     @ApiQuery({ name: 'classLevelId', required: false })
     @Roles(UserRole.TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
     findAll(
-        @Query('schoolId') schoolId: string,
+        @Req() req: any,
         @Query('termId') termId?: string,
         @Query('classLevelId') classLevelId?: string,
     ) {
-        return this.examsService.findAll(schoolId, termId, classLevelId);
+        return this.examsService.findAll(req.user.schoolId, termId, classLevelId);
     }
 
     @Post('terms')
     @ApiOperation({ summary: 'Create a new exam term' })
     @Roles(UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
-    createTerm(@Body() createTermDto: any) {
-        return this.examsService.createTerm(createTermDto);
+    createTerm(@Req() req: any, @Body() createTermDto: any) {
+        return this.examsService.createTerm({ ...createTermDto, schoolId: req.user.schoolId });
     }
 
     @Get('terms')
     @ApiOperation({ summary: 'List all exam terms' })
-    @ApiQuery({ name: 'schoolId', required: true })
-    getTerms(@Query('schoolId') schoolId: string) {
-        return this.examsService.getTerms(schoolId);
+    @Roles(UserRole.TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN)
+    getTerms(@Req() req: any) {
+        return this.examsService.getTerms(req.user.schoolId);
     }
 
     @Patch(':id')

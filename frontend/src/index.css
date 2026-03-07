@@ -7,7 +7,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -19,13 +21,16 @@ html, body, #root {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--app-border);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--app-text-muted);
 }
@@ -42,6 +47,7 @@ a {
   color: var(--mantine-color-brand-6);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
@@ -52,7 +58,10 @@ a:hover {
     background: white !important;
     color: black !important;
   }
-  nav, header, .no-print {
+
+  nav,
+  header,
+  .no-print {
     display: none !important;
   }
 }
@@ -64,6 +73,158 @@ a:hover {
 }
 
 @keyframes delayOverlay {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── Auth Pages (Login / Signup / Install) ───────────────────────────────── */
+.auth-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-form-panel {
+  flex: 0 0 50%;
+  max-width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.auth-brand-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3rem 2rem;
+  position: relative;
+}
+
+/* Tablet / mobile breakpoint */
+@media (max-width: 768px) {
+  .auth-wrapper {
+    flex-direction: column;
+  }
+
+  .auth-form-panel {
+    flex: unset;
+    max-width: 100%;
+    width: 100%;
+    order: 2;
+    padding: 1.5rem 1rem 2rem;
+    align-items: flex-start;
+  }
+
+  /* Branding panel becomes a compact top banner */
+  .auth-brand-panel {
+    order: 1;
+    flex: unset;
+    width: 100%;
+    padding: 1.5rem 1rem;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  /* Hide the illustration image on mobile — keep logo + tagline */
+  .auth-brand-panel .auth-brand-illustration {
+    display: none;
+  }
+
+  .auth-brand-panel .auth-brand-tagline {
+    display: none;
+  }
+
+  .auth-brand-panel .auth-brand-top {
+    margin: 0;
+  }
+}
+
+/* ─── Mobile App UX Enhancements ────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Give space at the bottom for the fixed navigation bar */
+  .mantine-AppShell-main {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Make headers more compact on mobile */
+  .mantine-AppShell-header {
+    height: 56px !important;
+  }
+
+  /* Compact text for mobile */
+  h1 {
+    font-size: rem(24) !important;
+  }
+
+  h2 {
+    font-size: rem(20) !important;
+  }
+
+  /* ─── Mobile Table Card Transformation ─── */
+  /* If a table is too wide, we can either make it scrollable or stack it.
+     This utility class can be applied to tables that should stack. */
+  .mobile-stack-table thead {
+    display: none;
+    /* Hide headers */
+  }
+
+  .mobile-stack-table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid var(--app-border-light);
+    border-radius: var(--mantine-radius-md);
+    padding: 0.5rem;
+    background: var(--mantine-color-body);
+  }
+
+  .mobile-stack-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--app-border-light);
+    padding: 0.5rem 0;
+    text-align: right;
+  }
+
+  .mobile-stack-table td:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-stack-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    text-align: left;
+    margin-right: 1rem;
+    color: var(--mantine-color-dimmed);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  /* Default horizontal scrolling for all tables if not stacked */
+  .mantine-Table-scrollContainer {
+    border-radius: var(--mantine-radius-md);
+  }
+}
+
+/* Smooth active state for mobile buttons */
+@media (hover: none) {
+
+  .mantine-Button-root:active,
+  .mantine-ActionIcon-root:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
 }

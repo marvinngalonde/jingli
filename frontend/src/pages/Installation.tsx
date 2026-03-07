@@ -11,15 +11,14 @@ import {
     Stack,
     Image,
     Stepper,
-    Group
+    Group,
+    useMantineColorScheme,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
-import { useMantineColorScheme } from '@mantine/core';
 
-// Import the branded images
 import whitelogo from '../assets/images/whitelogo.png';
 import sideImgTrans from '../assets/images/sideimg-trans.png';
 
@@ -59,7 +58,7 @@ export function Installation() {
                 };
             }
             return {};
-        }
+        },
     });
 
     const nextStep = () => {
@@ -74,36 +73,28 @@ export function Installation() {
         setLoading(true);
         try {
             await api.post('/system/install', values);
-            notifications.show({
-                title: 'Installation Complete!',
-                message: 'You can now log in using your admin credentials.',
-                color: 'green',
-            });
-            // Force reload to re-check status in AuthContext
+            notifications.show({ title: 'Installation Complete!', message: 'You can now log in using your admin credentials.', color: 'green' });
             window.location.href = '/login';
         } catch (error: any) {
-            notifications.show({
-                title: 'Installation Failed',
-                message: error.response?.data?.message || error.message || 'Something went wrong',
-                color: 'red',
-            });
+            notifications.show({ title: 'Installation Failed', message: error.response?.data?.message || error.message || 'Something went wrong', color: 'red' });
             setLoading(false);
         }
     };
 
+    const inputStyle = { input: { backgroundColor: isDark ? '#25262b' : undefined } };
+
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
+        <div className="auth-wrapper">
             {/* LEFT SIDE: FORM */}
-            <div style={{
-                flex: '0 0 50%',
-                maxWidth: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
-                color: isDark ? '#c1c2c5' : undefined
-            }}>
-                <Box maw={500} w="100%" px="xl" py="xl">
+            <div
+                className="auth-form-panel"
+                style={{
+                    background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                    color: isDark ? '#c1c2c5' : undefined,
+                }}
+            >
+                <Box maw={500} w="100%" px="xl" py="xl" style={{ position: 'relative' }}>
+                    <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: 'sm', blur: 2 }} />
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
                         System Installation
                     </Title>
@@ -111,8 +102,8 @@ export function Installation() {
                         Let's set up your Jingli workspace
                     </Text>
 
-                    <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} mb={40}>
-                        <Stepper.Step label="First step" description="School Profile">
+                    <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} mb={40} size="sm">
+                        <Stepper.Step label="Step 1" description="School Profile">
                             <Stack gap="md" mt="md">
                                 <TextInput
                                     label="School Name"
@@ -121,7 +112,7 @@ export function Installation() {
                                     radius="md"
                                     required
                                     {...form.getInputProps('schoolName')}
-                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
+                                    styles={inputStyle}
                                 />
                                 <TextInput
                                     label="Subdomain"
@@ -131,19 +122,19 @@ export function Installation() {
                                     required
                                     description="This will be used for your school's custom URL"
                                     {...form.getInputProps('subdomain')}
-                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
+                                    styles={inputStyle}
                                 />
                             </Stack>
                         </Stepper.Step>
 
-                        <Stepper.Step label="Second step" description="Admin Account">
+                        <Stepper.Step label="Step 2" description="Admin Account">
                             <Stack gap="md" mt="md">
                                 <Group grow>
-                                    <TextInput label="First Name" placeholder="John" required {...form.getInputProps('adminFirstName')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
-                                    <TextInput label="Last Name" placeholder="Doe" required {...form.getInputProps('adminLastName')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
+                                    <TextInput label="First Name" placeholder="John" required {...form.getInputProps('adminFirstName')} styles={inputStyle} />
+                                    <TextInput label="Last Name" placeholder="Doe" required {...form.getInputProps('adminLastName')} styles={inputStyle} />
                                 </Group>
-                                <TextInput label="Username" placeholder="admin" required {...form.getInputProps('adminUsername')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
-                                <TextInput label="Email Address" placeholder="admin@school.com" required {...form.getInputProps('adminEmail')} styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }} />
+                                <TextInput label="Username" placeholder="admin" required {...form.getInputProps('adminUsername')} styles={inputStyle} />
+                                <TextInput label="Email Address" placeholder="admin@school.com" required {...form.getInputProps('adminEmail')} styles={inputStyle} />
                                 <PasswordInput
                                     label="Password"
                                     placeholder="Strong password"
@@ -152,7 +143,7 @@ export function Installation() {
                                         reveal ? <IconEyeOff size={20} /> : <IconEyeCheck size={20} />
                                     }
                                     {...form.getInputProps('adminPassword')}
-                                    styles={{ input: { backgroundColor: isDark ? '#25262b' : undefined } }}
+                                    styles={inputStyle}
                                 />
                             </Stack>
                         </Stepper.Step>
@@ -174,64 +165,37 @@ export function Installation() {
                         {active < 2 ? (
                             <Button onClick={nextStep} size="md" color="brand">Next step</Button>
                         ) : (
-                            <Button
-                                onClick={() => handleSubmit(form.values)}
-                                size="md"
-                                color="green"
-                                loading={loading}
-                            >
+                            <Button onClick={() => handleSubmit(form.values)} size="md" color="green" loading={loading}>
                                 Install System
                             </Button>
                         )}
                     </Group>
-                    <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
                 </Box>
             </div>
 
             {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
-            <div style={{
-                flex: '1',
-                background: isDark
-                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
-                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '3rem 2rem',
-                position: 'relative'
-            }}>
-                {/* Top Logo */}
-                <Box mt="xl">
-                    <Image
-                        src={whitelogo}
-                        alt="Jingli Logo"
-                        w={300}
-                        fit="contain"
-                    />
+            <div
+                className="auth-brand-panel"
+                style={{
+                    background: isDark
+                        ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                        : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
+                }}
+            >
+                <Box mt="xl" className="auth-brand-top">
+                    <Image src={whitelogo} alt="Jingli Logo" w={200} fit="contain" />
                 </Box>
 
-                {/* Center Transparent Image */}
-                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                    <Image
-                        src={sideImgTrans}
-                        alt="Education Management Illustration"
-                        w="100%"
-                        maw={500}
-                        fit="contain"
-                    />
+                <Box className="auth-brand-illustration" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <Image src={sideImgTrans} alt="Education Management Illustration" w="100%" maw={500} fit="contain" />
                 </Box>
 
-                {/* Bottom Text */}
                 <Text
                     c="white"
                     size="xl"
                     mb="xl"
-                    style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 300,
-                        letterSpacing: '0.5px'
-                    }}
+                    className="auth-brand-tagline"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, letterSpacing: '0.5px', textAlign: 'center' }}
                 >
                     Empowering Education, Simplifying Management
                 </Text>

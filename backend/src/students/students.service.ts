@@ -141,9 +141,9 @@ export class StudentsService {
         });
     }
 
-    async findOne(id: string) {
-        return this.prisma.student.findUnique({
-            where: { id },
+    async findOne(id: string, schoolId: string) {
+        return this.prisma.student.findFirst({
+            where: { id, schoolId },
             include: {
                 user: true,
                 section: {

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SupabaseGuard } from '../auth/supabase.guard';
@@ -11,8 +11,7 @@ export class DashboardController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get dashboard statistics' })
-  @ApiQuery({ name: 'schoolId', required: true })
-  getStats(@Query('schoolId') schoolId: string) {
-    return this.dashboardService.getStats(schoolId);
+  getStats(@Req() req: any) {
+    return this.dashboardService.getStats(req.user.schoolId);
   }
 }

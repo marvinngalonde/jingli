@@ -28,16 +28,15 @@ export class StaffController {
 
     @Get()
     @ApiOperation({ summary: 'Get all staff for a school' })
-    @ApiQuery({ name: 'schoolId' })
     @Roles(UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.HOD, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN)
-    findAll(@Query('schoolId') schoolId: string) {
-        return this.staffService.findAll(schoolId);
+    findAll(@Req() req: any) {
+        return this.staffService.findAll(req.user.schoolId);
     }
 
     @Get('export/pdf')
     @ApiOperation({ summary: 'Export staff directory as PDF' })
-    async exportPdf(@Query('schoolId') schoolId: string, @Res() res: Response) {
-        const staff = await this.staffService.findAll(schoolId);
+    async exportPdf(@Req() req: any, @Res() res: Response) {
+        const staff = await this.staffService.findAll(req.user.schoolId);
         const rows = (staff as any[]).map(s => ({
             employeeId: s.employeeId,
             name: `${s.firstName} ${s.lastName}`,

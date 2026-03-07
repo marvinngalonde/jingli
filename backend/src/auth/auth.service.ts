@@ -51,14 +51,17 @@ export class AuthService {
         }
 
         // Create new user
-        // Default school ID is needed. Since we are multi-tenant, 
-        // usually we need a schoolId. For this MVP/Demo, we might 
-        // pick the first school or fail if none.
-        // Let's assume a default school or '1' or require one.
+        // In a multi-tenant system, we MUST know which school the user belongs to.
+        // We expect schoolId to be passed in metadata or resolved via subdomain.
+        const schoolId = metadata?.schoolId;
 
-        const school = await this.prisma.school.findFirst();
+        if (!schoolId) {
+            throw new BadRequestException('School context is missing for new user registration.');
+        }
+
+        const school = await this.prisma.school.findUnique({ where: { id: schoolId } });
         if (!school) {
-            throw new BadRequestException('No school configured in system');
+            throw new BadRequestException('Target school not found');
         }
 
         // Determine Role from metadata or default

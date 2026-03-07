@@ -25,12 +25,14 @@ export default function Health() {
     // Queries
     const { data: visits = [], isLoading: visitsLoading } = useQuery({
         queryKey: ['healthVisits'],
-        queryFn: () => api.get('/health/visits').then(res => res.data || [])
+        queryFn: () => api.get('/health/visits').then(res => res.data || []),
+        staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
     const { data: stats = { totalVisits: 0, todayVisits: 0, profilesRecorded: 0 }, isLoading: statsLoading } = useQuery({
         queryKey: ['healthStats'],
-        queryFn: () => api.get('/health/stats').then(res => res.data)
+        queryFn: () => api.get('/health/stats').then(res => res.data),
+        staleTime: 5 * 60 * 1000,
     });
 
     // Query for viewing a specific student's full history Profile
@@ -45,7 +47,8 @@ export default function Health() {
     // All Profiles listing
     const { data: allProfiles = [], isLoading: profilesListLoading } = useQuery({
         queryKey: ['healthProfiles'],
-        queryFn: () => api.get('/health/profiles').then(res => res.data || [])
+        queryFn: () => api.get('/health/profiles').then(res => res.data || []),
+        staleTime: 5 * 60 * 1000,
     });
 
     const [profileSearch, setProfileSearch] = useState('');
@@ -194,16 +197,16 @@ export default function Health() {
                         {filtered.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl">No clinic visits found. Click "Log Visit" to get started.</Text>
                         ) : (
-                            <Table striped highlightOnHover>
+                            <Table striped highlightOnHover className="mobile-stack-table">
                                 <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Date</Table.Th><Table.Th>Complaint</Table.Th><Table.Th>Diagnosis</Table.Th><Table.Th>Treatment</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                                 <Table.Tbody>{filtered.map((v: any) => (
                                     <Table.Tr key={v.id}>
-                                        <Table.Td fw={500}>{v.student?.firstName} {v.student?.lastName}</Table.Td>
-                                        <Table.Td>{new Date(v.date).toLocaleDateString()}</Table.Td>
-                                        <Table.Td>{v.complaint}</Table.Td>
-                                        <Table.Td>{v.diagnosis || '—'}</Table.Td>
-                                        <Table.Td>{v.treatment || '—'}</Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Student" fw={500}>{v.student?.firstName} {v.student?.lastName}</Table.Td>
+                                        <Table.Td data-label="Date">{new Date(v.date).toLocaleDateString()}</Table.Td>
+                                        <Table.Td data-label="Complaint">{v.complaint}</Table.Td>
+                                        <Table.Td data-label="Diagnosis">{v.diagnosis || '—'}</Table.Td>
+                                        <Table.Td data-label="Treatment">{v.treatment || '—'}</Table.Td>
+                                        <Table.Td data-label="Actions">
                                             <Group gap="xs">
                                                 <ActionIcon color="teal" variant="subtle" title="View Full History" onClick={() => openHistoryModal(v.studentId, `${v.student?.firstName} ${v.student?.lastName}`)}><IconEye size={16} /></ActionIcon>
                                                 <ActionIcon color="blue" variant="subtle" onClick={() => openVisitDrawer(v)}><IconEdit size={16} /></ActionIcon>
@@ -232,16 +235,16 @@ export default function Health() {
                             return filteredProfiles.length === 0 ? (
                                 <Text ta="center" c="dimmed" py="xl">No medical profiles found. Click "New Profile" to get started.</Text>
                             ) : (
-                                <Table striped highlightOnHover>
+                                <Table striped highlightOnHover className="mobile-stack-table">
                                     <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Blood Type</Table.Th><Table.Th>Allergies</Table.Th><Table.Th>Chronic Conditions</Table.Th><Table.Th>Emergency Contact</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                                     <Table.Tbody>{filteredProfiles.map((p: any) => (
                                         <Table.Tr key={p.id || p.studentId}>
-                                            <Table.Td fw={500}>{p.student?.firstName} {p.student?.lastName}</Table.Td>
-                                            <Table.Td>{p.bloodType ? <Badge color="red" variant="light">{p.bloodType}</Badge> : '—'}</Table.Td>
-                                            <Table.Td>{p.allergies || '—'}</Table.Td>
-                                            <Table.Td>{p.chronicConditions || '—'}</Table.Td>
-                                            <Table.Td>{p.emergencyContact ? `${p.emergencyContact} ${p.emergencyPhone ? `(${p.emergencyPhone})` : ''}` : '—'}</Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Student" fw={500}>{p.student?.firstName} {p.student?.lastName}</Table.Td>
+                                            <Table.Td data-label="Blood Type">{p.bloodType ? <Badge color="red" variant="light">{p.bloodType}</Badge> : '—'}</Table.Td>
+                                            <Table.Td data-label="Allergies">{p.allergies || '—'}</Table.Td>
+                                            <Table.Td data-label="Chronic Conditions">{p.chronicConditions || '—'}</Table.Td>
+                                            <Table.Td data-label="Emergency Contact">{p.emergencyContact ? `${p.emergencyContact} ${p.emergencyPhone ? `(${p.emergencyPhone})` : ''}` : '—'}</Table.Td>
+                                            <Table.Td data-label="Actions">
                                                 <Group gap="xs">
                                                     <ActionIcon color="teal" variant="subtle" title="View Full History" onClick={() => openHistoryModal(p.studentId, `${p.student?.firstName} ${p.student?.lastName}`)}><IconEye size={16} /></ActionIcon>
                                                     <ActionIcon color="blue" variant="subtle" title="Edit Profile" onClick={() => openProfileDrawer(p.studentId)}><IconEdit size={16} /></ActionIcon>

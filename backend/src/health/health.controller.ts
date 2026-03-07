@@ -16,7 +16,7 @@ export class HealthController {
     @Post('profiles')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
     @ApiOperation({ summary: 'Create/Update Medical Profile' })
-    upsertProfile(@Body() dto: any) { return this.service.upsertProfile(dto); }
+    upsertProfile(@Req() req: any, @Body() dto: any) { return this.service.upsertProfile(dto, req.user.schoolId); }
 
     @Get('profiles')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
@@ -26,7 +26,7 @@ export class HealthController {
     @Get('profiles/:studentId')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION, UserRole.PARENT)
     @ApiOperation({ summary: 'Get Medical Profile' })
-    getProfile(@Param('studentId') studentId: string) { return this.service.getProfile(studentId); }
+    getProfile(@Req() req: any, @Param('studentId') studentId: string) { return this.service.getProfile(studentId, req.user.schoolId); }
 
     @Get('stats')
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)

@@ -20,7 +20,6 @@ import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
 
-// Import the new smaller transparent images
 import whitelogo from '../assets/images/whitelogo.png';
 import sideImgTrans from '../assets/images/sideimg-trans.png';
 
@@ -56,11 +55,8 @@ export function Login() {
             });
             const resolveRes = await api.get('/users/me');
             const role = resolveRes.data.role;
-
             const targetPath = getDashboardPath(role);
-
             navigate(targetPath);
-
         } catch (error: any) {
             notifications.show({
                 title: 'Login Failed',
@@ -73,17 +69,15 @@ export function Login() {
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
+        <div className="auth-wrapper">
             {/* LEFT SIDE: FORM */}
-            <div style={{
-                flex: '0 0 50%',
-                maxWidth: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
-                color: isDark ? '#c1c2c5' : undefined
-            }} className="login-form-container">
+            <div
+                className="auth-form-panel"
+                style={{
+                    background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                    color: isDark ? '#c1c2c5' : undefined,
+                }}
+            >
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(32) }}>
                         Login to Jingli
@@ -93,7 +87,7 @@ export function Login() {
                     </Text>
 
                     <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
-                        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+                        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: 'sm', blur: 2 }} />
 
                         <Stack gap="lg">
                             <TextInput
@@ -145,35 +139,31 @@ export function Login() {
             </div>
 
             {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
-            <div style={{
-                flex: '1',
-                background: isDark
-                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
-                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '3rem 2rem',
-                position: 'relative'
-            }}>
+            <div
+                className="auth-brand-panel"
+                style={{
+                    background: isDark
+                        ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                        : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
+                }}
+            >
                 {/* Top Logo */}
-                <Box mt="xl">
+                <Box mt="xl" className="auth-brand-top">
                     <Image
                         src={whitelogo}
                         alt="Jingli Logo"
-                        w={300} // Adjust this width as needed to match your exact logo size
+                        w={200}
                         fit="contain"
                     />
                 </Box>
 
-                {/* Center Transparent Image */}
-                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                {/* Center Illustration */}
+                <Box className="auth-brand-illustration" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                     <Image
                         src={sideImgTrans}
                         alt="Education Management Illustration"
                         w="100%"
-                        maw={500} // Limits the max width so it stays crisp
+                        maw={500}
                         fit="contain"
                     />
                 </Box>
@@ -183,10 +173,12 @@ export function Login() {
                     c="white"
                     size="xl"
                     mb="xl"
+                    className="auth-brand-tagline"
                     style={{
                         fontFamily: 'Inter, sans-serif',
                         fontWeight: 300,
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        textAlign: 'center',
                     }}
                 >
                     Empowering Education, Simplifying Management

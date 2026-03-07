@@ -70,9 +70,8 @@ export class StudentsController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        // TODO: Ensure student belongs to school (add robust check in service or implicit filter)
-        return this.studentsService.findOne(id);
+    findOne(@Req() req: any, @Param('id') id: string) {
+        return this.studentsService.findOne(id, req.user.schoolId);
     }
 
     @Patch(':id')

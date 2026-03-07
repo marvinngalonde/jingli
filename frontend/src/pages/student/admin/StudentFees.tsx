@@ -27,7 +27,8 @@ export default function StudentFees() {
             const res = await api.get(`/invoices?studentId=${studentId}`);
             return res.data;
         },
-        enabled: !!user?.profile?.id
+        enabled: !!user?.profile?.id,
+        staleTime: 5 * 60 * 1000,
     });
 
     const invoices = invoicesData as Invoice[];
@@ -89,7 +90,7 @@ export default function StudentFees() {
                 </Card>
             ) : (
                 <Paper withBorder radius="md" p="md" bg="var(--app-surface)">
-                    <Table striped highlightOnHover>
+                    <Table striped highlightOnHover className="mobile-stack-table">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Invoice #</Table.Th>
@@ -104,15 +105,15 @@ export default function StudentFees() {
                         <Table.Tbody>
                             {invoices.map((inv) => (
                                 <Table.Tr key={inv.id}>
-                                    <Table.Td fw={500}>{inv.invoiceNo}</Table.Td>
-                                    <Table.Td>{inv.feeStructure?.name || 'N/A'}</Table.Td>
-                                    <Table.Td>${inv.totalAmount.toLocaleString()}</Table.Td>
-                                    <Table.Td c="green">${inv.paidAmount.toLocaleString()}</Table.Td>
-                                    <Table.Td c={inv.totalAmount - inv.paidAmount > 0 ? 'red' : 'green'}>
+                                    <Table.Td data-label="Invoice #" fw={500}>{inv.invoiceNo}</Table.Td>
+                                    <Table.Td data-label="Fee Type">{inv.feeStructure?.name || 'N/A'}</Table.Td>
+                                    <Table.Td data-label="Amount">${inv.totalAmount.toLocaleString()}</Table.Td>
+                                    <Table.Td data-label="Paid" c="green">${inv.paidAmount.toLocaleString()}</Table.Td>
+                                    <Table.Td data-label="Balance" c={inv.totalAmount - inv.paidAmount > 0 ? 'red' : 'green'}>
                                         ${(inv.totalAmount - inv.paidAmount).toLocaleString()}
                                     </Table.Td>
-                                    <Table.Td>{format(new Date(inv.dueDate), 'dd MMM yyyy')}</Table.Td>
-                                    <Table.Td>
+                                    <Table.Td data-label="Due Date">{format(new Date(inv.dueDate), 'dd MMM yyyy')}</Table.Td>
+                                    <Table.Td data-label="Status">
                                         <Badge
                                             color={inv.status === 'PAID' ? 'green' : inv.status === 'OVERDUE' ? 'red' : 'orange'}
                                             variant="light"

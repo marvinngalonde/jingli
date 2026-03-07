@@ -1,10 +1,12 @@
-import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Modal, TextInput, Textarea } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Modal, TextInput, Textarea, Center, Loader } from '@mantine/core';
 import { IconArrowLeft, IconCheck, IconUpload } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '../../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
 import { format } from 'date-fns';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 
 interface Assignment {
     id: string;
@@ -12,37 +14,56 @@ interface Assignment {
     description: string | null;
     dueDate: string | null;
     maxMarks: number | null;
-    submissions: any[]; // We'll include the student's submission if it exists
+    submissions: any[];
 }
 
 export function StudentAssignments() {
     const { subjectId } = useParams();
     const navigate = useNavigate();
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [loading, setLoading] = useState(true);
-
+    const queryClient = useQueryClient();
     const [opened, { open, close }] = useDisclosure(false);
-    const [submitting, setSubmitting] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
     // Submission form
     const [fileUrl, setFileUrl] = useState('');
     const [content, setContent] = useState('');
 
-    useEffect(() => {
-        const fetchAssignments = async () => {
-            if (!subjectId) return;
-            try {
-                const { data } = await api.get(`/student/classes/${subjectId}/assignments`);
-                setAssignments(data);
-            } catch (error) {
-                console.error("Failed to fetch assignments", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAssignments();
-    }, [subjectId]);
+    const { data: assignments = [], isLoading: loading } = useQuery({
+        queryKey: ['studentAssignments', subjectId],
+        queryFn: async () => {
+            if (!subjectId) return [];
+            const { data } = await api.get(`/student/classes/${subjectId}/assignments`);
+            return data as Assignment[];
+        },
+        enabled: !!subjectId,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const submitMutation = useMutation({
+        mutationFn: async (payload: { assignmentId: string; fileUrl?: string; content?: string }) => {
+            const { data } = await api.post(`/student/assignments/${payload.assignmentId}/submit`, {
+                fileUrl: payload.fileUrl,
+                content: payload.content,
+            });
+            return data;
+        },
+        onSuccess: () => {
+            notifications.show({
+                title: 'Success',
+                message: 'Assignment submitted successfully',
+                color: 'green'
+            });
+            queryClient.invalidateQueries({ queryKey: ['studentAssignments', subjectId] });
+            close();
+        },
+        onError: (error: any) => {
+            notifications.show({
+                title: 'Error',
+                message: error.response?.data?.message || 'Failed to submit assignment',
+                color: 'red'
+            });
+        }
+    });
 
     const handleOpenSubmit = (assignment: Assignment) => {
         setSelectedAssignment(assignment);
@@ -53,23 +74,11 @@ export function StudentAssignments() {
 
     const handleSubmit = async () => {
         if (!selectedAssignment || (!fileUrl && !content)) return;
-        setSubmitting(true);
-        try {
-            const { data } = await api.post(`/student/assignments/${selectedAssignment.id}/submit`, {
-                fileUrl: fileUrl || undefined,
-                content: content || undefined,
-            });
-
-            // Update local state to reflect submission
-            setAssignments(assignments.map(a =>
-                a.id === selectedAssignment.id ? { ...a, submissions: [data] } : a
-            ));
-            close();
-        } catch (error) {
-            console.error("Failed to submit assignment", error);
-        } finally {
-            setSubmitting(false);
-        }
+        submitMutation.mutate({
+            assignmentId: selectedAssignment.id,
+            fileUrl: fileUrl || undefined,
+            content: content || undefined,
+        });
     };
 
     return (
@@ -78,7 +87,7 @@ export function StudentAssignments() {
 
             <Group justify="space-between">
                 <Group>
-                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/student/classes')}>
+                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/student-portal/classes')}>
                         <IconArrowLeft size={20} />
                     </ActionIcon>
                     <div>
@@ -92,7 +101,7 @@ export function StudentAssignments() {
                 {assignments.length === 0 && !loading ? (
                     <Text p="xl" ta="center" c="dimmed" fs="italic">No assignments for this class.</Text>
                 ) : (
-                    <Table verticalSpacing="md" striped highlightOnHover>
+                    <Table verticalSpacing="md" striped highlightOnHover className="mobile-stack-table">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Assignment</Table.Th>
@@ -103,23 +112,23 @@ export function StudentAssignments() {
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {assignments.map((a) => {
+                            {assignments.map((a: Assignment) => {
                                 const hasSubmitted = a.submissions && a.submissions.length > 0;
                                 const isGraded = hasSubmitted && a.submissions[0].marks !== null;
 
                                 return (
                                     <Table.Tr key={a.id}>
-                                        <Table.Td>
+                                        <Table.Td data-label="Assignment">
                                             <Text size="sm" fw={500}>{a.title}</Text>
                                             <Text size="xs" c="dimmed" lineClamp={1}>{a.description}</Text>
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Due Date">
                                             {a.dueDate ? format(new Date(a.dueDate), 'MMM dd, yyyy h:mm a') : 'No due date'}
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Max Marks">
                                             {a.maxMarks || '-'}
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td data-label="Status">
                                             {isGraded ? (
                                                 <Badge color="green">Graded ({a.submissions[0].marks}/{a.maxMarks})</Badge>
                                             ) : hasSubmitted ? (
@@ -168,7 +177,7 @@ export function StudentAssignments() {
                     />
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={close}>Cancel</Button>
-                        <Button onClick={handleSubmit} loading={submitting} disabled={!fileUrl && !content}>Submit Assignment</Button>
+                        <Button onClick={handleSubmit} loading={submitMutation.isPending} disabled={!fileUrl && !content}>Submit Assignment</Button>
                     </Group>
                 </Stack>
             </Modal>

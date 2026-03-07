@@ -80,7 +80,8 @@ export default function StudentPortalDashboard() {
                 liveClasses: upcoming.slice(0, 3),
                 grades: Array.isArray(allGrades) ? allGrades.slice(0, 5) : []
             };
-        }
+        },
+        staleTime: 5 * 60 * 1000,
     });
 
     const stats = data?.stats || { totalSubjects: 0, pendingAssignments: 0, availableQuizzes: 0, upcomingLiveClasses: 0 };

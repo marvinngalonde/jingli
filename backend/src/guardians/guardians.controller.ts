@@ -1,25 +1,32 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { GuardiansService } from './guardians.service';
 import { CreateGuardianDto } from './dto/create-guardian.dto';
 import { UpdateGuardianDto } from './dto/update-guardian.dto';
+import { SupabaseGuard } from '../auth/supabase.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('guardians')
+@ApiBearerAuth()
+@UseGuards(SupabaseGuard, RolesGuard)
 @Controller('guardians')
 export class GuardiansController {
     constructor(private readonly guardiansService: GuardiansService) { }
 
     @Post()
     @ApiOperation({ summary: 'Create new guardian (and user account if needed)' })
-    create(@Body() createDto: CreateGuardianDto) {
-        return this.guardiansService.create(createDto);
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
+    create(@Req() req: any, @Body() createDto: CreateGuardianDto) {
+        return this.guardiansService.create({ ...createDto, schoolId: req.user.schoolId });
     }
 
     @Get()
     @ApiOperation({ summary: 'Get all guardians' })
-    @ApiQuery({ name: 'schoolId' })
-    findAll(@Query('schoolId') schoolId: string) {
-        return this.guardiansService.findAll(schoolId);
+    @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
+    findAll(@Req() req: any) {
+        return this.guardiansService.findAll(req.user.schoolId);
     }
 
     @Get(':id')

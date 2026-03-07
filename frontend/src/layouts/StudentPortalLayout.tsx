@@ -18,6 +18,7 @@ import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
+import { MobileBottomNav } from '../components/common/MobileBottomNav';
 
 const mainNavLinks = [
     { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
@@ -36,6 +37,14 @@ const utilityNavLinks = [
     { icon: IconCalendar, label: 'Calendar', to: '/student-portal/calendar', color: 'blue' },
     { icon: IconMessage, label: 'Inbox', to: '/student-portal/inbox', color: 'gray' },
     { icon: IconBook, label: 'Library', to: '/student-portal/library', color: 'orange' },
+];
+
+const mobileNavLinks = [
+    { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
+    { icon: IconFiles, label: 'Materials', to: '/student-portal/materials', color: 'indigo' },
+    { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
+    { icon: IconBrain, label: 'CBT', to: '/student-portal/cbt', color: 'grape' },
+    { icon: IconMessageCircle, label: 'Discuss', to: '/student-portal/discussions', color: 'violet' },
 ];
 
 export function StudentPortalLayout() {
@@ -104,71 +113,67 @@ export function StudentPortalLayout() {
 
     return (
         <AppShell
-            header={{ height: 64 }}
+            header={{ height: { base: 56, sm: 64 } }}
             navbar={{
                 width: desktopOpened ? 260 : 80,
                 breakpoint: 'sm',
-                collapsed: { mobile: !mobileOpened },
+                collapsed: { mobile: true }, // Always hide sidebar on mobile
             }}
             padding="md"
             styles={{ main: { background: 'var(--app-surface-dim)' } }}
         >
             {/* HEADER */}
             <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
-                <Group h="100%" px="lg" justify="space-between">
-                    <Group>
-                        <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
-                        <Group gap="xs" visibleFrom="sm">
+                <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
+                    <Group wrap="nowrap">
+                        <Burger opened={mobileOpened} onClick={toggleMobile} hidden size="sm" />
+                        <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/student-portal/dashboard')}>
                             <IconSchool size={24} color="var(--mantine-color-teal-6)" />
-                            <Text fw={700} size="lg" style={{ letterSpacing: '-0.02em' }}>
-                                <Text span c="teal" inherit>Student</Text> Learning Portal
+                            <Text fw={700} size="lg" style={{ letterSpacing: '-0.02em' }} visibleFrom="xs">
+                                <Text span c="teal" inherit>Student</Text> Portal
                             </Text>
                         </Group>
                     </Group>
 
 
-                    <Group gap="sm">
+                    <Group gap="sm" wrap="nowrap">
                         <Badge
                             variant="light"
                             color="blue"
-                            size="lg"
+                            size="md"
                             radius="md"
                             leftSection={<IconCalendar size={14} />}
                             styles={{ root: { textTransform: 'none' } }}
-                            visibleFrom="md"
+                            visibleFrom="sm"
                         >
                             2026 - Term 1
                         </Badge>
 
-                        <Tooltip label="Notifications">
-                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
-                                <Indicator
-                                    color="red"
-                                    size={unreadCount > 0 ? 16 : 0}
-                                    offset={4}
-                                    processing={unreadCount > 0}
-                                    label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
-                                    disabled={unreadCount === 0}
-                                >
-                                    <IconBell size={20} stroke={1.5} />
-                                </Indicator>
-                            </ActionIcon>
-                        </Tooltip>
+                        <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
+                            <Indicator
+                                color="red"
+                                size={unreadCount > 0 ? 16 : 0}
+                                offset={4}
+                                processing={unreadCount > 0}
+                                label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
+                                disabled={unreadCount === 0}
+                            >
+                                <IconBell size={20} stroke={1.5} />
+                            </Indicator>
+                        </ActionIcon>
 
-                        <Tooltip label="AI Assistant">
-                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
-                            </ActionIcon>
-                        </Tooltip>
+                        <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                            <img src={jaiLogo} alt="AI" style={{ height: 18 }} />
+                        </ActionIcon>
 
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <UnstyledButton>
                                     <Group gap="xs">
-                                        <Avatar radius="md" color="teal" size={34}>
+                                        <Avatar radius="md" color="teal" size={32}>
                                             {user?.profile?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
                                         </Avatar>
-                                        <Box visibleFrom="xs">
+                                        <Box visibleFrom="sm">
                                             <IconChevronDown size={14} color="gray" />
                                         </Box>
                                     </Group>
@@ -192,7 +197,7 @@ export function StudentPortalLayout() {
             </AppShell.Header>
 
             {/* SIDEBAR */}
-            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
+            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }} visibleFrom="sm">
                 <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
                     {desktopOpened ? (
                         <Group justify="space-between">
@@ -261,6 +266,8 @@ export function StudentPortalLayout() {
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
+
+            <MobileBottomNav links={mobileNavLinks} />
 
             <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />

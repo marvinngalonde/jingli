@@ -11,14 +11,13 @@ import {
     LoadingOverlay,
     Stack,
     Image,
+    useMantineColorScheme,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconEyeCheck, IconEyeOff } from '@tabler/icons-react';
-import { useMantineColorScheme } from '@mantine/core';
 
-// Import the branded images
 import whitelogo from '../assets/images/whitelogo.png';
 import sideImgTrans from '../assets/images/sideimg-trans.png';
 
@@ -51,80 +50,52 @@ export function Signup() {
         setLoading(true);
         try {
             const { name, email, password } = form.values;
-
-            // Tell AuthContext to skip auto-fetching profile on the next SIGNED_IN event
             setSkipNextProfileFetch(true);
 
-            // 1. SignUp with Supabase
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
-                options: {
-                    data: { full_name: name }
-                }
+                options: { data: { full_name: name } },
             });
 
             if (error) throw error;
 
             if (data.session) {
-                // 2. Sync user to backend DB
                 const token = data.session.access_token;
-
-                await api.post('/auth/sync', {
-                    email,
-                    firstName: name.split(' ')[0],
-                    lastName: name.split(' ').slice(1).join(' ') || '',
-                    role: 'STUDENT'
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-
-                // 3. Now fetch the profile (user exists in DB after sync)
+                await api.post(
+                    '/auth/sync',
+                    {
+                        email,
+                        firstName: name.split(' ')[0],
+                        lastName: name.split(' ').slice(1).join(' ') || '',
+                        role: 'STUDENT',
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 await fetchProfile();
-
-                notifications.show({
-                    title: 'Account Created!',
-                    message: 'Welcome to Jingli! Redirecting to dashboard...',
-                    color: 'green',
-                });
-
+                notifications.show({ title: 'Account Created!', message: 'Welcome to Jingli! Redirecting to dashboard...', color: 'green' });
                 navigate('/');
             } else {
-                // Email confirmation required
-                notifications.show({
-                    title: 'Check your email',
-                    message: 'A confirmation link has been sent to your email address.',
-                    color: 'blue',
-                    autoClose: 5000,
-                });
+                notifications.show({ title: 'Check your email', message: 'A confirmation link has been sent to your email address.', color: 'blue', autoClose: 5000 });
                 navigate('/login');
             }
-
         } catch (error: any) {
-            notifications.show({
-                title: 'Signup Failed',
-                message: error.response?.data?.message || error.message || 'An error occurred during signup',
-                color: 'red',
-            });
+            notifications.show({ title: 'Signup Failed', message: error.response?.data?.message || error.message || 'An error occurred during signup', color: 'red' });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
+        <div className="auth-wrapper">
             {/* LEFT SIDE: FORM */}
-            <div style={{
-                flex: '0 0 50%',
-                maxWidth: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: isDark ? '#1a1b1e' : 'var(--app-surface)',
-                color: isDark ? '#c1c2c5' : undefined
-            }} className="signup-form-container">
+            <div
+                className="auth-form-panel"
+                style={{
+                    background: isDark ? '#1a1b1e' : 'var(--app-surface)',
+                    color: isDark ? '#c1c2c5' : undefined,
+                }}
+            >
                 <Box maw={450} w="100%" px="xl" py="xl">
                     <Title order={2} ta="center" mt="md" mb={10} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: rem(28) }}>
                         Create your Jingli Account
@@ -134,7 +105,7 @@ export function Signup() {
                     </Text>
 
                     <form onSubmit={form.onSubmit(handleSubmit)} style={{ position: 'relative' }}>
-                        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+                        <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: 'sm', blur: 2 }} />
 
                         <Stack gap="md">
                             <TextInput
@@ -146,7 +117,6 @@ export function Signup() {
                                 {...form.getInputProps('name')}
                                 styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
-
                             <TextInput
                                 label="Email Address"
                                 placeholder="Email Address"
@@ -156,7 +126,6 @@ export function Signup() {
                                 {...form.getInputProps('email')}
                                 styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
-
                             <PasswordInput
                                 label="Password"
                                 placeholder="Password"
@@ -164,16 +133,11 @@ export function Signup() {
                                 radius="md"
                                 required
                                 visibilityToggleIcon={({ reveal }) =>
-                                    reveal ? (
-                                        <IconEyeOff style={{ width: rem(20), height: rem(20) }} />
-                                    ) : (
-                                        <IconEyeCheck style={{ width: rem(20), height: rem(20) }} />
-                                    )
+                                    reveal ? <IconEyeOff style={{ width: rem(20), height: rem(20) }} /> : <IconEyeCheck style={{ width: rem(20), height: rem(20) }} />
                                 }
                                 {...form.getInputProps('password')}
                                 styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
                             />
-
                             <PasswordInput
                                 label="Confirm Password"
                                 placeholder="Confirm Password"
@@ -181,11 +145,7 @@ export function Signup() {
                                 radius="md"
                                 required
                                 visibilityToggleIcon={({ reveal }) =>
-                                    reveal ? (
-                                        <IconEyeOff style={{ width: rem(20), height: rem(20) }} />
-                                    ) : (
-                                        <IconEyeCheck style={{ width: rem(20), height: rem(20) }} />
-                                    )
+                                    reveal ? <IconEyeOff style={{ width: rem(20), height: rem(20) }} /> : <IconEyeCheck style={{ width: rem(20), height: rem(20) }} />
                                 }
                                 {...form.getInputProps('confirmPassword')}
                                 styles={{ input: { backgroundColor: isDark ? '#25262b' : 'var(--app-surface-dim)' } }}
@@ -207,49 +167,28 @@ export function Signup() {
             </div>
 
             {/* RIGHT SIDE: BRANDING & ILLUSTRATION */}
-            <div style={{
-                flex: '1',
-                background: isDark
-                    ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
-                    : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '3rem 2rem',
-                position: 'relative'
-            }}>
-                {/* Top Logo */}
-                <Box mt="xl">
-                    <Image
-                        src={whitelogo}
-                        alt="Jingli Logo"
-                        w={300}
-                        fit="contain"
-                    />
+            <div
+                className="auth-brand-panel"
+                style={{
+                    background: isDark
+                        ? 'radial-gradient(circle, #1a3a6e 0%, #0a1e4a 100%)'
+                        : 'radial-gradient(circle, #255bb5 0%, #0d328b 100%)',
+                }}
+            >
+                <Box mt="xl" className="auth-brand-top">
+                    <Image src={whitelogo} alt="Jingli Logo" w={200} fit="contain" />
                 </Box>
 
-                {/* Center Transparent Image */}
-                <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                    <Image
-                        src={sideImgTrans}
-                        alt="Education Management Illustration"
-                        w="100%"
-                        maw={500}
-                        fit="contain"
-                    />
+                <Box className="auth-brand-illustration" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <Image src={sideImgTrans} alt="Education Management Illustration" w="100%" maw={500} fit="contain" />
                 </Box>
 
-                {/* Bottom Text */}
                 <Text
                     c="white"
                     size="xl"
                     mb="xl"
-                    style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 300,
-                        letterSpacing: '0.5px'
-                    }}
+                    className="auth-brand-tagline"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, letterSpacing: '0.5px', textAlign: 'center' }}
                 >
                     Empowering Education, Simplifying Management
                 </Text>

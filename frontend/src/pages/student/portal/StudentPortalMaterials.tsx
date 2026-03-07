@@ -46,7 +46,8 @@ export default function StudentPortalMaterials() {
                 } catch { /* skip subjects with no materials */ }
             }
             return { subjectsList, allMaterials };
-        }
+        },
+        staleTime: 5 * 60 * 1000,
     });
 
     const subjects = data?.subjectsList || [];
@@ -193,7 +194,7 @@ export default function StudentPortalMaterials() {
                         </Card>
                     ) : (
                         <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
-                            <Table striped highlightOnHover>
+                            <Table striped highlightOnHover className="mobile-stack-table">
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Material</Table.Th>
@@ -206,7 +207,7 @@ export default function StudentPortalMaterials() {
                                 <Table.Tbody>
                                     {materials.map((mat: any) => (
                                         <Table.Tr key={mat.id}>
-                                            <Table.Td>
+                                            <Table.Td data-label="Material">
                                                 <Group gap="sm">
                                                     <ThemeIcon variant="light" color={getTypeColor(mat.type)} size="sm" radius="md">
                                                         {getTypeIcon(mat.type)}
@@ -217,13 +218,13 @@ export default function StudentPortalMaterials() {
                                                     </div>
                                                 </Group>
                                             </Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Subject">
                                                 <Badge variant="outline" color="grape" size="sm">{mat.subject?.code || '—'}</Badge>
                                             </Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Type">
                                                 <Badge variant="light" color={getTypeColor(mat.type)} size="sm" tt="capitalize">{mat.type || 'File'}</Badge>
                                             </Table.Td>
-                                            <Table.Td>
+                                            <Table.Td data-label="Date">
                                                 <Text size="sm" c="dimmed">
                                                     {new Date(mat.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                                 </Text>

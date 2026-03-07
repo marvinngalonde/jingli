@@ -28,14 +28,16 @@ export default function Discipline() {
             const params = new URLSearchParams();
             if (typeFilter) params.append('type', typeFilter);
             return api.get(`/discipline?${params}`).then(res => res.data || []);
-        }
+        },
+        staleTime: 5 * 60 * 1000,
     });
 
     // Fetch Summary for Selected Student
     const { data: studentSummary, isLoading: summaryLoading } = useQuery({
         queryKey: ['disciplineSummary', summaryModal.studentId],
         queryFn: () => summaryModal.studentId ? api.get(`/discipline/summary/${summaryModal.studentId}`).then(res => res.data) : null,
-        enabled: !!summaryModal.studentId
+        enabled: !!summaryModal.studentId,
+        staleTime: 5 * 60 * 1000,
     });
 
     // Mutations
@@ -152,22 +154,22 @@ export default function Discipline() {
                 {filtered.length === 0 ? (
                     <Text ta="center" c="dimmed" py="xl">No discipline records found. Click "Add Record" to get started.</Text>
                 ) : (
-                    <Table striped highlightOnHover>
+                    <Table striped highlightOnHover className="mobile-stack-table">
                         <Table.Thead><Table.Tr><Table.Th>Student</Table.Th><Table.Th>Type</Table.Th><Table.Th>Category</Table.Th><Table.Th>Description</Table.Th><Table.Th>Issuing Staff</Table.Th><Table.Th>Points</Table.Th><Table.Th>Date</Table.Th><Table.Th>Actions</Table.Th></Table.Tr></Table.Thead>
                         <Table.Tbody>{filtered.map((r: any) => (
                             <Table.Tr key={r.id}>
-                                <Table.Td fw={500}>
+                                <Table.Td data-label="Student" fw={500}>
                                     <Text size="sm" style={{ cursor: 'pointer', color: 'var(--mantine-color-blue-6)' }} onClick={() => setSummaryModal({ opened: true, studentId: r.studentId, studentName: `${r.student?.firstName} ${r.student?.lastName}` })}>
                                         {r.student?.firstName} {r.student?.lastName}
                                     </Text>
                                 </Table.Td>
-                                <Table.Td><Badge color={r.type === 'MERIT' ? 'green' : 'red'} variant="light">{r.type}</Badge></Table.Td>
-                                <Table.Td>{r.category}</Table.Td>
-                                <Table.Td style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.description}</Table.Td>
-                                <Table.Td>{r.issuer ? `${r.issuer.firstName} ${r.issuer.lastName}` : '—'}</Table.Td>
-                                <Table.Td>{r.points}</Table.Td>
-                                <Table.Td>{new Date(r.date).toLocaleDateString()}</Table.Td>
-                                <Table.Td>
+                                <Table.Td data-label="Type"><Badge color={r.type === 'MERIT' ? 'green' : 'red'} variant="light">{r.type}</Badge></Table.Td>
+                                <Table.Td data-label="Category">{r.category}</Table.Td>
+                                <Table.Td data-label="Description" style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.description}</Table.Td>
+                                <Table.Td data-label="Issuing Staff">{r.issuer ? `${r.issuer.firstName} ${r.issuer.lastName}` : '—'}</Table.Td>
+                                <Table.Td data-label="Points">{r.points}</Table.Td>
+                                <Table.Td data-label="Date">{new Date(r.date).toLocaleDateString()}</Table.Td>
+                                <Table.Td data-label="Actions">
                                     <Group gap="xs">
                                         <ActionIcon color="blue" variant="subtle" onClick={() => openEditDrawer(r)}><IconEdit size={16} /></ActionIcon>
                                         <ActionIcon color="red" variant="subtle" loading={deleteMutation.isPending && deleteMutation.variables === r.id} onClick={() => confirmDelete(r.id, `${r.student?.firstName} ${r.student?.lastName}`)}><IconTrash size={16} /></ActionIcon>
