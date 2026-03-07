@@ -96,9 +96,6 @@ export class SystemService {
                 }
             });
 
-            // 5. Seed Defaults (Academic Year, Classes, Subjects)
-            await this.seedDefaults(school.id);
-
             return { success: true, message: 'System installed successfully.' };
         } catch (error: any) {
             // Cleanup on failure
@@ -130,46 +127,5 @@ export class SystemService {
                 config: config ? config : undefined,
             }
         });
-    }
-
-    private async seedDefaults(schoolId: string) {
-        const academicYear = await this.prisma.academicYear.create({
-            data: {
-                schoolId,
-                name: '2024-2025',
-                startDate: new Date('2024-09-01'),
-                endDate: new Date('2025-06-30'),
-                current: true
-            }
-        });
-
-        const classLevels = [];
-        for (let i = 1; i <= 3; i++) {
-            const classLevel = await this.prisma.classLevel.create({
-                data: { schoolId, name: `Grade ${i}`, level: i }
-            });
-            classLevels.push(classLevel);
-        }
-
-        const sections = ['A', 'B'];
-        for (const classLevel of classLevels) {
-            for (const sectionName of sections) {
-                await this.prisma.classSection.create({
-                    data: { schoolId, classLevelId: classLevel.id, name: sectionName, capacity: 30 }
-                });
-            }
-        }
-
-        const subjects = [
-            { name: 'Mathematics', code: 'MATH', department: 'Science' },
-            { name: 'English Language', code: 'ENG', department: 'Languages' },
-            { name: 'Science', code: 'SCI', department: 'Science' },
-        ];
-
-        for (const sub of subjects) {
-            await this.prisma.subject.create({
-                data: { schoolId, ...sub }
-            });
-        }
     }
 }

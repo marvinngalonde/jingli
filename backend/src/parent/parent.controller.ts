@@ -12,6 +12,11 @@ export class ParentController {
         return this.parentService.getChildren(req.user);
     }
 
+    @Get('children/finances')
+    getChildrenFinances(@Req() req: any) {
+        return this.parentService.getChildrenFinances(req.user);
+    }
+
     @Get('dashboard-stats/:studentId')
     getDashboardStats(@Req() req: any, @Param('studentId') studentId: string) {
         return this.parentService.getDashboardStats(req.user, studentId);

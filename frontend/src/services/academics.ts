@@ -150,6 +150,10 @@ export const academicYearsApi = {
     delete: async (id: string): Promise<void> => {
         await api.delete(`/academic-years/${id}`);
     },
+    getCurrent: async (): Promise<AcademicYear> => {
+        const { data } = await api.get('/academic-years/current');
+        return data;
+    },
 };
 
 // ============================================================================
@@ -221,4 +225,5 @@ export const academicsService = {
     updateAcademicYear: academicYearsApi.update,
     activateAcademicYear: academicYearsApi.activate,
     deleteAcademicYear: academicYearsApi.delete,
+    getCurrentAcademicYear: academicYearsApi.getCurrent,
 };

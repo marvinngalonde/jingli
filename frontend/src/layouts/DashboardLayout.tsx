@@ -40,6 +40,8 @@ import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { isAdminRole, isTeacherRole } from '../utils/roles';
+import { academicsService } from '../services/academics';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useCallback } from 'react';
 
 export function DashboardLayout() {
@@ -50,6 +52,12 @@ export function DashboardLayout() {
     const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
     const location = useLocation();
+
+    const { data: currentYear } = useQuery({
+        queryKey: ['currentAcademicYear'],
+        queryFn: academicsService.getCurrentAcademicYear,
+        staleTime: 10 * 60 * 1000,
+    });
 
     const fetchUnreadCount = useCallback(async () => {
         try {
@@ -263,14 +271,14 @@ export function DashboardLayout() {
                     <Group gap="sm">
                         <Badge
                             variant="light"
-                            color="blue"
+                            color={currentYear ? "blue" : "gray"}
                             size="lg"
                             radius="md"
                             leftSection={<IconCalendar size={14} />}
                             styles={{ root: { textTransform: 'none' } }}
                             visibleFrom="md"
                         >
-                            2026 - Term 1
+                            {currentYear?.name || 'NOT SET'}
                         </Badge>
 
 

@@ -27,6 +27,12 @@ export class AcademicYearsService {
         });
     }
 
+    async findCurrent(schoolId: string) {
+        return this.prisma.academicYear.findFirst({
+            where: { schoolId, current: true }
+        });
+    }
+
     async findOne(id: string, schoolId: string) {
         const record = await this.prisma.academicYear.findFirst({
             where: { id, schoolId }

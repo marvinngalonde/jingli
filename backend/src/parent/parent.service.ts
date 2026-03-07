@@ -262,4 +262,57 @@ export class ParentService {
             teacher: a.staff
         })));
     }
+
+    async getChildrenFinances(user: any) {
+        const guardian = await this.prisma.guardian.findFirst({
+            where: { userId: user.id }
+        });
+
+        if (!guardian) throw new NotFoundException('Guardian profile not found');
+
+        const linkages = await this.prisma.studentGuardian.findMany({
+            where: { guardianId: guardian.id },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        admissionNo: true,
+                        invoices: {
+                            include: {
+                                feeStructure: true,
+                                transactions: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return linkages.map(l => {
+            const student = l.student;
+            const mappedInvoices = student.invoices.map(inv => {
+                const totalAmount = Number(inv.amount);
+                const paidAmount = inv.transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+                return {
+                    id: inv.id,
+                    invoiceNo: inv.id.substring(0, 8),
+                    totalAmount,
+                    paidAmount,
+                    status: inv.status,
+                    dueDate: inv.dueDate,
+                    feeStructure: inv.feeStructure ? { name: inv.feeStructure.name } : null
+                };
+            });
+
+            return {
+                id: student.id,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                admissionNo: student.admissionNo,
+                invoices: mappedInvoices
+            };
+        });
+    }
 }

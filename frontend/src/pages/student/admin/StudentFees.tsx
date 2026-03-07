@@ -7,15 +7,7 @@ import { api } from '../../../services/api';
 import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
 
-interface Invoice {
-    id: string;
-    invoiceNo: string;
-    totalAmount: number;
-    paidAmount: number;
-    status: string;
-    dueDate: string;
-    feeStructure?: { name: string };
-}
+import type { Invoice } from '../../../types/finance';
 
 export default function StudentFees() {
     const { user } = useAuth();
@@ -31,11 +23,16 @@ export default function StudentFees() {
         staleTime: 5 * 60 * 1000,
     });
 
-    const invoices = invoicesData as Invoice[];
+    const invoices = (invoicesData as Invoice[]).map(inv => ({
+        ...inv,
+        amount: Number(inv.amount),
+        paidAmount: inv.transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0,
+        invoiceNo: inv.id.substring(0, 8),
+    }));
 
-    const totalDue = invoices.reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0);
+    const totalDue = invoices.reduce((sum, i) => sum + (i.amount - i.paidAmount), 0);
     const totalPaid = invoices.reduce((sum, i) => sum + i.paidAmount, 0);
-    const totalAmount = invoices.reduce((sum, i) => sum + i.totalAmount, 0);
+    const totalAmount = invoices.reduce((sum, i) => sum + i.amount, 0);
     const paymentProgress = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
 
     if (loading) {
@@ -107,10 +104,10 @@ export default function StudentFees() {
                                 <Table.Tr key={inv.id}>
                                     <Table.Td data-label="Invoice #" fw={500}>{inv.invoiceNo}</Table.Td>
                                     <Table.Td data-label="Fee Type">{inv.feeStructure?.name || 'N/A'}</Table.Td>
-                                    <Table.Td data-label="Amount">${inv.totalAmount.toLocaleString()}</Table.Td>
+                                    <Table.Td data-label="Amount">${inv.amount.toLocaleString()}</Table.Td>
                                     <Table.Td data-label="Paid" c="green">${inv.paidAmount.toLocaleString()}</Table.Td>
-                                    <Table.Td data-label="Balance" c={inv.totalAmount - inv.paidAmount > 0 ? 'red' : 'green'}>
-                                        ${(inv.totalAmount - inv.paidAmount).toLocaleString()}
+                                    <Table.Td data-label="Balance" c={inv.amount - inv.paidAmount > 0 ? 'red' : 'green'}>
+                                        ${(inv.amount - inv.paidAmount).toLocaleString()}
                                     </Table.Td>
                                     <Table.Td data-label="Due Date">{format(new Date(inv.dueDate), 'dd MMM yyyy')}</Table.Td>
                                     <Table.Td data-label="Status">

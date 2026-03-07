@@ -20,6 +20,11 @@ export class AcademicYearsController {
         return this.academicYearsService.findAll(req.user.schoolId);
     }
 
+    @Get('current')
+    findCurrent(@Req() req: any) {
+        return this.academicYearsService.findCurrent(req.user.schoolId);
+    }
+
     @Get(':id')
     findOne(@Req() req: any, @Param('id') id: string) {
         return this.academicYearsService.findOne(id, req.user.schoolId);
