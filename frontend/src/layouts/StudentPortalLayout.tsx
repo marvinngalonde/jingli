@@ -14,11 +14,12 @@ import {
     IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
 import jaiLogo from '../assets/logos/jai-trans.png';
-import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { JingliAIDrawer } from '../components/ai/JingliAIDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
 import { MobileBottomNav } from '../components/common/MobileBottomNav';
+import type { NavItem } from '../types/nav';
 
 const mainNavLinks = [
     { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
@@ -39,7 +40,7 @@ const utilityNavLinks = [
     { icon: IconBook, label: 'Library', to: '/student-portal/library', color: 'orange' },
 ];
 
-const mobileNavLinks = [
+const mobileNavLinks: NavItem[] = [
     { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
     { icon: IconFiles, label: 'Materials', to: '/student-portal/materials', color: 'indigo' },
     { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
@@ -269,7 +270,7 @@ export function StudentPortalLayout() {
 
             <MobileBottomNav links={mobileNavLinks} />
 
-            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <JingliAIDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
         </AppShell>
     );

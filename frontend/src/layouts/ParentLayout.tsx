@@ -14,7 +14,7 @@ import {
     IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
 import jaiLogo from '../assets/logos/jai-trans.png';
-import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { JingliAIDrawer } from '../components/ai/JingliAIDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
@@ -224,7 +224,7 @@ export function ParentLayout() {
 
             <AppShell.Main><Outlet /></AppShell.Main>
 
-            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <JingliAIDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
         </AppShell>
     );

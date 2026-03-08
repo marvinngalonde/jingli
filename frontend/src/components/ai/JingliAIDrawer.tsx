@@ -1,12 +1,12 @@
-import { Drawer, Stack, ScrollArea, TextInput, ActionIcon, Group, Text, Paper, Avatar, Loader, Box, NavLink, Divider, Tooltip, Flex } from '@mantine/core';
-import { IconSend, IconUser, IconHistory, IconPlus, IconMessages, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand } from '@tabler/icons-react';
+import { Drawer, Stack, ScrollArea, TextInput, ActionIcon, Group, Text, Paper, Avatar, Loader, Box, NavLink, Divider, Tooltip, Flex, Badge, Image, CloseButton } from '@mantine/core';
+import { IconSend, IconUser, IconHistory, IconPlus, IconMessages, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconCopy, IconCheck, IconPaperclip, IconPhoto } from '@tabler/icons-react';
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { aiService } from '../../services/aiService';
 import type { ChatMessage } from '../../services/aiService';
 import { useAuth } from '../../context/AuthContext';
 import jaiLogo from '../../assets/logos/jai-trans.png';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useClipboard } from '@mantine/hooks';
 
 interface Session {
     id: string;
@@ -14,12 +14,12 @@ interface Session {
     createdAt: string;
 }
 
-interface ScholarBotDrawerProps {
+interface JingliAIDrawerProps {
     opened: boolean;
     onClose: () => void;
 }
 
-export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
+export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
     const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -27,6 +27,8 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
     const [history, setHistory] = useState<Session[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [sidebarOpened, { toggle: toggleSidebar }] = useDisclosure(true);
+    const [selectedFile, setSelectedFile] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const viewport = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -61,7 +63,7 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
         setMessages([
             {
                 role: 'bot',
-                content: `Hello! I am **Jingli 1.0**, your intelligent assistant. How can I facilitate your work today?`,
+                content: `Hello! I am **Jingli AI**, your intelligent assistant. How can I facilitate your work today?`,
                 timestamp: new Date().toISOString(),
             }
         ]);
@@ -84,6 +86,22 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
         }
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64 = (event.target?.result as string).split(',')[1];
+                setSelectedFile({
+                    base64,
+                    mimeType: file.type,
+                    name: file.name
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSend = async () => {
         if (!input.trim() || !user) return;
 
@@ -94,11 +112,19 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
         };
 
         setMessages(prev => [...prev, userMsg]);
+        const currentFile = selectedFile;
+        setSelectedFile(null); // Clear selected file
         setInput('');
         setLoading(true);
 
         try {
-            const response = await aiService.sendMessage(user.id, currentSessionId, userMsg.content);
+            const response = await aiService.sendMessage(
+                user.id,
+                currentSessionId,
+                userMsg.content,
+                currentFile?.base64,
+                currentFile?.mimeType
+            );
             if (!currentSessionId) {
                 setCurrentSessionId(response.sessionId);
                 loadHistory(); // Refresh history to show new session
@@ -127,7 +153,7 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
             title={
                 <Group gap="xs">
                     <img src={jaiLogo} alt="Jingli AI" style={{ height: 24 }} />
-                    <Text fw={700}>Jingli 1.0</Text>
+                    <Text fw={700}>Jingli AI</Text>
                     <Text size="xs" c="blue" fw={600} style={{ border: '1px solid var(--mantine-color-blue-4)', padding: '0 6px', borderRadius: '4px' }}>BETA</Text>
                 </Group>
             }
@@ -224,16 +250,26 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
                                     <Box flex={1}>
                                         <Group gap="xs" mb={4}>
                                             <Text size="sm" fw={700}>
-                                                {msg.role === 'bot' ? 'Jingli 1.0' : ((user as any)?.name || 'You')}
+                                                {msg.role === 'bot' ? 'Jingli AI' : ((user as any)?.name || 'You')}
                                             </Text>
                                             <Text size="10px" c="dimmed">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </Text>
                                         </Group>
-                                        <Paper p="md" radius="md" withBorder={msg.role === 'bot'} bg={msg.role === 'bot' ? 'transparent' : 'blue.0'}>
+                                        <Paper p="md" radius="md" withBorder={msg.role === 'bot'} bg={msg.role === 'bot' ? 'transparent' : 'blue.0'} style={{ position: 'relative' }}>
                                             <Box className="markdown-content" style={{ fontSize: '14.5px', lineHeight: 1.6 }}>
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                {typeof msg.content === 'string' ? (
+                                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                ) : (
+                                                    <pre style={{ fontSize: '12px', background: 'var(--mantine-color-gray-0)', padding: '10px', borderRadius: '4px', overflow: 'auto' }}>
+                                                        {JSON.stringify(msg.content, null, 2)}
+                                                    </pre>
+                                                )}
                                             </Box>
+
+                                            {msg.role === 'bot' && (
+                                                <CopyButton content={typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)} />
+                                            )}
                                         </Paper>
                                     </Box>
                                 </Group>
@@ -242,7 +278,7 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
                                 <Group align="flex-start" wrap="nowrap" gap="md">
                                     <Avatar size="md" radius="md" src={jaiLogo} bg="transparent" />
                                     <Box flex={1}>
-                                        <Text size="sm" fw={700} mb={4}>Jingli 1.0</Text>
+                                        <Text size="sm" fw={700} mb={4}>Jingli AI</Text>
                                         <Loader size="xs" variant="dots" />
                                     </Box>
                                 </Group>
@@ -253,9 +289,42 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
                     {/* Sticky Footer */}
                     <Box p="lg" style={{ borderTop: '1px solid var(--mantine-color-gray-2)', background: 'white', position: 'relative', zIndex: 5 }}>
                         <Box maw={750} mx="auto">
+                            {selectedFile && (
+                                <Paper withBorder p="xs" mb="sm" radius="md" style={{ display: 'inline-block', position: 'relative' }}>
+                                    <Group gap="xs">
+                                        {selectedFile.mimeType.startsWith('image/') ? (
+                                            <Image src={`data:${selectedFile.mimeType};base64,${selectedFile.base64}`} h={40} w={40} radius="sm" />
+                                        ) : (
+                                            <IconPaperclip size={20} />
+                                        )}
+                                        <Text size="xs" maw={150} truncate>{selectedFile.name}</Text>
+                                        <CloseButton size="xs" onClick={() => setSelectedFile(null)} />
+                                    </Group>
+                                </Paper>
+                            )}
+
                             <Group gap="xs" align="flex-end">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileSelect}
+                                    accept="image/*,application/pdf"
+                                />
+                                <Tooltip label="Attach file (Image/PDF)">
+                                    <ActionIcon
+                                        variant="subtle"
+                                        color="gray"
+                                        size="lg"
+                                        h={42}
+                                        w={42}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <IconPaperclip size={20} />
+                                    </ActionIcon>
+                                </Tooltip>
                                 <TextInput
-                                    placeholder="Message Jingli 1.0..."
+                                    placeholder="Message Jingli AI..."
                                     flex={1}
                                     size="md"
                                     radius="md"
@@ -280,12 +349,30 @@ export function ScholarBotDrawer({ opened, onClose }: ScholarBotDrawerProps) {
                                 </ActionIcon>
                             </Group>
                             <Text size="11px" ta="center" mt="sm" c="dimmed" fw={500}>
-                                Jingli 1.0 can make mistakes. Verify important information.
+                                Jingli AI can make mistakes. Verify important information.
                             </Text>
                         </Box>
                     </Box>
                 </Stack>
             </Flex>
         </Drawer>
+    );
+}
+
+function CopyButton({ content }: { content: string }) {
+    const clipboard = useClipboard({ timeout: 2000 });
+
+    return (
+        <Tooltip label={clipboard.copied ? 'Copied' : 'Copy response'} position="left">
+            <ActionIcon
+                variant="subtle"
+                color={clipboard.copied ? 'teal' : 'gray'}
+                onClick={() => clipboard.copy(content)}
+                style={{ position: 'absolute', top: 5, right: 5, opacity: 0.6 }}
+                size="sm"
+            >
+                {clipboard.copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+            </ActionIcon>
+        </Tooltip>
     );
 }

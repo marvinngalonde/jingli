@@ -29,7 +29,7 @@ import {
 
 import logoFull from '../assets/logos/logo-trans.png';
 import jaiLogo from '../assets/logos/jai-trans.png';
-import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { JingliAIDrawer } from '../components/ai/JingliAIDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { isAdminRole, isTeacherRole } from '../utils/roles';
@@ -298,7 +298,7 @@ export function TeacherLayout() {
                 <Outlet />
             </AppShell.Main>
 
-            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <JingliAIDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
         </AppShell>
     );

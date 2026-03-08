@@ -26,11 +26,12 @@ import {
 
 import logoFull from '../assets/logos/logo-trans.png';
 import jaiLogo from '../assets/logos/jai-trans.png';
-import { ScholarBotDrawer } from '../components/ai/ScholarBotDrawer';
+import { JingliAIDrawer } from '../components/ai/JingliAIDrawer';
 import { NotificationsDrawer } from '../components/notifications/NotificationsDrawer';
 import { notificationsService } from '../services/notificationsService';
 import { useEffect, useState, useCallback } from 'react';
 import { MobileBottomNav } from '../components/common/MobileBottomNav';
+import type { NavItem } from '../types/nav';
 
 export function ReceptionLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
@@ -87,7 +88,7 @@ export function ReceptionLayout() {
         }
     ];
 
-    const mobileNavLinks = [
+    const mobileNavLinks: NavItem[] = [
         { icon: IconLayoutDashboard, label: 'Home', to: '/reception/dashboard', color: 'blue' },
         { icon: IconHeartbeat, label: 'Health', to: '/reception/health', color: 'red' },
         { icon: IconShield, label: 'Conduct', to: '/reception/discipline', color: 'orange' },
@@ -182,7 +183,7 @@ export function ReceptionLayout() {
 
             <MobileBottomNav links={mobileNavLinks} />
 
-            <ScholarBotDrawer opened={aiOpened} onClose={closeAi} />
+            <JingliAIDrawer opened={aiOpened} onClose={closeAi} />
             <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
         </AppShell>
     );

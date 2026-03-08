@@ -1,13 +1,8 @@
 import { Box, Group, UnstyledButton, Text, rem, Tooltip, ActionIcon, ThemeIcon, Stack } from '@mantine/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 import classes from './MobileBottomNav.module.css';
+import type { NavItem } from '../../types/nav';
 
-interface NavItem {
-    icon: React.ElementType;
-    label: string;
-    to: string;
-    color: string;
-}
 
 interface MobileBottomNavProps {
     links: NavItem[];

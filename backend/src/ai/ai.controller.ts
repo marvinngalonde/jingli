@@ -9,8 +9,8 @@ export class AiController {
 
     @Post('chat')
     @ApiOperation({ summary: 'Chat with Jingli AI' })
-    async chat(@Body() body: { userId: string; sessionId?: string; message: string }) {
-        return this.aiService.chat(body.userId, body.sessionId || null, body.message);
+    async chat(@Body() body: { userId: string; sessionId?: string; message: string; file?: string; mimeType?: string }) {
+        return this.aiService.chat(body.userId, body.sessionId || null, body.message, body.file, body.mimeType);
     }
 
     @Get('history/:userId')
