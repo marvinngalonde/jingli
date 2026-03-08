@@ -131,7 +131,8 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
                 currentSessionId,
                 userMsg.content,
                 currentFile?.base64,
-                currentFile?.mimeType
+                currentFile?.mimeType,
+                'gemini-2.5-flash'
             );
             if (!currentSessionId) {
                 setCurrentSessionId(response.sessionId);
@@ -159,10 +160,10 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
             opened={opened}
             onClose={onClose}
             title={
-                <Group gap="xs">
+                <Group gap="xs" wrap="nowrap" style={{ flex: 1 }}>
                     <img src={jaiLogo} alt="Jingli AI" style={{ height: 24 }} />
-                    <Text fw={700}>Jingli AI</Text>
-                    <Text size="xs" c="blue" fw={600} style={{ border: '1px solid var(--mantine-color-blue-4)', padding: '0 6px', borderRadius: '4px' }}>BETA</Text>
+                    <Text fw={700} style={{ flexShrink: 0 }}>Jingli AI</Text>
+                    {!isMobile && <Text size="xs" c="blue" fw={600} style={{ border: '1px solid var(--mantine-color-blue-4)', padding: '0 6px', borderRadius: '4px', marginLeft: 'auto', flexShrink: 0 }}>BETA</Text>}
                 </Group>
             }
             position="right"

@@ -21,7 +21,7 @@ export class AiService {
     /**
      * Generic Chat with Jingli AI with Function Calling support
      */
-    async chat(userId: string, sessionId: string | null, message: string, file?: string, mimeType?: string) {
+    async chat(userId: string, sessionId: string | null, message: string, file?: string, mimeType?: string, modelId: string = 'gemini-2.5-flash') {
         try {
             // 1. Get/Create Session
             let session = sessionId
@@ -220,7 +220,7 @@ export class AiService {
 
             // 4. Initialize Model (Gemini 1.5 Flash - Multimodal)
             const model = this.genAI.getGenerativeModel({
-                model: 'gemini-1.5-flash',
+                model: modelId,
                 tools: tools as any,
                 systemInstruction: `ROLE: You are Jingli AI, the advanced intelligence platform for the Jingli School Management System. 
                                     You are speaking with ${context.name}, a ${context.role.toLowerCase()} at ${context.schoolName}.
@@ -360,7 +360,7 @@ export class AiService {
                         });
                     } else if (call.name === "generateQuiz" && context.userId) {
                         const args = call.args as any;
-                        const quiz = await this.handleGenerateQuiz(context.userId, context.schoolId, args);
+                        const quiz = await this.handleGenerateQuiz(context.userId, context.schoolId, args, modelId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -720,7 +720,7 @@ export class AiService {
         }
     }
 
-    private async handleGenerateQuiz(userId: string, schoolId: string, args: any) {
+    private async handleGenerateQuiz(userId: string, schoolId: string, args: any, modelId: string) {
         try {
             const { subjectId, sectionId, title, topic, questionCount = 5, duration = 15 } = args;
 
@@ -729,7 +729,7 @@ export class AiService {
             if (!staff) return "Only teachers or staff can generate quizzes.";
 
             // 2. Use AI to generate questions (Internal prompt)
-            const quizModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const quizModel = this.genAI.getGenerativeModel({ model: modelId });
             const prompt = `Generate ${questionCount} multiple choice questions for a school quiz.
                            Topic: ${topic}
                            Output Format: JSON array of objects with: question, options (array of 4 strings), correctAnswer (index 0-3), explanation.
