@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Button, Group, Select, NumberInput, TextInput, Text, Avatar, Badge, Paper } from '@mantine/core';
+import { Button, Group, Select, NumberInput, TextInput, Text, Avatar, Badge, Paper, Stack } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconDeviceFloppy } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
@@ -34,6 +35,7 @@ export default function TeacherMarks() {
     const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
     const [students, setStudents] = useState<StudentMark[]>([]);
     const [search, setSearch] = useState('');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const selectedExam = exams.find(e => e.id === selectedExamId);
 
@@ -209,7 +211,7 @@ export default function TeacherMarks() {
             />
 
             <Paper withBorder radius="md" p="md" mb="lg" bg="var(--app-surface)">
-                <Group justify="space-between">
+                <Stack gap="md">
                     <Select
                         label="Select Exam"
                         placeholder="Choose an exam"
@@ -217,18 +219,18 @@ export default function TeacherMarks() {
                         value={selectedExamId}
                         onChange={setSelectedExamId}
                         searchable
-                        w={400}
+                        w={isMobile ? '100%' : 400}
                     />
                     <Button
                         leftSection={<IconDeviceFloppy size={16} />}
                         onClick={handleSave}
                         disabled={!selectedExamId || loading}
                         loading={loading}
-                        mt={24}
+                        fullWidth={isMobile}
                     >
                         Save All Marks
                     </Button>
-                </Group>
+                </Stack>
             </Paper>
 
             <DataTable

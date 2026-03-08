@@ -1,12 +1,11 @@
-import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, TextInput, Select, Drawer, Textarea, ScrollArea, SimpleGrid, Paper, ThemeIcon, Modal, FileInput } from '@mantine/core';
-import { IconUpload, IconFile, IconTrash, IconDownload, IconEdit, IconSearch, IconFileText, IconPhoto, IconVideo, IconFileSpreadsheet, IconCloudDownload, IconFileCheck } from '@tabler/icons-react';
+import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, TextInput, Select, Drawer, Textarea, ScrollArea, SimpleGrid, Paper, ThemeIcon, Modal, FileInput, Menu } from '@mantine/core';
+import { IconUpload, IconFile, IconTrash, IconDownload, IconEdit, IconSearch, IconFileText, IconPhoto, IconVideo, IconFileSpreadsheet, IconCloudDownload, IconFileCheck, IconDotsVertical } from '@tabler/icons-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { storageService } from '../../../services/storageService';
-
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
 
@@ -39,6 +38,7 @@ export function TeacherCourseMaterials() {
     const queryClient = useQueryClient();
     const { sectionId } = useParams();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [searchQuery, setSearchQuery] = useState('');
 
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
@@ -232,55 +232,98 @@ export function TeacherCourseMaterials() {
                         <Button variant="light" onClick={openCreate}>Upload Material</Button>
                     </Stack>
                 ) : (
-                    <ScrollArea>
-                        <Table verticalSpacing="md" striped highlightOnHover>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Resource</Table.Th>
-                                    <Table.Th>Subject</Table.Th>
-                                    <Table.Th>Type</Table.Th>
-                                    <Table.Th>Uploaded</Table.Th>
-                                    <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
+                    <ScrollArea h={isMobile ? 'calc(100vh - 350px)' : undefined}>
+                        {isMobile ? (
+                            <Stack gap="sm" p="xs">
                                 {filtered.map(m => {
                                     const fi = getFileIcon(m.fileType);
                                     const FileIcon = fi.icon;
                                     return (
-                                        <Table.Tr key={m.id}>
-                                            <Table.Td>
-                                                <Group gap="sm">
+                                        <Card key={m.id} withBorder radius="md" p="md">
+                                            <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                                <Group gap="sm" wrap="nowrap" style={{ flex: 1 }}>
                                                     <ThemeIcon variant="light" color={fi.color} size="lg" radius="md">
                                                         <FileIcon size={18} />
                                                     </ThemeIcon>
-                                                    <div>
-                                                        <Text size="sm" fw={500}>{m.title}</Text>
-                                                        <Text size="xs" c="dimmed" lineClamp={1}>{m.description || 'No description'}</Text>
+                                                    <div style={{ overflow: 'hidden' }}>
+                                                        <Text size="sm" fw={600} truncate>{m.title}</Text>
+                                                        <Text size="xs" c="dimmed" truncate>{m.description || 'No description'}</Text>
                                                     </div>
                                                 </Group>
-                                            </Table.Td>
-                                            <Table.Td><Badge variant="light" color="grape">{m.subject?.name || '—'}</Badge></Table.Td>
-                                            <Table.Td><Badge variant="outline" size="sm">{getFileLabel(m.fileType)}</Badge></Table.Td>
-                                            <Table.Td><Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text></Table.Td>
-                                            <Table.Td style={{ textAlign: 'right' }}>
-                                                <Group gap="xs" justify="flex-end">
-                                                    <Button variant="subtle" color="teal" size="xs" component="a" href={m.fileUrl} target="_blank" leftSection={<IconCloudDownload size={16} />}>
-                                                        Download for Offline
-                                                    </Button>
-                                                    <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEdit(m)}>
-                                                        <IconEdit size={16} />
-                                                    </ActionIcon>
-                                                    <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setDeleteTarget({ id: m.id, title: m.title })}>
-                                                        <IconTrash size={16} />
-                                                    </ActionIcon>
+                                                <Menu position="bottom-end" withinPortal>
+                                                    <Menu.Target>
+                                                        <ActionIcon variant="subtle" color="gray">
+                                                            <IconDotsVertical size={16} />
+                                                        </ActionIcon>
+                                                    </Menu.Target>
+                                                    <Menu.Dropdown>
+                                                        <Menu.Item leftSection={<IconCloudDownload size={14} />} component="a" href={m.fileUrl} target="_blank">Download</Menu.Item>
+                                                        <Menu.Item leftSection={<IconEdit size={14} />} color="orange" onClick={() => openEdit(m)}>Edit</Menu.Item>
+                                                        <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => setDeleteTarget({ id: m.id, title: m.title })}>Delete</Menu.Item>
+                                                    </Menu.Dropdown>
+                                                </Menu>
+                                            </Group>
+                                            <Group justify="space-between" mt="sm">
+                                                <Badge variant="light" color="grape" size="xs">{m.subject?.name || '—'}</Badge>
+                                                <Group gap={6}>
+                                                    <Badge variant="outline" size="xs">{getFileLabel(m.fileType)}</Badge>
+                                                    <Text size="xs" c="dimmed">{format(new Date(m.uploadedAt), 'MMM dd')}</Text>
                                                 </Group>
-                                            </Table.Td>
-                                        </Table.Tr>
+                                            </Group>
+                                        </Card>
                                     );
                                 })}
-                            </Table.Tbody>
-                        </Table>
+                            </Stack>
+                        ) : (
+                            <Table verticalSpacing="md" striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Resource</Table.Th>
+                                        <Table.Th>Subject</Table.Th>
+                                        <Table.Th>Type</Table.Th>
+                                        <Table.Th>Uploaded</Table.Th>
+                                        <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {filtered.map(m => {
+                                        const fi = getFileIcon(m.fileType);
+                                        const FileIcon = fi.icon;
+                                        return (
+                                            <Table.Tr key={m.id}>
+                                                <Table.Td>
+                                                    <Group gap="sm">
+                                                        <ThemeIcon variant="light" color={fi.color} size="lg" radius="md">
+                                                            <FileIcon size={18} />
+                                                        </ThemeIcon>
+                                                        <div>
+                                                            <Text size="sm" fw={500}>{m.title}</Text>
+                                                            <Text size="xs" c="dimmed" lineClamp={1}>{m.description || 'No description'}</Text>
+                                                        </div>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td><Badge variant="light" color="grape">{m.subject?.name || '—'}</Badge></Table.Td>
+                                                <Table.Td><Badge variant="outline" size="sm">{getFileLabel(m.fileType)}</Badge></Table.Td>
+                                                <Table.Td><Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text></Table.Td>
+                                                <Table.Td style={{ textAlign: 'right' }}>
+                                                    <Group gap="xs" justify="flex-end">
+                                                        <Button variant="subtle" color="teal" size="xs" component="a" href={m.fileUrl} target="_blank" leftSection={<IconCloudDownload size={16} />}>
+                                                            Download for Offline
+                                                        </Button>
+                                                        <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEdit(m)}>
+                                                            <IconEdit size={16} />
+                                                        </ActionIcon>
+                                                        <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setDeleteTarget({ id: m.id, title: m.title })}>
+                                                            <IconTrash size={16} />
+                                                        </ActionIcon>
+                                                    </Group>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        )}
                     </ScrollArea>
                 )}
             </Card>

@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import {
     SimpleGrid, Paper, Text, Group, ThemeIcon, Badge, Card, Stack,
-    Loader, Center, Progress, Divider, Button, Table
+    Loader, Center, Progress, Divider, Button, Table, Box
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
     IconBook, IconClipboardList, IconBrain, IconTrophy,
     IconCalendar, IconFileAnalytics, IconChevronRight, IconBrandZoom,
@@ -48,6 +49,7 @@ interface LiveClass {
 export default function StudentPortalDashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { data, isLoading: loading } = useQuery({
         queryKey: ['studentPortalDashboard'],
         queryFn: async () => {
@@ -108,25 +110,23 @@ export default function StudentPortalDashboard() {
             />
 
             {/* Stat Cards */}
-            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md" mb="xl">
+            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing={isMobile ? 'xs' : 'md'} mb="xl">
                 {statCards.map(card => (
                     <Paper
                         key={card.label}
-                        withBorder radius="md" p="lg" shadow="sm"
+                        withBorder radius="md" p={isMobile ? 'sm' : 'lg'} shadow="sm"
                         bg="var(--app-surface)"
                         style={{ cursor: 'pointer', transition: 'transform 0.15s' }}
                         onClick={() => navigate(card.to)}
-                        onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                        onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
                     >
                         <Group justify="space-between" mb="xs">
-                            <ThemeIcon variant="light" color={card.color} size="lg" radius="md">
-                                <card.icon size={20} />
+                            <ThemeIcon variant="light" color={card.color} size={isMobile ? 'md' : 'lg'} radius="md">
+                                <card.icon size={isMobile ? 16 : 20} />
                             </ThemeIcon>
                             <IconChevronRight size={14} color="var(--mantine-color-dimmed)" />
                         </Group>
-                        <Text size="xl" fw={700}>{card.value}</Text>
-                        <Text size="xs" c="dimmed" mt={2}>{card.label}</Text>
+                        <Text size={isMobile ? 'lg' : 'xl'} fw={700}>{card.value}</Text>
+                        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>{card.label}</Text>
                     </Paper>
                 ))}
             </SimpleGrid>

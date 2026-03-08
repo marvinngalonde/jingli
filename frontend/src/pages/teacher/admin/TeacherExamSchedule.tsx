@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Text, Badge, Group, Paper, Loader, Center, Card, ThemeIcon, SimpleGrid, Table, Avatar, Stack, Tabs } from '@mantine/core';
-import { IconCalendar, IconClock, IconSchool, IconBook } from '@tabler/icons-react';
+import { Text, Badge, Group, Paper, Loader, Center, Card, ThemeIcon, SimpleGrid, Table, Avatar, Stack, Tabs, Divider } from '@mantine/core';
+import { IconCalendar, IconClock, IconSchool, IconBook, IconChevronRight } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import { api } from '../../../services/api';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { notifications } from '@mantine/notifications';
@@ -20,6 +21,7 @@ interface ExamInfo {
 
 export default function TeacherExamSchedule() {
     const [activeTab, setActiveTab] = useState<string | null>('schedule');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const { data: exams = [], isLoading: loading } = useQuery<ExamInfo[]>({
         queryKey: ['teacherExams'],
@@ -48,6 +50,32 @@ export default function TeacherExamSchedule() {
             </Group>
             {data.length === 0 ? (
                 <Text c="dimmed" ta="center" py="xl">No exams</Text>
+            ) : isMobile ? (
+                <Stack gap="xs" p="sm">
+                    {data.map((exam) => (
+                        <Card key={exam.id} withBorder radius="md" p="md">
+                            <Group justify="space-between" mb="xs">
+                                <Text fw={600} size="sm">{exam.name}</Text>
+                                <Badge variant="light" color={exam.type === 'MIDTERM' ? 'blue' : exam.type === 'FINAL' ? 'red' : 'gray'} size="xs">
+                                    {exam.type}
+                                </Badge>
+                            </Group>
+                            <Group gap="xs" mb="xs">
+                                <Badge variant="light" color="indigo" size="xs">{`${exam.classLevel?.name || ''} ${exam.classLevel?.level || ''}`.trim() || '—'}</Badge>
+                                <Badge variant="outline" color="grape" size="xs">{exam.subject?.code || '—'}</Badge>
+                                <Text size="xs">{exam.subject?.name || '—'}</Text>
+                            </Group>
+                            <Divider mb="xs" />
+                            <Group justify="space-between" align="center">
+                                <Group gap="xs">
+                                    <IconClock size={14} color="gray" />
+                                    <Text size="xs" c="dimmed">{formatDate(exam.date)}</Text>
+                                </Group>
+                                <Badge variant="light" color="orange" size="xs">Max: {exam.maxMarks}</Badge>
+                            </Group>
+                        </Card>
+                    ))}
+                </Stack>
             ) : (
                 <Table striped highlightOnHover>
                     <Table.Thead>

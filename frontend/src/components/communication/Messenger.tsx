@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Grid, Paper, Title, Stack, Text, Center, Loader, ActionIcon, Tooltip, Group, Modal, Select } from '@mantine/core';
-import { IconMessagePlus } from '@tabler/icons-react';
+import { Grid, Paper, Title, Stack, Text, Center, Loader, ActionIcon, Tooltip, Group, Modal, Select, Button } from '@mantine/core';
+import { IconMessagePlus, IconArrowLeft } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import { useAuth } from '../../context/AuthContext';
 import { messagesService } from '../../services/messagesService';
 import type { Conversation } from '../../types/messages';
@@ -77,54 +78,75 @@ export function Messenger() {
         setModalOpened(false);
     };
 
+    const isMobile = useMediaQuery('(max-width: 48em)');
+    const showChat = !isMobile || selectedPartner;
+
     if (loading) return <Center h="400px"><Loader /></Center>;
 
     return (
         <Paper shadow="none" style={{ backgroundColor: 'transparent' }}>
             <Grid gutter="xs">
-                <Grid.Col span={{ base: 12, md: 4 }}>
-                    <Paper withBorder radius="md" p={0} style={{ overflow: 'hidden', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
-                        <Group p="md" justify="space-between" bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-                            <Title order={5}>My Chats</Title>
-                            <Tooltip label="New Conversation">
-                                <ActionIcon onClick={handleNewChat} variant="light" color="blue">
-                                    <IconMessagePlus size={18} />
-                                </ActionIcon>
-                            </Tooltip>
-                        </Group>
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
-                            <ConversationList
-                                conversations={conversations}
-                                selectedId={selectedPartner?.id || null}
-                                onSelect={(id) => {
-                                    const conv = conversations.find(c => c.partner.id === id);
-                                    if (conv) setSelectedPartner(conv.partner);
-                                }}
-                            />
-                        </div>
-                    </Paper>
-                </Grid.Col>
+                {(!isMobile || !selectedPartner) && (
+                    <Grid.Col span={{ base: 12, md: 4 }}>
+                        <Paper withBorder radius="md" p={0} style={{ overflow: 'hidden', height: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+                            <Group p="md" justify="space-between" bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+                                <Title order={5}>My Chats</Title>
+                                <Tooltip label="New Conversation">
+                                    <ActionIcon onClick={handleNewChat} variant="light" color="blue">
+                                        <IconMessagePlus size={18} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            </Group>
+                            <div style={{ flex: 1, overflowY: 'auto' }}>
+                                <ConversationList
+                                    conversations={conversations}
+                                    selectedId={selectedPartner?.id || null}
+                                    onSelect={(id) => {
+                                        const conv = conversations.find(c => c.partner.id === id);
+                                        if (conv) setSelectedPartner(conv.partner);
+                                    }}
+                                />
+                            </div>
+                        </Paper>
+                    </Grid.Col>
+                )}
 
-                <Grid.Col span={{ base: 12, md: 8 }}>
-                    {selectedPartner ? (
-                        <Paper withBorder radius="md" style={{ overflow: 'hidden', height: 'calc(100vh - 120px)' }}>
-                            <ChatWindow
-                                partnerId={selectedPartner.id}
-                                partnerName={selectedPartner.staffProfile ? `${selectedPartner.staffProfile.firstName} ${selectedPartner.staffProfile.lastName}` : (selectedPartner.studentProfile ? `${selectedPartner.studentProfile.firstName} ${selectedPartner.studentProfile.lastName}` : selectedPartner.email)}
-                            />
-                        </Paper>
-                    ) : (
-                        <Paper withBorder radius="md" h={{ base: '500px', md: 'calc(100vh - 120px)' }} mih="400px">
-                            <Center h="100%">
-                                <Stack align="center" gap="xs">
-                                    <IconMessagePlus size={48} color="var(--mantine-color-gray-4)" />
-                                    <Title order={4} c="dimmed">Select a conversation to start messaging</Title>
-                                    <Text c="dimmed" size="sm">Or click the plus icon to start a new chat</Text>
-                                </Stack>
-                            </Center>
-                        </Paper>
-                    )}
-                </Grid.Col>
+                {showChat && (
+                    <Grid.Col span={{ base: 12, md: 8 }} style={{ display: isMobile && !selectedPartner ? 'none' : 'block' }}>
+                        {selectedPartner ? (
+                            <Paper withBorder radius="md" style={{ overflow: 'hidden', height: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+                                {isMobile && (
+                                    <Group p="xs" bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+                                        <Button
+                                            variant="subtle"
+                                            leftSection={<IconArrowLeft size={16} />}
+                                            onClick={() => setSelectedPartner(null)}
+                                            size="xs"
+                                        >
+                                            Back to Chats
+                                        </Button>
+                                    </Group>
+                                )}
+                                <div style={{ flex: 1, overflow: 'hidden' }}>
+                                    <ChatWindow
+                                        partnerId={selectedPartner.id}
+                                        partnerName={selectedPartner.staffProfile ? `${selectedPartner.staffProfile.firstName} ${selectedPartner.staffProfile.lastName}` : (selectedPartner.studentProfile ? `${selectedPartner.studentProfile.firstName} ${selectedPartner.studentProfile.lastName}` : selectedPartner.email)}
+                                    />
+                                </div>
+                            </Paper>
+                        ) : (
+                            <Paper withBorder radius="md" h={{ base: '500px', md: 'calc(100vh - 120px)' }} mih="400px" visibleFrom="md">
+                                <Center h="100%">
+                                    <Stack align="center" gap="xs">
+                                        <IconMessagePlus size={48} color="var(--mantine-color-gray-4)" />
+                                        <Title order={4} c="dimmed">Select a conversation to start messaging</Title>
+                                        <Text c="dimmed" size="sm">Or click the plus icon to start a new chat</Text>
+                                    </Stack>
+                                </Center>
+                            </Paper>
+                        )}
+                    </Grid.Col>
+                )}
             </Grid>
 
             <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title="New Conversation" radius="md">

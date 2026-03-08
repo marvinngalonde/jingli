@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Title, Text, Paper, Group, Button, Stack, TextInput, NumberInput, Select, Textarea, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Switch, Divider, ScrollArea, Radio, LoadingOverlay, Progress } from '@mantine/core';
+import { Title, Text, Paper, Group, Button, Stack, TextInput, NumberInput, Select, Textarea, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Switch, Divider, ScrollArea, Radio, LoadingOverlay, Progress, Menu } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     IconPlus, IconTrash, IconEdit, IconSearch, IconPlayerPlay, IconClock,
     IconCheck, IconFileAnalytics, IconPencil, IconQuestionMark, IconChevronRight,
-    IconCircleCheck, IconCircleX, IconLock, IconMaximize, IconTrendingUp
+    IconCircleCheck, IconCircleX, IconLock, IconMaximize, IconTrendingUp, IconDotsVertical
 } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 
@@ -42,6 +42,7 @@ export default function TeacherCBT() {
     const queryClient = useQueryClient();
     const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [questionModal, setQuestionModal] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
     const [previewMode, setPreviewMode] = useState(false);
@@ -164,7 +165,7 @@ export default function TeacherCBT() {
             // Update the query cache for the quizzes list so counts update
             queryClient.setQueryData(['teacherQuizzes'], (old: Quiz[] | undefined) => {
                 if (!old) return old;
-                return old.map(qz => qz.id === activeQuiz.id ? {
+                return old.map((qz: Quiz) => qz.id === activeQuiz.id ? {
                     ...qz,
                     questions: updatedQuestions,
                     _count: { ...qz._count, questions: updatedQuestions.length }
@@ -190,12 +191,12 @@ export default function TeacherCBT() {
         },
         onSuccess: (qId) => {
             if (!activeQuiz) return;
-            const updated = (activeQuiz.questions || []).filter(q => q.id !== qId);
+            const updated = (activeQuiz.questions || []).filter((q: Question) => q.id !== qId);
             setActiveQuiz({ ...activeQuiz, questions: updated });
 
             queryClient.setQueryData(['teacherQuizzes'], (old: Quiz[] | undefined) => {
                 if (!old) return old;
-                return old.map(qz => qz.id === activeQuiz.id ? {
+                return old.map((qz: Quiz) => qz.id === activeQuiz.id ? {
                     ...qz,
                     questions: updated,
                     _count: { ...qz._count, questions: updated.length }
@@ -249,7 +250,7 @@ export default function TeacherCBT() {
         mutationFn: async (id: string) => api.delete(`/teacher/quizzes/${id}`),
         onSuccess: (_, id) => {
             queryClient.setQueryData(['teacherQuizzes'], (old: Quiz[] | undefined) => {
-                return (old || []).filter(qz => qz.id !== id);
+                return (old || []).filter((qz: Quiz) => qz.id !== id);
             });
             notifications.show({ title: 'Deleted', message: `Quiz deleted successfully`, color: 'orange' });
         },
@@ -296,10 +297,10 @@ export default function TeacherCBT() {
     const getPreviewScore = () => {
         if (!activeQuiz || !activeQuiz.questions) return { score: 0, total: 0, pct: 0 };
         let score = 0;
-        activeQuiz.questions.forEach(q => {
+        activeQuiz.questions.forEach((q: Question) => {
             if (previewAnswers[q.id || ''] === q.correctAnswer) score += q.points;
         });
-        const total = activeQuiz.questions.reduce((a, q) => a + q.points, 0);
+        const total = activeQuiz.questions.reduce((a: number, q: Question) => a + q.points, 0);
         return { score, total, pct: total > 0 ? Math.round((score / total) * 100) : 0 };
     };
 
@@ -318,8 +319,8 @@ export default function TeacherCBT() {
 
         if (previewSubmitted) {
             return (
-                <Box p="xl" style={{ minHeight: '100vh', background: 'var(--mantine-color-gray-0)' }}>
-                    <Paper p="xl" radius="lg" shadow="lg" maw={600} mx="auto" mt="xl">
+                <Box p={isMobile ? "sm" : "xl"} style={{ minHeight: '100vh', background: 'var(--mantine-color-gray-0)' }}>
+                    <Paper p={isMobile ? "md" : "xl"} radius="lg" shadow="lg" maw={600} mx="auto" mt={isMobile ? "sm" : "xl"}>
                         <Stack align="center" gap="lg">
                             <ThemeIcon size={80} radius="xl" color={result.pct >= 50 ? 'green' : 'red'} variant="light">
                                 {result.pct >= 50 ? <IconCircleCheck size={50} /> : <IconCircleX size={50} />}
@@ -335,13 +336,13 @@ export default function TeacherCBT() {
                                     <Divider w="100%" />
                                     <Text fw={600}>Review Answers</Text>
                                     <Stack w="100%" gap="md">
-                                        {activeQuiz.questions.map((q, i) => {
+                                        {activeQuiz.questions.map((q: Question, i: number) => {
                                             const isCorrect = previewAnswers[q.id || ''] === q.correctAnswer;
                                             return (
                                                 <Paper key={q.id || i} p="md" withBorder radius="md" style={{ borderLeft: `3px solid var(--mantine-color-${isCorrect ? 'green' : 'red'}-5)` }}>
                                                     <Text size="sm" fw={600} mb="xs">Q{i + 1}. {q.text}</Text>
                                                     <Stack gap={4}>
-                                                        {q.options.map((opt, oi) => (
+                                                        {q.options.map((opt: string, oi: number) => (
                                                             <Group key={oi} gap="xs">
                                                                 {oi === q.correctAnswer ? <IconCircleCheck size={14} color="green" /> :
                                                                     oi === previewAnswers[q.id || ''] ? <IconCircleX size={14} color="red" /> :
@@ -370,28 +371,28 @@ export default function TeacherCBT() {
         return (
             <Box style={{ minHeight: '100vh', background: 'var(--mantine-color-gray-0)' }}>
                 {/* Exam Header */}
-                <Paper p="md" style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: '2px solid var(--mantine-color-brand-3)' }}>
-                    <Group justify="space-between">
-                        <Group>
-                            {activeQuiz.secureMode && <Badge color="red" leftSection={<IconLock size={12} />}>Secure Mode</Badge>}
-                            <Text fw={700}>{activeQuiz.title}</Text>
+                <Paper p="xs" style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: '2px solid var(--mantine-color-brand-3)' }}>
+                    <Group justify="space-between" wrap="nowrap">
+                        <Group gap="xs" style={{ flexShrink: 1, overflow: 'hidden' }}>
+                            {activeQuiz.secureMode && <Badge color="red" size="xs" leftSection={<IconLock size={10} />}>Secure</Badge>}
+                            <Text fw={700} size="sm" truncate>{activeQuiz.title}</Text>
                         </Group>
-                        <Group>
-                            <Badge size="lg" variant="light" color={timerSeconds < 60 ? 'red' : 'blue'} leftSection={<IconClock size={14} />}>
+                        <Group gap="xs">
+                            <Badge size="sm" variant="light" color={timerSeconds < 60 ? 'red' : 'blue'} leftSection={<IconClock size={12} />}>
                                 {formatTime(timerSeconds)}
                             </Badge>
-                            <Text size="sm" c="dimmed">{currentPreviewQ + 1} / {activeQuiz.questions.length}</Text>
+                            <Text size="xs" c="dimmed">{currentPreviewQ + 1}/{activeQuiz.questions.length}</Text>
                         </Group>
                     </Group>
                     <Progress value={((currentPreviewQ + 1) / activeQuiz.questions.length) * 100} size="xs" mt="xs" radius="xl" />
                 </Paper>
 
                 {/* Question Card */}
-                <Box p="xl" maw={800} mx="auto" mt="xl">
+                <Box p={isMobile ? "sm" : "xl"} maw={800} mx="auto" mt={isMobile ? "sm" : "xl"}>
                     {q && (
-                        <Paper p="xl" radius="lg" shadow="lg">
-                            <Badge mb="md" variant="light">{q.points} point{q.points > 1 ? 's' : ''}</Badge>
-                            <Title order={3} mb="lg">{q.text}</Title>
+                        <Paper p={isMobile ? "md" : "xl"} radius="lg" shadow="lg">
+                            <Badge mb="xs" variant="light" size="xs">{q.points} point{q.points > 1 ? 's' : ''}</Badge>
+                            <Title order={isMobile ? 4 : 3} mb="lg">{q.text}</Title>
                             <Stack gap="sm">
                                 {q.options.map((opt, i) => (
                                     <Paper
@@ -462,43 +463,55 @@ export default function TeacherCBT() {
 
         return (
             <div>
-                <Group justify="space-between" mb="lg">
-                    <Group>
-                        <Button variant="subtle" onClick={() => setActiveQuiz(null)}>← Back</Button>
-                        <div>
-                            <Title order={3}>{activeQuiz.title}</Title>
-                            <Text size="sm" c="dimmed">{activeQuiz.subject?.name || 'Any Subject'} • {activeQuiz.section?.name || 'All Classes'}</Text>
-                        </div>
-                    </Group>
-                    <Group>
-                        <Badge size="lg" color={activeQuiz.isPublished ? 'green' : 'gray'}>{activeQuiz.isPublished ? 'PUBLISHED' : 'DRAFT'}</Badge>
-                        {questions.length > 0 && (
-                            <Button variant="light" leftSection={<IconPlayerPlay size={16} />} onClick={() => startPreview(activeQuiz)}>Preview</Button>
-                        )}
-                        {!activeQuiz.isPublished && (
-                            <Button color="green" onClick={publishQuiz}>Publish</Button>
-                        )}
-                    </Group>
-                </Group>
-
-                <SimpleGrid cols={{ base: 2, md: 4 }} mb="lg">
-                    <Card p="md" withBorder radius="md">
-                        <Text size="sm" c="dimmed">Questions</Text>
-                        <Text fw={700} size="xl">{questions.length}</Text>
-                    </Card>
-                    <Card p="md" withBorder radius="md">
-                        <Text size="sm" c="dimmed">Total Points</Text>
-                        <Text fw={700} size="xl">{totalPoints}</Text>
-                    </Card>
-                    <Card p="md" withBorder radius="md">
-                        <Text size="sm" c="dimmed">Time Limit</Text>
-                        <Text fw={700} size="xl">{activeQuiz.duration} min</Text>
-                    </Card>
-                    <Card p="md" withBorder radius="md">
+                <Stack gap="md" mb="lg">
+                    <Group justify="space-between">
                         <Group gap="xs">
-                            {activeQuiz.secureMode && <Badge size="xs" color="red" leftSection={<IconLock size={10} />}>Secure</Badge>}
-                            {activeQuiz.autoGrade && <Badge size="xs" color="green">Auto-grade</Badge>}
-                            {activeQuiz.randomize && <Badge size="xs" color="blue">Randomized</Badge>}
+                            <ActionIcon variant="subtle" onClick={() => setActiveQuiz(null)} size="lg"><IconChevronRight style={{ transform: 'rotate(180deg)' }} /></ActionIcon>
+                            <div>
+                                <Title order={isMobile ? 4 : 3}>{activeQuiz.title}</Title>
+                                <Text size="xs" c="dimmed">{activeQuiz.subject?.name || 'Any Subject'} • {activeQuiz.section?.name || 'All Classes'}</Text>
+                            </div>
+                        </Group>
+                        <Group gap="xs" visibleFrom="sm">
+                            <Badge size="lg" color={activeQuiz.isPublished ? 'green' : 'gray'}>{activeQuiz.isPublished ? 'PUBLISHED' : 'DRAFT'}</Badge>
+                            {questions.length > 0 && (
+                                <Button variant="light" size="sm" leftSection={<IconPlayerPlay size={16} />} onClick={() => startPreview(activeQuiz)}>Preview</Button>
+                            )}
+                            {!activeQuiz.isPublished && (
+                                <Button color="green" size="sm" onClick={publishQuiz}>Publish</Button>
+                            )}
+                        </Group>
+                    </Group>
+                    <Group gap="xs" hiddenFrom="sm" justify="space-between">
+                        <Badge size="md" color={activeQuiz.isPublished ? 'green' : 'gray'}>{activeQuiz.isPublished ? 'PUBLISHED' : 'DRAFT'}</Badge>
+                        <Group gap="xs">
+                            {questions.length > 0 && (
+                                <Button variant="light" size="xs" leftSection={<IconPlayerPlay size={14} />} onClick={() => startPreview(activeQuiz)}>Preview</Button>
+                            )}
+                            {!activeQuiz.isPublished && (
+                                <Button color="green" size="xs" onClick={publishQuiz}>Publish</Button>
+                            )}
+                        </Group>
+                    </Group>
+                </Stack>
+
+                <SimpleGrid cols={{ base: 2, md: 4 }} mb="lg" spacing="xs">
+                    <Card p="sm" withBorder radius="md">
+                        <Text size="xs" c="dimmed">Questions</Text>
+                        <Text fw={700} size="md">{questions.length}</Text>
+                    </Card>
+                    <Card p="sm" withBorder radius="md">
+                        <Text size="xs" c="dimmed">Total Points</Text>
+                        <Text fw={700} size="md">{totalPoints}</Text>
+                    </Card>
+                    <Card p="sm" withBorder radius="md">
+                        <Text size="xs" c="dimmed">Time Limit</Text>
+                        <Text fw={700} size="md">{activeQuiz.duration} min</Text>
+                    </Card>
+                    <Card p="sm" withBorder radius="md">
+                        <Group gap={4}>
+                            {activeQuiz.secureMode && <Badge size="xs" color="red" variant="light">Secure</Badge>}
+                            {activeQuiz.autoGrade && <Badge size="xs" color="green" variant="light">Auto</Badge>}
                         </Group>
                     </Card>
                 </SimpleGrid>
@@ -518,27 +531,36 @@ export default function TeacherCBT() {
                         <Stack gap="sm">
                             {questions.map((q, i) => (
                                 <Paper key={q.id || i} p="md" withBorder radius="md">
-                                    <Group justify="space-between">
-                                        <div style={{ flex: 1 }}>
-                                            <Group mb="xs">
-                                                <Badge size="sm" variant="outline">Q{i + 1}</Badge>
-                                                <Badge size="sm" color="blue" variant="light">{q.points} pts</Badge>
-                                            </Group>
-                                            <Text fw={500} mb="xs">{q.text}</Text>
-                                            <SimpleGrid cols={2} spacing="xs">
-                                                {q.options.map((opt, oi) => (
-                                                    <Group key={oi} gap="xs">
-                                                        {oi === q.correctAnswer ? <IconCircleCheck size={14} color="green" /> : <Text size="xs" c="dimmed">{String.fromCharCode(65 + oi)}.</Text>}
-                                                        <Text size="sm" fw={oi === q.correctAnswer ? 700 : 400} c={oi === q.correctAnswer ? 'green' : undefined}>{opt}</Text>
-                                                    </Group>
-                                                ))}
-                                            </SimpleGrid>
-                                        </div>
-                                        <Group gap="xs">
-                                            <ActionIcon variant="subtle" color="blue" onClick={() => editQuestion(q)}><IconEdit size={16} /></ActionIcon>
-                                            <ActionIcon variant="subtle" color="red" onClick={() => removeQuestion(q.id || '')}><IconTrash size={16} /></ActionIcon>
+                                    <Stack gap="sm">
+                                        <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                            <div style={{ flex: 1 }}>
+                                                <Group mb="xs">
+                                                    <Badge size="sm" variant="outline">Q{i + 1}</Badge>
+                                                    <Badge size="sm" color="blue" variant="light">{q.points} pts</Badge>
+                                                </Group>
+                                                <Text fw={500}>{q.text}</Text>
+                                            </div>
+                                            <Menu position="bottom-end" withinPortal>
+                                                <Menu.Target>
+                                                    <ActionIcon variant="subtle" color="gray">
+                                                        <IconDotsVertical size={16} />
+                                                    </ActionIcon>
+                                                </Menu.Target>
+                                                <Menu.Dropdown>
+                                                    <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => editQuestion(q)}>Edit</Menu.Item>
+                                                    <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => removeQuestion(q.id || '')}>Remove</Menu.Item>
+                                                </Menu.Dropdown>
+                                            </Menu>
                                         </Group>
-                                    </Group>
+                                        <SimpleGrid cols={isMobile ? 1 : 2} spacing="xs">
+                                            {q.options.map((opt, oi) => (
+                                                <Group key={oi} gap="xs">
+                                                    {oi === q.correctAnswer ? <IconCircleCheck size={14} color="green" /> : <Text size="xs" c="dimmed">{String.fromCharCode(65 + oi)}.</Text>}
+                                                    <Text size="sm" fw={oi === q.correctAnswer ? 700 : 400} c={oi === q.correctAnswer ? 'green' : undefined}>{opt}</Text>
+                                                </Group>
+                                            ))}
+                                        </SimpleGrid>
+                                    </Stack>
                                 </Paper>
                             ))}
                         </Stack>
@@ -585,22 +607,22 @@ export default function TeacherCBT() {
                 <Button leftSection={<IconPlus size={16} />} onClick={openDrawer}>Create Quiz</Button>
             </Group>
 
-            <SimpleGrid cols={{ base: 2, md: 4 }}>
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="sm">
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Total Quizzes</Text><ThemeIcon variant="light" color="grape"><IconPencil size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{quizzes.length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Total Quizzes</Text><ThemeIcon variant="light" color="grape" size="sm"><IconPencil size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{quizzes.length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Published</Text><ThemeIcon variant="light" color="green"><IconCheck size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{quizzes.filter(q => q.isPublished).length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Published</Text><ThemeIcon variant="light" color="green" size="sm"><IconCheck size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{quizzes.filter(q => q.isPublished).length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Total Questions</Text><ThemeIcon variant="light" color="blue"><IconQuestionMark size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{quizzes.reduce((a, q) => a + (q._count?.questions || q.questions?.length || 0), 0)}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Total Questions</Text><ThemeIcon variant="light" color="blue" size="sm"><IconQuestionMark size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{quizzes.reduce((a, q) => a + (q._count?.questions || q.questions?.length || 0), 0)}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Drafts</Text><ThemeIcon variant="light" color="gray"><IconFileAnalytics size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{quizzes.filter(q => !q.isPublished).length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Drafts</Text><ThemeIcon variant="light" color="gray" size="sm"><IconFileAnalytics size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{quizzes.filter(q => !q.isPublished).length}</Text>
                 </Card>
             </SimpleGrid>
 
@@ -638,18 +660,21 @@ export default function TeacherCBT() {
                                     {quiz.autoGrade && <Badge size="xs" color="green" variant="light">Auto-grade</Badge>}
                                 </Group>
                                 <Divider my="sm" />
-                                <Group justify="space-between">
-                                    <Button variant="light" size="xs" onClick={() => fetchQuizDetails(quiz.id)}>Manage</Button>
-                                    <Group gap="xs">
-                                        {(quiz._count?.questions || 0) > 0 && (
-                                            <ActionIcon variant="subtle" color="blue" title="Preview" onClick={() => startPreview(quiz)}>
-                                                <IconPlayerPlay size={16} />
+                                <Group justify="space-between" wrap="nowrap">
+                                    <Button variant="light" size="xs" onClick={() => fetchQuizDetails(quiz.id)} fullWidth={isMobile}>Manage</Button>
+                                    <Menu position="bottom-end" withinPortal>
+                                        <Menu.Target>
+                                            <ActionIcon variant="subtle" color="gray">
+                                                <IconDotsVertical size={16} />
                                             </ActionIcon>
-                                        )}
-                                        <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteQuiz(quiz.id)}>
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </Group>
+                                        </Menu.Target>
+                                        <Menu.Dropdown>
+                                            {(quiz._count?.questions || 0) > 0 && (
+                                                <Menu.Item leftSection={<IconPlayerPlay size={14} />} onClick={() => startPreview(quiz)}>Preview</Menu.Item>
+                                            )}
+                                            <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => handleDeleteQuiz(quiz.id)}>Delete</Menu.Item>
+                                        </Menu.Dropdown>
+                                    </Menu>
                                 </Group>
                             </Card>
                         ))}

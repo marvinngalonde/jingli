@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import {
     Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center,
-    Button, Avatar, SimpleGrid, Table, Anchor, ActionIcon, Tooltip
+    Button, Avatar, SimpleGrid, Table, Anchor, ActionIcon, Tooltip, Box
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconVideo, IconBrandZoom, IconExternalLink, IconClock,
@@ -33,6 +34,7 @@ const statusColor = (s: string) =>
     s === 'LIVE' ? 'green' : s === 'SCHEDULED' ? 'blue' : 'gray';
 
 export default function StudentLiveClasses() {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [classes, setClasses] = useState<LiveClass[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -132,30 +134,47 @@ export default function StudentLiveClasses() {
                     {past.length > 0 && (
                         <div>
                             <Text fw={700} size="sm" tt="uppercase" c="dimmed" mb="sm">Past Classes</Text>
-                            <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
-                                <Table striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Title</Table.Th>
-                                            <Table.Th>Subject</Table.Th>
-                                            <Table.Th>Platform</Table.Th>
-                                            <Table.Th>Date</Table.Th>
-                                            <Table.Th>Duration</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {past.map(c => (
-                                            <Table.Tr key={c.id}>
-                                                <Table.Td><Text size="sm" fw={500}>{c.title}</Text></Table.Td>
-                                                <Table.Td><Badge variant="outline" color="grape" size="sm">{c.subject?.code || '—'}</Badge></Table.Td>
-                                                <Table.Td><Badge variant="light" color={platformColor(c.provider)} size="sm">{c.provider}</Badge></Table.Td>
-                                                <Table.Td><Text size="sm" c="dimmed">{format(new Date(c.scheduledFor), 'dd MMM yyyy')}</Text></Table.Td>
-                                                <Table.Td><Text size="sm" c="dimmed">{c.duration} min</Text></Table.Td>
+                            {isMobile ? (
+                                <Stack gap="sm">
+                                    {past.map(c => (
+                                        <Card key={c.id} withBorder radius="md" p="sm">
+                                            <Group justify="space-between" mb="xs">
+                                                <Text size="sm" fw={600}>{c.title}</Text>
+                                                <Badge variant="outline" color="grape" size="xs">{c.subject?.code || '—'}</Badge>
+                                            </Group>
+                                            <Group gap="xs">
+                                                <Badge variant="light" color={platformColor(c.provider)} size="xs">{c.provider}</Badge>
+                                                <Text size="xs" c="dimmed">{format(new Date(c.scheduledFor), 'dd MMM yyyy')}</Text>
+                                            </Group>
+                                        </Card>
+                                    ))}
+                                </Stack>
+                            ) : (
+                                <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
+                                    <Table striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Title</Table.Th>
+                                                <Table.Th>Subject</Table.Th>
+                                                <Table.Th>Platform</Table.Th>
+                                                <Table.Th>Date</Table.Th>
+                                                <Table.Th>Duration</Table.Th>
                                             </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
-                            </Paper>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {past.map(c => (
+                                                <Table.Tr key={c.id}>
+                                                    <Table.Td><Text size="sm" fw={500}>{c.title}</Text></Table.Td>
+                                                    <Table.Td><Badge variant="outline" color="grape" size="sm">{c.subject?.code || '—'}</Badge></Table.Td>
+                                                    <Table.Td><Badge variant="light" color={platformColor(c.provider)} size="sm">{c.provider}</Badge></Table.Td>
+                                                    <Table.Td><Text size="sm" c="dimmed">{format(new Date(c.scheduledFor), 'dd MMM yyyy')}</Text></Table.Td>
+                                                    <Table.Td><Text size="sm" c="dimmed">{c.duration} min</Text></Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                </Paper>
+                            )}
                         </div>
                     )}
                 </Stack>

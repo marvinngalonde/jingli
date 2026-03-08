@@ -1,4 +1,5 @@
-import { Title, Text, SimpleGrid, Card, Group, ThemeIcon, Stack, Button, LoadingOverlay, Badge, Paper, Grid, Progress, RingProgress, Table, Avatar, Box } from '@mantine/core';
+import { Title, Text, SimpleGrid, Card, Group, ThemeIcon, Stack, Button, LoadingOverlay, Badge, Paper, Grid, Progress, RingProgress, Table, Avatar, Box, ActionIcon } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
     IconChalkboard,
     IconClipboardList,
@@ -34,6 +35,7 @@ interface PendingSub {
 }
 
 export function TeacherDashboard() {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -167,13 +169,13 @@ export function TeacherDashboard() {
             {/* ─── QUICK ACTIONS ─── */}
             <Paper p="md" radius="md" shadow="sm" withBorder mb="lg">
                 <Text fw={600} mb="sm">Quick Actions</Text>
-                <Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }} spacing="sm">
                     <Button variant="light" color="teal" leftSection={<IconUpload size={16} />} radius="md" onClick={() => navigate('/portal/materials')}>Upload Material</Button>
                     <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} radius="md" onClick={() => navigate('/portal/assignments')}>Create Assignment</Button>
                     <Button variant="light" color="grape" leftSection={<IconPencil size={16} />} radius="md" onClick={() => navigate('/portal/cbt')}>Create Quiz</Button>
                     <Button variant="light" color="cyan" leftSection={<IconBrandZoom size={16} />} radius="md" onClick={() => navigate('/portal/live-classes')}>Schedule Live Class</Button>
                     <Button variant="light" color="violet" leftSection={<IconMessage size={16} />} radius="md" onClick={() => navigate('/portal/discussions')}>Start Discussion</Button>
-                </Group>
+                </SimpleGrid>
             </Paper>
 
             {/* ─── MAIN GRID: PROGRESS + CALENDAR ─── */}
@@ -187,17 +189,17 @@ export function TeacherDashboard() {
                             <Button variant="subtle" size="xs" rightSection={<IconChevronRight size={14} />} onClick={() => navigate('/portal/analytics')}>View All</Button>
                         </Group>
                         <Grid>
-                            <Grid.Col span={4}>
+                            <Grid.Col span={{ base: 12, sm: 4 }}>
                                 <Stack align="center" gap="xs">
                                     <RingProgress
-                                        size={120} thickness={10} roundCaps
+                                        size={isMobile ? 100 : 120} thickness={isMobile ? 8 : 10} roundCaps
                                         sections={[{ value: overallProgress, color: 'brand' }]}
-                                        label={<Text ta="center" fw={800} size="lg">{overallProgress}%</Text>}
+                                        label={<Text ta="center" fw={800} size={isMobile ? "md" : "lg"}>{overallProgress}%</Text>}
                                     />
-                                    <Text size="sm" fw={500} c="dimmed">Overall Progress</Text>
+                                    <Text size="xs" fw={500} c="dimmed">Overall Progress</Text>
                                 </Stack>
                             </Grid.Col>
-                            <Grid.Col span={8}>
+                            <Grid.Col span={{ base: 12, sm: 8 }}>
                                 <Text fw={500} size="sm" mb="sm">Subject-wise Progress</Text>
                                 <Stack gap="sm">
                                     {subjectProgress.map((s: { name: string; progress: number; color: string }) => (
@@ -258,6 +260,19 @@ export function TeacherDashboard() {
                         </Group>
                         {ungradedSubs.length === 0 ? (
                             <Text ta="center" c="dimmed" size="sm" py="md">No pending submissions to review</Text>
+                        ) : isMobile ? (
+                            <Stack gap="xs">
+                                {ungradedSubs.map(s => (
+                                    <Paper key={s.id} withBorder p="sm" radius="md">
+                                        <Group justify="space-between" mb={4}>
+                                            <Text size="sm" fw={600}>{s.student?.firstName} {s.student?.lastName}</Text>
+                                            <Button size="compact-xs" radius="xl" onClick={() => navigate(`/portal/grading?assignment=${s.assignment?.id}`)}>Review</Button>
+                                        </Group>
+                                        <Text size="xs" c="dimmed" lineClamp={1}>{s.assignment?.title}</Text>
+                                        <Badge variant="light" size="xs" mt={4}>{s.assignment?.subject?.name}</Badge>
+                                    </Paper>
+                                ))}
+                            </Stack>
                         ) : (
                             <Table striped highlightOnHover>
                                 <Table.Thead>
@@ -294,6 +309,23 @@ export function TeacherDashboard() {
                         </Group>
                         {gradedSubs.length === 0 && ungradedSubs.length === 0 ? (
                             <Text ta="center" c="dimmed" size="sm" py="md">No recent submissions</Text>
+                        ) : isMobile ? (
+                            <Stack gap="xs">
+                                {(gradedSubs.length > 0 ? gradedSubs : ungradedSubs).map(s => (
+                                    <Paper key={s.id} withBorder p="sm" radius="md">
+                                        <Group justify="space-between" mb={4}>
+                                            <Text size="sm" fw={600}>{s.student?.firstName} {s.student?.lastName}</Text>
+                                            <Text size="xs" fw={700}>{s.marks !== null ? `${s.marks}/${s.assignment?.maxMarks}` : '—'}</Text>
+                                        </Group>
+                                        <Group justify="space-between" align="center">
+                                            <Text size="xs" c="dimmed" lineClamp={1} flex={1}>{s.assignment?.title}</Text>
+                                            <Badge color={s.marks !== null ? 'green' : 'orange'} variant="light" size="xs">
+                                                {s.marks !== null ? 'Graded' : 'Pending'}
+                                            </Badge>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
                         ) : (
                             <Table striped highlightOnHover>
                                 <Table.Thead>
@@ -336,6 +368,21 @@ export function TeacherDashboard() {
                         </Group>
                         {upcomingExams.length === 0 ? (
                             <Text ta="center" c="dimmed" size="sm" py="md">No upcoming exams scheduled</Text>
+                        ) : isMobile ? (
+                            <Stack gap="xs">
+                                {upcomingExams.map((exam: any) => (
+                                    <Paper key={exam.id} withBorder p="sm" radius="md">
+                                        <Group justify="space-between" mb={4}>
+                                            <Text size="sm" fw={600}>{exam.name}</Text>
+                                            <Badge variant="outline" color="orange" size="xs">{exam.maxMarks} pts</Badge>
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Text size="xs" c="dimmed">{exam.subject?.name || '—'}</Text>
+                                            <Text size="xs" fw={500}>{new Date(exam.date).toLocaleDateString('en-GB')}</Text>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
                         ) : (
                             <Table striped highlightOnHover>
                                 <Table.Thead>

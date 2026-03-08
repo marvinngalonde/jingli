@@ -1,4 +1,5 @@
 import { Title, Text, Stack, Card, Button, SimpleGrid, Group, ThemeIcon, Badge, LoadingOverlay, Menu, ActionIcon } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconBooks, IconUsers, IconDotsVertical, IconEye, IconMessageDots, IconFileDescription, IconClipboardList } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
@@ -18,6 +19,7 @@ interface TeacherClass {
 export function TeacherClasses() {
     const navigate = useNavigate();
     const location = useLocation();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const basePath = location.pathname.startsWith('/teacher') ? '/teacher' : '/portal';
 
     const { data: classes = [] as TeacherClass[], isLoading: loading } = useQuery<TeacherClass[]>({
@@ -86,17 +88,17 @@ export function TeacherClasses() {
                                 </Group>
                             </Stack>
 
-                            <Group grow mt="xl">
-                                <Button variant="light" color="blue" leftSection={<IconUsers size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/students`)}>
+                            <SimpleGrid cols={{ base: 1, xs: 3 }} mt="xl" spacing="xs">
+                                <Button variant="light" color="blue" leftSection={<IconUsers size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/students`)} fullWidth>
                                     Students
                                 </Button>
-                                <Button variant="light" color="grape" leftSection={<IconFileDescription size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/materials`)}>
+                                <Button variant="light" color="grape" leftSection={<IconFileDescription size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/materials`)} fullWidth>
                                     Materials
                                 </Button>
-                                <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/assignments`)}>
+                                <Button variant="light" color="orange" leftSection={<IconClipboardList size={16} />} onClick={() => navigate(`${basePath}/classes/${cls.section.id}/assignments`)} fullWidth>
                                     Assignments
                                 </Button>
-                            </Group>
+                            </SimpleGrid>
                         </Card>
                     ))}
                 </SimpleGrid>

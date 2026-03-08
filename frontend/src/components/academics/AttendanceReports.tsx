@@ -12,8 +12,11 @@ import {
     Center,
     Table,
     Badge,
-    Button
+    Button,
+    Box,
+    Card
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import { IconPrinter } from '@tabler/icons-react';
@@ -41,6 +44,7 @@ export function AttendanceReports() {
         new Date(new Date().setDate(new Date().getDate() - 7)), // 7 days ago
         new Date()
     ]);
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const { data: classesRaw = [] } = useQuery({
         queryKey: ['attendanceClasses', user?.id],
@@ -124,22 +128,24 @@ export function AttendanceReports() {
                 }
             `}</style>
 
-            <Group justify="space-between" className="no-print">
-                <Group>
+            <Group justify="space-between" className="no-print" gap="md">
+                <Group style={{ flex: 1 }} gap="xs">
                     <Select
                         placeholder="Select Class"
                         data={classes}
                         value={selectedClassId}
                         onChange={setSelectedClassId}
                         searchable
-                        w={250}
+                        flex={1}
+                        miw={isMobile ? '100%' : 250}
                     />
                     <DatePickerInput
                         type="range"
                         placeholder="Pick dates range"
                         value={dateRange}
                         onChange={setDateRange}
-                        w={300}
+                        flex={1}
+                        miw={isMobile ? '100%' : 300}
                     />
                 </Group>
                 <Button
@@ -147,6 +153,7 @@ export function AttendanceReports() {
                     variant="outline"
                     onClick={() => window.print()}
                     disabled={!selectedClassId || records.length === 0}
+                    w={isMobile ? '100%' : 'auto'}
                 >
                     Print Report
                 </Button>
@@ -161,7 +168,7 @@ export function AttendanceReports() {
             ) : (
                 <>
                     {/* Summary Cards */}
-                    <SimpleGrid cols={{ base: 1, sm: 4 }}>
+                    <SimpleGrid cols={{ base: 1, xs: 2, sm: 4 }}>
                         <Paper withBorder p="md" radius="md">
                             <Group>
                                 <RingProgress
@@ -192,7 +199,7 @@ export function AttendanceReports() {
                     </SimpleGrid>
 
                     {/* Chart */}
-                    <Paper p="md" radius="md" withBorder h={400}>
+                    <Paper p="md" radius="md" withBorder h={isMobile ? 300 : 400}>
                         <Text mb="md" fw={700}>Attendance Trends</Text>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData}>
@@ -212,31 +219,51 @@ export function AttendanceReports() {
                     {/* Low Attendance List */}
                     <Paper p="md" radius="md" withBorder>
                         <Text mb="md" fw={700}>Students with Lowest Attendance (Top 5)</Text>
-                        <Table>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Student</Table.Th>
-                                    <Table.Th>Present</Table.Th>
-                                    <Table.Th>Absent</Table.Th>
-                                    <Table.Th>Rate</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
+                        {isMobile ? (
+                            <Stack gap="sm">
                                 {studentList.map(s => {
                                     const rate = Math.round((s.present / s.total) * 100);
                                     return (
-                                        <Table.Tr key={s.name}>
-                                            <Table.Td>{s.name}</Table.Td>
-                                            <Table.Td>{s.present} / {s.total} days</Table.Td>
-                                            <Table.Td>{s.absent} days</Table.Td>
-                                            <Table.Td>
+                                        <Card key={s.name} withBorder p="sm" radius="md">
+                                            <Group justify="space-between" mb={4}>
+                                                <Text size="sm" fw={600}>{s.name}</Text>
                                                 <Badge color={rate < 75 ? 'red' : rate < 90 ? 'yellow' : 'green'}>{rate}%</Badge>
-                                            </Table.Td>
-                                        </Table.Tr>
+                                            </Group>
+                                            <Group justify="space-between">
+                                                <Text size="xs" c="dimmed">Present: {s.present} / {s.total} days</Text>
+                                                <Text size="xs" c="dimmed">Absent: {s.absent} days</Text>
+                                            </Group>
+                                        </Card>
                                     );
                                 })}
-                            </Table.Tbody>
-                        </Table>
+                            </Stack>
+                        ) : (
+                            <Table>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Student</Table.Th>
+                                        <Table.Th>Present</Table.Th>
+                                        <Table.Th>Absent</Table.Th>
+                                        <Table.Th>Rate</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {studentList.map(s => {
+                                        const rate = Math.round((s.present / s.total) * 100);
+                                        return (
+                                            <Table.Tr key={s.name}>
+                                                <Table.Td>{s.name}</Table.Td>
+                                                <Table.Td>{s.present} / {s.total} days</Table.Td>
+                                                <Table.Td>{s.absent} days</Table.Td>
+                                                <Table.Td>
+                                                    <Badge color={rate < 75 ? 'red' : rate < 90 ? 'yellow' : 'green'}>{rate}%</Badge>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        )}
                     </Paper>
                 </>
             )}

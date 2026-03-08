@@ -4,7 +4,7 @@ import {
     Button, Progress, Radio, Divider, Alert, Box, ActionIcon, Tooltip,
     RingProgress, SimpleGrid, Modal
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
     IconBrain, IconCheck, IconX, IconClock, IconTrophy,
     IconCircleCheck, IconCircleX, IconQuestionMark, IconMaximize, IconLock,
@@ -48,6 +48,7 @@ interface AttemptResult {
 }
 
 export default function StudentCBT() {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
@@ -159,8 +160,8 @@ export default function StudentCBT() {
                 <PageHeader title="Quiz Results" subtitle={activeQuiz?.title || ''} />
                 <Paper withBorder radius="md" p="xl" ta="center" bg="var(--app-surface)" mb="lg">
                     <RingProgress
-                        size={160}
-                        thickness={16}
+                        size={isMobile ? 120 : 160}
+                        thickness={isMobile ? 12 : 16}
                         sections={[{ value: pct, color: pct >= 70 ? 'green' : pct >= 50 ? 'yellow' : 'red' }]}
                         label={
                             <Center>
@@ -248,7 +249,7 @@ export default function StudentCBT() {
                     <Progress value={((currentQ + 1) / questions.length) * 100} size="sm" mt="sm" />
                 </Paper>
 
-                <Paper withBorder radius="md" p="xl" bg="var(--app-surface)">
+                <Paper withBorder radius="md" p={isMobile ? "md" : "xl"} bg="var(--app-surface)">
                     <Text size="xs" c="dimmed" mb="xs">Question {currentQ + 1} of {questions.length}</Text>
                     <Text fw={600} size="lg" mb="xl">{q.text}</Text>
                     <Stack gap="sm">

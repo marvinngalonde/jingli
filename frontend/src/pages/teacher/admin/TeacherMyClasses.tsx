@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Title, Text, Card, Group, Badge, SimpleGrid, Paper, ThemeIcon, Stack, Loader, Center, Avatar, Table, ActionIcon, Tooltip, Progress } from '@mantine/core';
-import { IconSchool, IconUsers, IconBook, IconChevronRight, IconCalendar } from '@tabler/icons-react';
+import { Title, Text, Card, Group, Badge, SimpleGrid, Paper, ThemeIcon, Stack, Loader, Center, Avatar, Table, ActionIcon, Tooltip, Progress, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconSchool, IconUsers, IconBook, IconChevronRight, IconCalendar, IconUser } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -23,6 +24,7 @@ export default function TeacherMyClasses() {
     const navigate = useNavigate();
     const [classes, setClasses] = useState<TeacherClassInfo[]>([]);
     const [loading, setLoading] = useState(true);
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     useEffect(() => {
         loadClasses();
@@ -117,54 +119,87 @@ export default function TeacherMyClasses() {
                                 <Text fw={600}>{levelName}</Text>
                                 <Badge variant="light" color="blue" ml="auto">{items.length} section(s)</Badge>
                             </Group>
-                            <Table striped highlightOnHover>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Section</Table.Th>
-                                        <Table.Th>Subjects</Table.Th>
-                                        <Table.Th>Students</Table.Th>
-                                        <Table.Th>Role</Table.Th>
-                                        <Table.Th w={50}></Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
+                            {isMobile ? (
+                                <Stack gap="xs" p="sm">
                                     {items.map((cls) => (
-                                        <Table.Tr key={cls.section?.id || Math.random()} style={{ cursor: 'pointer' }} onClick={() => navigate(`/teacher/classes/${cls.section?.id}/students`)}>
-                                            <Table.Td>
+                                        <Card key={cls.section?.id || Math.random()} withBorder radius="md" p="md" onClick={() => navigate(`/teacher/classes/${cls.section?.id}/students`)} style={{ cursor: 'pointer' }}>
+                                            <Group justify="space-between" mb="xs">
                                                 <Group gap="sm">
                                                     <Avatar color="blue" radius="md" size="sm">{cls.section?.name?.charAt(0) || '?'}</Avatar>
-                                                    <Text fw={500}>{cls.section?.name || 'Unknown'}</Text>
+                                                    <Text fw={600}>{cls.section?.name || 'Unknown'}</Text>
                                                 </Group>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Group gap={4} wrap="wrap">
-                                                    {(cls.subjects || []).map((subj) => (
-                                                        <Badge key={subj.id} variant="outline" color="grape" size="sm">{subj.code || subj.name}</Badge>
-                                                    ))}
-                                                    {(!cls.subjects || cls.subjects.length === 0) && (
-                                                        <Text size="sm" c="dimmed">Class Teacher only</Text>
-                                                    )}
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Badge variant="light" color="teal">{cls.section?._count?.students || 0} students</Badge>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                {cls.isClassTeacher ? (
-                                                    <Badge variant="filled" color="blue" size="sm">Class Teacher</Badge>
-                                                ) : (
-                                                    <Badge variant="light" color="gray" size="sm">Subject Teacher</Badge>
+                                                <Badge variant="light" color="teal" size="sm">{cls.section?._count?.students || 0} students</Badge>
+                                            </Group>
+                                            <Group gap={4} mb="sm" wrap="wrap">
+                                                {(cls.subjects || []).map((subj) => (
+                                                    <Badge key={subj.id} variant="outline" color="grape" size="xs">{subj.code || subj.name}</Badge>
+                                                ))}
+                                                {(!cls.subjects || cls.subjects.length === 0) && (
+                                                    <Text size="xs" c="dimmed">Class Teacher only</Text>
                                                 )}
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <ActionIcon variant="subtle" color="gray">
-                                                    <IconChevronRight size={16} />
-                                                </ActionIcon>
-                                            </Table.Td>
-                                        </Table.Tr>
+                                            </Group>
+                                            <Divider mb="xs" />
+                                            <Group justify="space-between" align="center">
+                                                {cls.isClassTeacher ? (
+                                                    <Badge variant="filled" color="blue" size="xs">Class Teacher</Badge>
+                                                ) : (
+                                                    <Badge variant="light" color="gray" size="xs">Subject Teacher</Badge>
+                                                )}
+                                                <IconChevronRight size={16} color="gray" />
+                                            </Group>
+                                        </Card>
                                     ))}
-                                </Table.Tbody>
-                            </Table>
+                                </Stack>
+                            ) : (
+                                <Table striped highlightOnHover>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Section</Table.Th>
+                                            <Table.Th>Subjects</Table.Th>
+                                            <Table.Th>Students</Table.Th>
+                                            <Table.Th>Role</Table.Th>
+                                            <Table.Th w={50}></Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {items.map((cls) => (
+                                            <Table.Tr key={cls.section?.id || Math.random()} style={{ cursor: 'pointer' }} onClick={() => navigate(`/teacher/classes/${cls.section?.id}/students`)}>
+                                                <Table.Td>
+                                                    <Group gap="sm">
+                                                        <Avatar color="blue" radius="md" size="sm">{cls.section?.name?.charAt(0) || '?'}</Avatar>
+                                                        <Text fw={500}>{cls.section?.name || 'Unknown'}</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap={4} wrap="wrap">
+                                                        {(cls.subjects || []).map((subj) => (
+                                                            <Badge key={subj.id} variant="outline" color="grape" size="sm">{subj.code || subj.name}</Badge>
+                                                        ))}
+                                                        {(!cls.subjects || cls.subjects.length === 0) && (
+                                                            <Text size="sm" c="dimmed">Class Teacher only</Text>
+                                                        )}
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Badge variant="light" color="teal">{cls.section?._count?.students || 0} students</Badge>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    {cls.isClassTeacher ? (
+                                                        <Badge variant="filled" color="blue" size="sm">Class Teacher</Badge>
+                                                    ) : (
+                                                        <Badge variant="light" color="gray" size="sm">Subject Teacher</Badge>
+                                                    )}
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <ActionIcon variant="subtle" color="gray">
+                                                        <IconChevronRight size={16} />
+                                                    </ActionIcon>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            )}
                         </Paper>
                     ))}
                 </Stack>

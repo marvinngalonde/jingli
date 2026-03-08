@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Title, Text, Select, Group, Badge, Paper, Avatar, Loader, Center, Stack, TextInput, ActionIcon, Tooltip } from '@mantine/core';
-import { IconUsers, IconSearch, IconEye } from '@tabler/icons-react';
+import { Title, Text, Select, Group, Badge, Paper, Avatar, Loader, Center, Stack, TextInput, ActionIcon, Tooltip, Divider, Card } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconUsers, IconSearch, IconEye, IconPhone } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { PageHeader } from '../../../components/common/PageHeader';
@@ -32,6 +33,7 @@ export default function TeacherMyStudents() {
     const [loading, setLoading] = useState(true);
     const [studentsLoading, setStudentsLoading] = useState(false);
     const [search, setSearch] = useState('');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     useEffect(() => {
         loadSections();
@@ -75,7 +77,7 @@ export default function TeacherMyStudents() {
         }
     };
 
-    const filteredStudents = students.filter(s =>
+    const filteredStudents = students.filter((s: StudentRow) =>
         `${s.firstName} ${s.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
         s.admissionNo.toLowerCase().includes(search.toLowerCase())
     );
@@ -146,22 +148,39 @@ export default function TeacherMyStudents() {
             />
 
             <Paper withBorder radius="md" p="md" mb="lg" bg="var(--app-surface)">
-                <Group>
-                    <Select
-                        label="Select Section"
-                        placeholder="Choose a section"
-                        data={sections}
-                        value={selectedSection}
-                        onChange={setSelectedSection}
-                        searchable
-                        w={350}
+                <Stack gap="md">
+                    <Group justify="space-between" align="flex-end">
+                        <Select
+                            label="Select Section"
+                            placeholder="Choose a section"
+                            data={sections}
+                            value={selectedSection}
+                            onChange={setSelectedSection}
+                            searchable
+                            flex={1}
+                            miw={isMobile ? '100%' : 300}
+                        />
+                        {!isMobile && (
+                            <Badge variant="light" color="teal" size="lg" mb={8}>
+                                <IconUsers size={14} style={{ marginRight: 4 }} />
+                                {filteredStudents.length} student(s)
+                            </Badge>
+                        )}
+                    </Group>
+                    <TextInput
+                        placeholder="Search students..."
+                        leftSection={<IconSearch size={16} />}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        w={isMobile ? '100%' : 300}
                     />
-                    <div style={{ flex: 1 }} />
-                    <Badge variant="light" color="teal" size="lg" mt={24}>
-                        <IconUsers size={14} style={{ marginRight: 4 }} />
-                        {filteredStudents.length} student(s)
-                    </Badge>
-                </Group>
+                    {isMobile && (
+                        <Badge variant="light" color="teal" size="sm" style={{ alignSelf: 'flex-start' }}>
+                            <IconUsers size={14} style={{ marginRight: 4 }} />
+                            {filteredStudents.length} student(s)
+                        </Badge>
+                    )}
+                </Stack>
             </Paper>
 
             <DataTable

@@ -4,7 +4,8 @@ import { IconSchool, IconBook, IconFileDescription, IconClipboardList, IconDownl
 import { api } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { PageHeader } from '../../../components/common/PageHeader';
-import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor, Divider, UnstyledButton } from '@mantine/core';
+import { Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center, SimpleGrid, ActionIcon, Tabs, Table, Anchor, Divider, UnstyledButton, Box } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 
 interface SubjectInfo {
     id: string;
@@ -26,6 +27,7 @@ interface Material {
 export default function StudentPortalMaterials() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { data, isLoading: loading } = useQuery({
         queryKey: ['studentPortalMaterials'],
         queryFn: async () => {
@@ -193,54 +195,83 @@ export default function StudentPortalMaterials() {
                             <Text c="dimmed" mt="xs">Your teachers haven't uploaded any materials yet.</Text>
                         </Card>
                     ) : (
-                        <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
-                            <Table striped highlightOnHover className="mobile-stack-table">
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Material</Table.Th>
-                                        <Table.Th>Subject</Table.Th>
-                                        <Table.Th>Type</Table.Th>
-                                        <Table.Th>Date</Table.Th>
-                                        <Table.Th w={60}></Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {materials.map((mat: any) => (
-                                        <Table.Tr key={mat.id}>
-                                            <Table.Td data-label="Material">
-                                                <Group gap="sm">
-                                                    <ThemeIcon variant="light" color={getTypeColor(mat.type)} size="sm" radius="md">
-                                                        {getTypeIcon(mat.type)}
-                                                    </ThemeIcon>
-                                                    <div>
-                                                        <Text size="sm" fw={500}>{mat.title}</Text>
-                                                        {mat.description && <Text size="xs" c="dimmed" lineClamp={1}>{mat.description}</Text>}
-                                                    </div>
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td data-label="Subject">
-                                                <Badge variant="outline" color="grape" size="sm">{mat.subject?.code || '—'}</Badge>
-                                            </Table.Td>
-                                            <Table.Td data-label="Type">
-                                                <Badge variant="light" color={getTypeColor(mat.type)} size="sm" tt="capitalize">{mat.type || 'File'}</Badge>
-                                            </Table.Td>
-                                            <Table.Td data-label="Date">
-                                                <Text size="sm" c="dimmed">
-                                                    {new Date(mat.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                </Text>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                {mat.fileUrl && (
-                                                    <ActionIcon variant="light" color="blue" component="a" href={mat.fileUrl} target="_blank">
-                                                        <IconDownload size={16} />
-                                                    </ActionIcon>
-                                                )}
-                                            </Table.Td>
+                        isMobile ? (
+                            <Stack gap="sm">
+                                {materials.map((mat: any) => (
+                                    <Card key={mat.id} withBorder radius="md" p="sm">
+                                        <Group justify="space-between" mb="xs" wrap="nowrap">
+                                            <Group gap="sm" wrap="nowrap">
+                                                <ThemeIcon variant="light" color={getTypeColor(mat.type)} size="sm" radius="md">
+                                                    {getTypeIcon(mat.type)}
+                                                </ThemeIcon>
+                                                <Text size="sm" fw={600} lineClamp={1}>{mat.title}</Text>
+                                            </Group>
+                                            {mat.fileUrl && (
+                                                <ActionIcon variant="light" color="blue" component="a" href={mat.fileUrl} target="_blank">
+                                                    <IconDownload size={16} />
+                                                </ActionIcon>
+                                            )}
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Badge variant="outline" color="grape" size="xs">{mat.subject?.code || '—'}</Badge>
+                                            <Text size="xs" c="dimmed">
+                                                {new Date(mat.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </Text>
+                                        </Group>
+                                        {mat.description && <Text size="xs" c="dimmed" mt={4} lineClamp={2}>{mat.description}</Text>}
+                                    </Card>
+                                ))}
+                            </Stack>
+                        ) : (
+                            <Paper withBorder radius="md" bg="var(--app-surface)" p={0}>
+                                <Table striped highlightOnHover className="mobile-stack-table">
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Material</Table.Th>
+                                            <Table.Th>Subject</Table.Th>
+                                            <Table.Th>Type</Table.Th>
+                                            <Table.Th>Date</Table.Th>
+                                            <Table.Th w={60}></Table.Th>
                                         </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-                        </Paper>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {materials.map((mat: any) => (
+                                            <Table.Tr key={mat.id}>
+                                                <Table.Td data-label="Material">
+                                                    <Group gap="sm">
+                                                        <ThemeIcon variant="light" color={getTypeColor(mat.type)} size="sm" radius="md">
+                                                            {getTypeIcon(mat.type)}
+                                                        </ThemeIcon>
+                                                        <div>
+                                                            <Text size="sm" fw={500}>{mat.title}</Text>
+                                                            {mat.description && <Text size="xs" c="dimmed" lineClamp={1}>{mat.description}</Text>}
+                                                        </div>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td data-label="Subject">
+                                                    <Badge variant="outline" color="grape" size="sm">{mat.subject?.code || '—'}</Badge>
+                                                </Table.Td>
+                                                <Table.Td data-label="Type">
+                                                    <Badge variant="light" color={getTypeColor(mat.type)} size="sm" tt="capitalize">{mat.type || 'File'}</Badge>
+                                                </Table.Td>
+                                                <Table.Td data-label="Date">
+                                                    <Text size="sm" c="dimmed">
+                                                        {new Date(mat.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    {mat.fileUrl && (
+                                                        <ActionIcon variant="light" color="blue" component="a" href={mat.fileUrl} target="_blank">
+                                                            <IconDownload size={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </Paper>
+                        )
                     )}
                 </Tabs.Panel>
             </Tabs>

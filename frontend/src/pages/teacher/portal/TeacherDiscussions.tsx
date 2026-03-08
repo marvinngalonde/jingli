@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import { Title, Text, Paper, Group, Button, Stack, Card, Badge, Grid, ActionIcon, Tabs, ThemeIcon, SimpleGrid, Box, Avatar, Textarea, TextInput, Divider, ScrollArea, Modal, Select } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconPlus, IconSearch, IconMessageCircle, IconPin, IconLock,
@@ -36,6 +36,7 @@ interface Thread {
 export default function TeacherDiscussions() {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [activeThread, setActiveThread] = useState<Thread | null>(null);
 
     const fetchThreads = async () => {
@@ -229,26 +230,26 @@ export default function TeacherDiscussions() {
                 <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateModal(true)}>New Discussion</Button>
             </Group>
 
-            <SimpleGrid cols={{ base: 2, md: 3 }} mb="lg">
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="sm">
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Total Threads</Text><ThemeIcon variant="light" color="violet"><IconMessageCircle size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{threads.length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Total Threads</Text><ThemeIcon variant="light" color="violet" size="sm"><IconMessageCircle size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{threads.length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Total Replies</Text><ThemeIcon variant="light" color="blue"><IconMessage size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{threads.reduce((a, t) => a + t.replies.length, 0)}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Total Replies</Text><ThemeIcon variant="light" color="blue" size="sm"><IconMessage size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{threads.reduce((a, t) => a + t.replies.length, 0)}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Active Participants</Text><ThemeIcon variant="light" color="green"><IconUsers size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{new Set(threads.flatMap(t => [t.author, ...t.replies.map(r => r.author)])).size}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Active Participants</Text><ThemeIcon variant="light" color="green" size="sm"><IconUsers size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{new Set(threads.flatMap(t => [t.author, ...t.replies.map(r => r.author)])).size}</Text>
                 </Card>
             </SimpleGrid>
 
             <Paper p="lg" radius="md" shadow="sm" withBorder>
-                <Group justify="space-between" mb="md">
-                    <TextInput placeholder="Search discussions..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 300 }} />
-                    <Select placeholder="Subject" data={uniqueSubjects} value={filterSubject} onChange={setFilterSubject} clearable style={{ width: 160 }} />
-                </Group>
+                <Stack gap="md" mb="md">
+                    <TextInput placeholder="Search discussions..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} />
+                    <Select placeholder="Subject" data={uniqueSubjects} value={filterSubject} onChange={setFilterSubject} clearable />
+                </Stack>
 
                 {filtered.length === 0 ? (
                     <Stack align="center" py="xl" gap="xs">
@@ -272,29 +273,45 @@ export default function TeacherDiscussions() {
                                 onMouseEnter={(e) => e.currentTarget.style.background = 'var(--mantine-color-gray-0)'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = ''}
                             >
-                                <Group justify="space-between">
-                                    <div style={{ flex: 1 }}>
-                                        <Group gap="xs" mb={4}>
-                                            {thread.pinned && <Badge size="xs" color="blue" variant="light">📌 Pinned</Badge>}
-                                            {thread.locked && <Badge size="xs" color="red" variant="light">🔒 Locked</Badge>}
-                                            <Badge size="xs" variant="light">{thread.subject}</Badge>
-                                            {thread.classSection && <Badge size="xs" variant="outline">{thread.classSection}</Badge>}
-                                        </Group>
-                                        <Text fw={600} mb={2}>{thread.title}</Text>
-                                        <Text size="xs" c="dimmed" lineClamp={1}>{thread.body}</Text>
-                                    </div>
-                                    <Stack align="flex-end" gap={4}>
-                                        <Group gap={4}>
-                                            <IconMessageCircle size={14} color="gray" />
-                                            <Text size="xs" c="dimmed">{thread.replies.length}</Text>
-                                        </Group>
-                                        <Group gap={4}>
-                                            <IconClock size={14} color="gray" />
+                                <Stack gap="xs">
+                                    <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                        <div style={{ flex: 1 }}>
+                                            <Group gap="xs" mb={4}>
+                                                {thread.pinned && <Badge size="xs" color="blue" variant="light">📌 Pinned</Badge>}
+                                                {thread.locked && <Badge size="xs" color="red" variant="light">🔒 Locked</Badge>}
+                                                <Badge size="xs" variant="light">{thread.subject}</Badge>
+                                                {thread.classSection && <Badge size="xs" variant="outline">{thread.classSection}</Badge>}
+                                            </Group>
+                                            <Text fw={600} mb={2} lineClamp={2}>{thread.title}</Text>
+                                            <Text size="xs" c="dimmed" lineClamp={isMobile ? 1 : 2}>{thread.body}</Text>
+                                        </div>
+                                        {!isMobile && (
+                                            <Stack align="flex-end" gap={4} style={{ minWidth: 100 }}>
+                                                <Group gap={4}>
+                                                    <IconMessageCircle size={14} color="gray" />
+                                                    <Text size="xs" c="dimmed">{thread.replies.length}</Text>
+                                                </Group>
+                                                <Group gap={4}>
+                                                    <IconClock size={14} color="gray" />
+                                                    <Text size="xs" c="dimmed">{formatDate(thread.createdAt)}</Text>
+                                                </Group>
+                                                <Text size="xs" c="dimmed" truncate>by {thread.author}</Text>
+                                            </Stack>
+                                        )}
+                                    </Group>
+                                    {isMobile && (
+                                        <Group justify="space-between" mt={4}>
+                                            <Group gap="md">
+                                                <Group gap={4}>
+                                                    <IconMessageCircle size={14} color="gray" />
+                                                    <Text size="xs" c="dimmed">{thread.replies.length}</Text>
+                                                </Group>
+                                                <Text size="xs" c="dimmed" truncate>by {thread.author}</Text>
+                                            </Group>
                                             <Text size="xs" c="dimmed">{formatDate(thread.createdAt)}</Text>
                                         </Group>
-                                        <Text size="xs" c="dimmed">by {thread.author}</Text>
-                                    </Stack>
-                                </Group>
+                                    )}
+                                </Stack>
                             </Paper>
                         ))}
                     </Stack>
@@ -306,10 +323,10 @@ export default function TeacherDiscussions() {
                 <form onSubmit={threadForm.onSubmit(handleCreateThread)}>
                     <Stack>
                         <TextInput label="Title" required placeholder="e.g. Tips for Mid-Term Exam" {...threadForm.getInputProps('title')} />
-                        <Group grow>
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                             <TextInput label="Subject" required placeholder="e.g. Mathematics" {...threadForm.getInputProps('subject')} />
                             <TextInput label="Class / Section" placeholder="e.g. Form 2 Blue" {...threadForm.getInputProps('classSection')} />
-                        </Group>
+                        </SimpleGrid>
                         <Textarea label="Content" required autosize minRows={4} placeholder="Write your discussion post..." {...threadForm.getInputProps('body')} />
                         <Group justify="flex-end" mt="md">
                             <Button variant="default" onClick={() => setCreateModal(false)}>Cancel</Button>

@@ -10,6 +10,7 @@ import {
     Group,
     Text,
     Divider,
+    SimpleGrid,
     rem,
 } from '@mantine/core';
 import { Upload } from 'lucide-react';
@@ -71,7 +72,7 @@ export default function Settings() {
                         <Title order={4} mb="md">
                             Regional
                         </Title>
-                        <Group grow>
+                        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                             <Select
                                 label="Timezone"
                                 data={['UTC', 'EST', 'PST', 'GMT']}
@@ -93,7 +94,7 @@ export default function Settings() {
                                 size="sm"
                                 radius={2}
                             />
-                        </Group>
+                        </SimpleGrid>
                     </Box>
 
                     <Divider />

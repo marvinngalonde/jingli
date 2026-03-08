@@ -1,4 +1,5 @@
-import { Title, Text, Stack, Card, SimpleGrid, Group, ThemeIcon, Button, Badge, Loader, Divider } from '@mantine/core';
+import { Title, Text, Stack, Card, SimpleGrid, Group, ThemeIcon, Button, Badge, Loader, Divider, Box } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconBooks, IconFileDescription, IconClipboardList } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
@@ -7,6 +8,7 @@ import { PageHeader } from '../../../components/common/PageHeader';
 
 export function StudentPortalClasses() {
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { data: classesData = [], isLoading: loading } = useQuery({
         queryKey: ['studentClasses'],
         queryFn: async () => {
@@ -71,11 +73,12 @@ export function StudentPortalClasses() {
 
                             <Divider mb="xl" variant="dashed" />
 
-                            <Group grow gap="md">
+                            <Group grow={!isMobile} gap="md">
                                 <Button
                                     variant="light"
                                     color="blue"
                                     radius="md"
+                                    fullWidth={isMobile}
                                     leftSection={<IconFileDescription size={16} />}
                                     onClick={() => navigate(`/student-portal/classes/${cls.subjectId}/materials`)}
                                     styles={{ root: { height: 44 } }}
@@ -86,6 +89,7 @@ export function StudentPortalClasses() {
                                     variant="light"
                                     color="orange"
                                     radius="md"
+                                    fullWidth={isMobile}
                                     leftSection={<IconClipboardList size={16} />}
                                     onClick={() => navigate(`/student-portal/classes/${cls.subjectId}/assignments`)}
                                     styles={{ root: { height: 44 } }}

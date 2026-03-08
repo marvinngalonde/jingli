@@ -1,4 +1,5 @@
-import { Paper, SimpleGrid, Text, Box, Group, ActionIcon, Menu, Badge, HoverCard, Stack, Divider } from '@mantine/core';
+import { Paper, SimpleGrid, Text, Box, Group, ActionIcon, Menu, Badge, HoverCard, Stack, Divider, Tabs, Center } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconClock, IconMapPin, IconUser, IconDotsVertical, IconPencil, IconTrash, IconBook } from '@tabler/icons-react';
 import type { TimetableEntry, DayOfWeek } from '../../types/academics';
 
@@ -49,6 +50,7 @@ function formatTime(dateStr: string): string {
 }
 
 export function TimetableGrid({ entries, onEdit, onDelete, canEditEntry }: TimetableGridProps) {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const days = getActiveDays(entries);
 
     const getEntriesForSlot = (day: DayOfWeek, slot: TimeSlot) => {
@@ -71,6 +73,73 @@ export function TimetableGrid({ entries, onEdit, onDelete, canEditEntry }: Timet
             colorIdx++;
         }
     });
+
+    if (isMobile) {
+        return (
+            <Tabs defaultValue={days[0] || 'MON'} variant="outline" radius="md">
+                <Tabs.List grow mb="md" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
+                    {days.map(day => (
+                        <Tabs.Tab key={day} value={day}>{DAY_LABELS[day].substring(0, 3)}</Tabs.Tab>
+                    ))}
+                </Tabs.List>
+
+                {days.map(day => {
+                    const dayEntries = entries.filter(e => e.day === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                    return (
+                        <Tabs.Panel key={day} value={day}>
+                            {dayEntries.length === 0 ? (
+                                <Center py="xl">
+                                    <Text c="dimmed" size="sm">No classes scheduled for this day</Text>
+                                </Center>
+                            ) : (
+                                <Stack gap="sm">
+                                    {dayEntries.map(entry => {
+                                        const teacherName = `${(entry.teacher as any)?.firstName || ''} ${(entry.teacher as any)?.lastName || ''}`.trim();
+                                        const editable = canEditEntry ? canEditEntry(entry) : true;
+                                        return (
+                                            <Paper key={entry.id} p="md" withBorder radius="md">
+                                                <Group justify="space-between" mb="xs">
+                                                    <div>
+                                                        <Text fw={600}>{entry.subject?.name}</Text>
+                                                        <Text size="xs" c="dimmed">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</Text>
+                                                    </div>
+                                                    {editable && (onEdit || onDelete) && (
+                                                        <Menu position="bottom-end">
+                                                            <Menu.Target>
+                                                                <ActionIcon variant="subtle" color="gray">
+                                                                    <IconDotsVertical size={16} />
+                                                                </ActionIcon>
+                                                            </Menu.Target>
+                                                            <Menu.Dropdown>
+                                                                {onEdit && <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onEdit(entry)}>Edit</Menu.Item>}
+                                                                {onDelete && <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => onDelete(entry.id)}>Delete</Menu.Item>}
+                                                            </Menu.Dropdown>
+                                                        </Menu>
+                                                    )}
+                                                </Group>
+                                                <Group gap="lg">
+                                                    <Group gap={4}>
+                                                        <IconUser size={14} color="gray" />
+                                                        <Text size="xs">{teacherName || 'N/A'}</Text>
+                                                    </Group>
+                                                    {entry.roomNo && (
+                                                        <Group gap={4}>
+                                                            <IconMapPin size={14} color="gray" />
+                                                            <Text size="xs">Room {entry.roomNo}</Text>
+                                                        </Group>
+                                                    )}
+                                                </Group>
+                                            </Paper>
+                                        );
+                                    })}
+                                </Stack>
+                            )}
+                        </Tabs.Panel>
+                    );
+                })}
+            </Tabs>
+        );
+    }
 
     return (
         <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>

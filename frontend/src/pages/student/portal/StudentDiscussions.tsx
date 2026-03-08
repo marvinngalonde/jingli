@@ -4,7 +4,7 @@ import {
     Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center,
     Button, Textarea, Avatar, Divider, TextInput, SimpleGrid, Modal
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import {
@@ -37,6 +37,7 @@ interface Thread {
 }
 
 export default function StudentDiscussions() {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { user } = useAuth();
     const [threads, setThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
@@ -106,7 +107,7 @@ export default function StudentDiscussions() {
                 <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} mb="lg" onClick={() => setActive(null)}>
                     Back to Discussions
                 </Button>
-                <Paper withBorder radius="md" p="xl" bg="var(--app-surface)" mb="md">
+                <Paper withBorder radius="md" p={isMobile ? "md" : "xl"} bg="var(--app-surface)" mb="md">
                     <Group justify="space-between" mb="sm">
                         <Group>
                             {active.pinned && <Badge color="yellow" variant="light" leftSection={<IconPin size={12} />}>Pinned</Badge>}
@@ -178,7 +179,7 @@ export default function StudentDiscussions() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 mb="lg"
-                maw={400}
+                w={isMobile ? '100%' : 400}
             />
 
             {filtered.length === 0 ? (

@@ -1,4 +1,5 @@
-import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Modal, TextInput, Textarea, Center, Loader } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Modal, TextInput, Textarea, Center, Loader, ThemeIcon, Box, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowLeft, IconCheck, IconUpload } from '@tabler/icons-react';
 import { useState } from 'react';
 import { api } from '../../../services/api';
@@ -21,6 +22,7 @@ export function StudentAssignments() {
     const { subjectId } = useParams();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [opened, { open, close }] = useDisclosure(false);
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
@@ -97,64 +99,116 @@ export function StudentAssignments() {
                 </Group>
             </Group>
 
-            <Card withBorder radius="md" p={0}>
-                {assignments.length === 0 && !loading ? (
-                    <Text p="xl" ta="center" c="dimmed" fs="italic">No assignments for this class.</Text>
-                ) : (
-                    <Table verticalSpacing="md" striped highlightOnHover className="mobile-stack-table">
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Assignment</Table.Th>
-                                <Table.Th>Due Date</Table.Th>
-                                <Table.Th>Max Marks</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {assignments.map((a: Assignment) => {
-                                const hasSubmitted = a.submissions && a.submissions.length > 0;
-                                const isGraded = hasSubmitted && a.submissions[0].marks !== null;
+            {assignments.length === 0 && !loading ? (
+                <Card withBorder radius="md" p="xl" ta="center" bg="var(--app-surface)">
+                    <Text c="dimmed" fs="italic">No assignments for this class.</Text>
+                </Card>
+            ) : (
+                isMobile ? (
+                    <Stack gap="sm">
+                        {assignments.map((a: Assignment) => {
+                            const hasSubmitted = a.submissions && a.submissions.length > 0;
+                            const isGraded = hasSubmitted && a.submissions[0].marks !== null;
 
-                                return (
-                                    <Table.Tr key={a.id}>
-                                        <Table.Td data-label="Assignment">
-                                            <Text size="sm" fw={500}>{a.title}</Text>
-                                            <Text size="xs" c="dimmed" lineClamp={1}>{a.description}</Text>
-                                        </Table.Td>
-                                        <Table.Td data-label="Due Date">
-                                            {a.dueDate ? format(new Date(a.dueDate), 'MMM dd, yyyy h:mm a') : 'No due date'}
-                                        </Table.Td>
-                                        <Table.Td data-label="Max Marks">
-                                            {a.maxMarks || '-'}
-                                        </Table.Td>
-                                        <Table.Td data-label="Status">
+                            return (
+                                <Card key={a.id} withBorder radius="md" p="sm">
+                                    <Group justify="space-between" mb="xs" wrap="nowrap">
+                                        <Text size="sm" fw={600} lineClamp={1}>{a.title}</Text>
+                                        <Box>
                                             {isGraded ? (
-                                                <Badge color="green">Graded ({a.submissions[0].marks}/{a.maxMarks})</Badge>
+                                                <Badge color="green" size="xs">Graded</Badge>
                                             ) : hasSubmitted ? (
-                                                <Badge color="blue">Submitted</Badge>
+                                                <Badge color="blue" size="xs">Submitted</Badge>
                                             ) : (
-                                                <Badge color="orange">Pending</Badge>
+                                                <Badge color="orange" size="xs">Pending</Badge>
                                             )}
-                                        </Table.Td>
-                                        <Table.Td style={{ textAlign: 'right' }}>
-                                            {!hasSubmitted ? (
-                                                <Button size="xs" variant="light" leftSection={<IconUpload size={14} />} onClick={() => handleOpenSubmit(a)}>
-                                                    Turn In
-                                                </Button>
-                                            ) : (
-                                                <Button size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />}>
-                                                    Done
-                                                </Button>
-                                            )}
-                                        </Table.Td>
-                                    </Table.Tr>
-                                );
-                            })}
-                        </Table.Tbody>
-                    </Table>
-                )}
-            </Card>
+                                        </Box>
+                                    </Group>
+
+                                    <Group gap="xs" mb="sm">
+                                        <Text size="xs" c="dimmed">
+                                            Due: {a.dueDate ? format(new Date(a.dueDate), 'MMM dd, h:mm a') : 'No due date'}
+                                        </Text>
+                                        <Divider orientation="vertical" />
+                                        <Text size="xs" c="dimmed">Max: {a.maxMarks || '-'}</Text>
+                                    </Group>
+
+                                    {a.description && (
+                                        <Text size="xs" c="dimmed" mb="md" lineClamp={2}>
+                                            {a.description}
+                                        </Text>
+                                    )}
+
+                                    {!hasSubmitted ? (
+                                        <Button fullWidth size="xs" variant="light" leftSection={<IconUpload size={14} />} onClick={() => handleOpenSubmit(a)}>
+                                            Turn In
+                                        </Button>
+                                    ) : (
+                                        <Button fullWidth size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />} disabled>
+                                            Submitted {isGraded ? `(${a.submissions[0].marks}/${a.maxMarks})` : ''}
+                                        </Button>
+                                    )}
+                                </Card>
+                            );
+                        })}
+                    </Stack>
+                ) : (
+                    <Card withBorder radius="md" p={0}>
+                        <Table verticalSpacing="md" striped highlightOnHover className="mobile-stack-table">
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Assignment</Table.Th>
+                                    <Table.Th>Due Date</Table.Th>
+                                    <Table.Th>Max Marks</Table.Th>
+                                    <Table.Th>Status</Table.Th>
+                                    <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {assignments.map((a: Assignment) => {
+                                    const hasSubmitted = a.submissions && a.submissions.length > 0;
+                                    const isGraded = hasSubmitted && a.submissions[0].marks !== null;
+
+                                    return (
+                                        <Table.Tr key={a.id}>
+                                            <Table.Td data-label="Assignment">
+                                                <Text size="sm" fw={500}>{a.title}</Text>
+                                                <Text size="xs" c="dimmed" lineClamp={1}>{a.description}</Text>
+                                            </Table.Td>
+                                            <Table.Td data-label="Due Date">
+                                                {a.dueDate ? format(new Date(a.dueDate), 'MMM dd, yyyy h:mm a') : 'No due date'}
+                                            </Table.Td>
+                                            <Table.Td data-label="Max Marks">
+                                                {a.maxMarks || '-'}
+                                            </Table.Td>
+                                            <Table.Td data-label="Status">
+                                                {isGraded ? (
+                                                    <Badge color="green">Graded ({a.submissions[0].marks}/{a.maxMarks})</Badge>
+                                                ) : hasSubmitted ? (
+                                                    <Badge color="blue">Submitted</Badge>
+                                                ) : (
+                                                    <Badge color="orange">Pending</Badge>
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td style={{ textAlign: 'right' }}>
+                                                {!hasSubmitted ? (
+                                                    <Button size="xs" variant="light" leftSection={<IconUpload size={14} />} onClick={() => handleOpenSubmit(a)}>
+                                                        Turn In
+                                                    </Button>
+                                                ) : (
+                                                    <Button size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />}>
+                                                        Done
+                                                    </Button>
+                                                )}
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                })}
+                            </Table.Tbody>
+                        </Table>
+                    </Card>
+                )
+            )}
 
             <Modal opened={opened} onClose={close} title={`Turn in: ${selectedAssignment?.title}`} centered size="lg">
                 <Stack>

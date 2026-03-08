@@ -1,4 +1,5 @@
-import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Box, ThemeIcon } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowLeft, IconFile, IconDownload } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ interface CourseMaterial {
 export function StudentCourseMaterials() {
     const { subjectId } = useParams();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const { data: materials = [], isFetching: loading } = useQuery<CourseMaterial[]>({
         queryKey: ['studentMaterials', subjectId],
@@ -45,52 +47,80 @@ export function StudentCourseMaterials() {
                 </Group>
             </Group>
 
-            <Card withBorder radius="md" p={0}>
-                {materials.length === 0 && !loading ? (
-                    <Text p="xl" ta="center" c="dimmed" fs="italic">No materials available for this class.</Text>
+            {materials.length === 0 && !loading ? (
+                <Card withBorder radius="md" p="xl" ta="center" bg="var(--app-surface)">
+                    <Text c="dimmed" fs="italic">No materials available for this class.</Text>
+                </Card>
+            ) : (
+                isMobile ? (
+                    <Stack gap="sm">
+                        {materials.map((m) => (
+                            <Card key={m.id} withBorder radius="md" p="sm">
+                                <Group justify="space-between" mb="xs" wrap="nowrap">
+                                    <Group gap="sm" wrap="nowrap">
+                                        <ThemeIcon variant="light" color="blue" size="md" radius="sm">
+                                            <IconFile size={18} />
+                                        </ThemeIcon>
+                                        <div>
+                                            <Text size="sm" fw={600} lineClamp={1}>{m.title}</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {format(new Date(m.uploadedAt), 'MMM dd, yyyy')}
+                                            </Text>
+                                        </div>
+                                    </Group>
+                                    <ActionIcon variant="light" color="blue" component="a" href={m.fileUrl} target="_blank">
+                                        <IconDownload size={16} />
+                                    </ActionIcon>
+                                </Group>
+                                {m.description && <Text size="xs" c="dimmed" mt={4} lineClamp={2}>{m.description}</Text>}
+                            </Card>
+                        ))}
+                    </Stack>
                 ) : (
-                    <Table verticalSpacing="md" striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Resource</Table.Th>
-                                <Table.Th>Subject</Table.Th>
-                                <Table.Th>Uploaded</Table.Th>
-                                <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {materials.map((m) => (
-                                <Table.Tr key={m.id}>
-                                    <Table.Td>
-                                        <Group gap="sm">
-                                            <ActionIcon variant="light" color="blue" size="lg" component="a" href={m.fileUrl} target="_blank">
-                                                <IconFile size={20} />
-                                            </ActionIcon>
-                                            <div>
-                                                <Text size="sm" fw={500}>{m.title}</Text>
-                                                <Text size="xs" c="dimmed">{m.description || 'No description'}</Text>
-                                            </div>
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Badge variant="light" color="grape">{m.subject?.name || 'Unknown'}</Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text>
-                                    </Table.Td>
-                                    <Table.Td style={{ textAlign: 'right' }}>
-                                        <Group gap="xs" justify="flex-end">
-                                            <ActionIcon variant="subtle" color="blue" component="a" href={m.fileUrl} target="_blank" title="Download">
-                                                <IconDownload size={16} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Table.Td>
+                    <Card withBorder radius="md" p={0}>
+                        <Table verticalSpacing="md" striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Resource</Table.Th>
+                                    <Table.Th>Subject</Table.Th>
+                                    <Table.Th>Uploaded</Table.Th>
+                                    <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
                                 </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                )}
-            </Card>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {materials.map((m) => (
+                                    <Table.Tr key={m.id}>
+                                        <Table.Td>
+                                            <Group gap="sm">
+                                                <ActionIcon variant="light" color="blue" size="lg" component="a" href={m.fileUrl} target="_blank">
+                                                    <IconFile size={20} />
+                                                </ActionIcon>
+                                                <div>
+                                                    <Text size="sm" fw={500}>{m.title}</Text>
+                                                    <Text size="xs" c="dimmed">{m.description || 'No description'}</Text>
+                                                </div>
+                                            </Group>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Badge variant="light" color="grape">{m.subject?.name || 'Unknown'}</Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Text size="sm">{format(new Date(m.uploadedAt), 'MMM dd, yyyy')}</Text>
+                                        </Table.Td>
+                                        <Table.Td style={{ textAlign: 'right' }}>
+                                            <Group gap="xs" justify="flex-end">
+                                                <ActionIcon variant="subtle" color="blue" component="a" href={m.fileUrl} target="_blank" title="Download">
+                                                    <IconDownload size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
+                    </Card>
+                )
+            )}
         </Stack>
     );
 }

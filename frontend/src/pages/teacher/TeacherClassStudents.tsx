@@ -1,4 +1,5 @@
-import { Title, Text, Stack, Card, Group, Avatar, Table, Badge, ActionIcon, LoadingOverlay, Button } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, Avatar, Table, Badge, ActionIcon, LoadingOverlay, Button, ScrollArea } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowLeft, IconMessage, IconPrinter } from '@tabler/icons-react';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ interface StudentRosterItem {
 export function TeacherClassStudents() {
     const { sectionId } = useParams();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { data: students = [], isLoading: loadingStudents } = useQuery({
         queryKey: ['teacherClassStudents', sectionId],
         queryFn: async () => {
@@ -60,19 +62,18 @@ export function TeacherClassStudents() {
 
             <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
-            <Group justify="space-between" align="flex-start" className="no-print">
-                <Group>
-                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/portal/classes')} mt={4}>
+            <Group justify="space-between" align="center" className="no-print">
+                <Group gap="sm">
+                    <ActionIcon variant="light" size="lg" onClick={() => navigate('/portal/classes')}>
                         <IconArrowLeft size={20} />
                     </ActionIcon>
                     <div>
-                        <Title order={2}>Class Roster</Title>
-                        <Text c="dimmed">View all students enrolled in {className || 'this section'}.</Text>
+                        <Title order={isMobile ? 4 : 2}>Class Roster</Title>
+                        <Text c="dimmed" size="xs">Students in {className || 'this section'}.</Text>
                     </div>
                 </Group>
-
-                <Button leftSection={<IconPrinter size={16} />} variant="light" onClick={handlePrint}>
-                    Print / Save PDF
+                <Button leftSection={<IconPrinter size={16} />} variant="light" size={isMobile ? "xs" : "sm"} onClick={handlePrint}>
+                    {isMobile ? "Print" : "Print / PDF"}
                 </Button>
             </Group>
 
@@ -87,47 +88,78 @@ export function TeacherClassStudents() {
                 {students.length === 0 && !loading ? (
                     <Text p="xl" ta="center" c="dimmed" fs="italic">No students enrolled in this class.</Text>
                 ) : (
-                    <Table verticalSpacing="sm" striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Student</Table.Th>
-                                <Table.Th>Admission No</Table.Th>
-                                <Table.Th>Roll No</Table.Th>
-                                <Table.Th>Absences</Table.Th>
-                                <Table.Th style={{ textAlign: 'right' }} className="no-print">Actions</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {students.map((student: any) => (
-                                <Table.Tr key={student.id}>
-                                    <Table.Td>
-                                        <Group gap="sm">
-                                            <Avatar radius="xl" color="blue" className="no-print">{student.firstName[0]}{student.lastName[0]}</Avatar>
-                                            <div>
-                                                <Text size="sm" fw={500}>{student.firstName} {student.lastName}</Text>
-                                            </div>
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td>{student.admissionNo}</Table.Td>
-                                    <Table.Td>{student.rollNo || '-'}</Table.Td>
-                                    <Table.Td>
-                                        {student._count.attendance > 3 ? (
-                                            <Badge color="red" variant="light">{student._count.attendance} absences</Badge>
-                                        ) : (
-                                            <Badge color="gray" variant="light">{student._count.attendance} absences</Badge>
-                                        )}
-                                    </Table.Td>
-                                    <Table.Td style={{ textAlign: 'right' }} className="no-print">
-                                        <Group gap="xs" justify="flex-end">
-                                            <Button variant="subtle" size="xs" leftSection={<IconMessage size={14} />} onClick={() => navigate('/portal/discussions')}>
-                                                Message
+                    <ScrollArea h={isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 300px)'} mih={300}>
+                        {isMobile ? (
+                            <Stack gap="sm" p="xs">
+                                {students.map((student: any) => (
+                                    <Card key={student.id} withBorder radius="md" p="md">
+                                        <Group justify="space-between" align="center">
+                                            <Group gap="sm">
+                                                <Avatar radius="xl" color="blue">{student.firstName[0]}{student.lastName[0]}</Avatar>
+                                                <div>
+                                                    <Text size="sm" fw={600}>{student.firstName} {student.lastName}</Text>
+                                                    <Text size="xs" c="dimmed">Adm: {student.admissionNo}</Text>
+                                                </div>
+                                            </Group>
+                                            <Button variant="subtle" size="xs" onClick={() => navigate('/portal/discussions')}>
+                                                <IconMessage size={16} />
                                             </Button>
                                         </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
+                                        <Group justify="space-between" mt="sm">
+                                            <Text size="xs" c="dimmed">Roll No: {student.rollNo || '-'}</Text>
+                                            {student._count.attendance > 3 ? (
+                                                <Badge color="red" variant="light" size="sm">{student._count.attendance} absences</Badge>
+                                            ) : (
+                                                <Badge color="gray" variant="light" size="sm">{student._count.attendance} absences</Badge>
+                                            )}
+                                        </Group>
+                                    </Card>
+                                ))}
+                            </Stack>
+                        ) : (
+                            <Table verticalSpacing="sm" striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Student</Table.Th>
+                                        <Table.Th>Admission No</Table.Th>
+                                        <Table.Th>Roll No</Table.Th>
+                                        <Table.Th>Absences</Table.Th>
+                                        <Table.Th style={{ textAlign: 'right' }} className="no-print">Actions</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {students.map((student: any) => (
+                                        <Table.Tr key={student.id}>
+                                            <Table.Td>
+                                                <Group gap="sm">
+                                                    <Avatar radius="xl" color="blue" className="no-print">{student.firstName[0]}{student.lastName[0]}</Avatar>
+                                                    <div>
+                                                        <Text size="sm" fw={500}>{student.firstName} {student.lastName}</Text>
+                                                    </div>
+                                                </Group>
+                                            </Table.Td>
+                                            <Table.Td>{student.admissionNo}</Table.Td>
+                                            <Table.Td>{student.rollNo || '-'}</Table.Td>
+                                            <Table.Td>
+                                                {student._count.attendance > 3 ? (
+                                                    <Badge color="red" variant="light">{student._count.attendance} absences</Badge>
+                                                ) : (
+                                                    <Badge color="gray" variant="light">{student._count.attendance} absences</Badge>
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td style={{ textAlign: 'right' }} className="no-print">
+                                                <Group gap="xs" justify="flex-end">
+                                                    <Button variant="subtle" size="xs" leftSection={<IconMessage size={14} />} onClick={() => navigate('/portal/discussions')}>
+                                                        Message
+                                                    </Button>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
+                    </ScrollArea>
                 )}
             </Card>
         </Stack>

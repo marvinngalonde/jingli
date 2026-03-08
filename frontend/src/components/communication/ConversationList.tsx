@@ -15,7 +15,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
     };
 
     return (
-        <ScrollArea h="600px">
+        <ScrollArea h="100%">
             <Stack gap={0}>
                 {conversations.length === 0 ? (
                     <Text ta="center" c="dimmed" size="sm" mt="xl">No conversations yet.</Text>

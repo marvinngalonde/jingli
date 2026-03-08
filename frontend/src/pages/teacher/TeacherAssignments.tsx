@@ -7,6 +7,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { format, isPast } from 'date-fns';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconDotsVertical } from '@tabler/icons-react';
+import { Menu } from '@mantine/core';
 
 interface Assignment {
     id: string;
@@ -52,6 +55,7 @@ export function TeacherAssignments() {
     const queryClient = useQueryClient();
     const { sectionId } = useParams();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -302,7 +306,7 @@ export function TeacherAssignments() {
             </Group>
 
             {/* Stats Cards */}
-            <SimpleGrid cols={{ base: 2, md: 4 }}>
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>
                 <Paper p="md" radius="md" shadow="sm" withBorder>
                     <Group>
                         <ThemeIcon variant="light" color="blue" size="lg"><IconClipboardList size={18} /></ThemeIcon>
@@ -354,84 +358,139 @@ export function TeacherAssignments() {
 
                 {/* ═══════════ ASSIGNMENTS TAB ═══════════ */}
                 <Tabs.Panel value="assignments" pt="md">
-                    <Group justify="space-between" mb="md">
-                        <TextInput placeholder="Search assignments..." leftSection={<IconSearch size={16} />} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ minWidth: 250 }} />
-                        <Button leftSection={<IconPlus size={16} />} onClick={openCreateAssignment}>Create Assignment</Button>
+                    <Group justify="space-between" mb="md" align="center">
+                        <TextInput placeholder="Search assignments..." leftSection={<IconSearch size={16} />} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} flex={1} />
+                        <Button leftSection={<IconPlus size={16} />} onClick={openCreateAssignment} size={isMobile ? "xs" : "sm"}>
+                            {isMobile ? "Create" : "Create Assignment"}
+                        </Button>
                     </Group>
 
                     <Card withBorder radius="md" p={0}>
                         {filteredAssignments.length === 0 && !loading ? (
                             <Text p="xl" ta="center" c="dimmed" fs="italic">No assignments found.</Text>
                         ) : (
-                            <ScrollArea>
-                                <Table verticalSpacing="md" striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Assignment</Table.Th>
-                                            <Table.Th>Subject</Table.Th>
-                                            <Table.Th>Type</Table.Th>
-                                            <Table.Th>Due Date</Table.Th>
-                                            <Table.Th>Submissions</Table.Th>
-                                            <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
+                            <ScrollArea h={isMobile ? 'calc(100vh - 300px)' : 'calc(100vh - 400px)'} mih={300}>
+                                {isMobile ? (
+                                    <Stack gap="sm" p="xs">
                                         {filteredAssignments.map(a => {
                                             const overdue = isPast(new Date(a.dueDate));
                                             const typeColor = a.type === 'EXAM' ? 'red' : a.type === 'CALA' ? 'green' : a.type === 'PROJECT' ? 'orange' : 'blue';
                                             return (
-                                                <Table.Tr key={a.id}>
-                                                    <Table.Td>
+                                                <Card key={a.id} withBorder radius="md" p="md">
+                                                    <Group justify="space-between" align="flex-start" mb="xs">
                                                         <Group gap="sm">
-                                                            <ThemeIcon variant="light" color={typeColor} size="lg" radius="md">
-                                                                <IconClipboardList size={18} />
+                                                            <ThemeIcon variant="light" color={typeColor} size="md" radius="md">
+                                                                <IconClipboardList size={16} />
                                                             </ThemeIcon>
                                                             <div>
-                                                                <Text size="sm" fw={500}>{a.title}</Text>
-                                                                <Text size="xs" c="dimmed">{a.maxMarks} marks</Text>
+                                                                <Text size="sm" fw={600}>{a.title}</Text>
+                                                                <Text size="xs" c="dimmed">{a.subject?.name}</Text>
                                                             </div>
                                                         </Group>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Group gap="xs">
-                                                            <Badge variant="light" color="grape">{a.subject?.name || '—'}</Badge>
-                                                            {!sectionId && a.section && (
-                                                                <Badge variant="outline" color="gray" size="xs">{a.section.classLevel?.name} {a.section.classLevel?.level ?? ''} {a.section.name}</Badge>
-                                                            )}
-                                                        </Group>
-                                                    </Table.Td>
-                                                    <Table.Td><Badge variant="dot" color={typeColor}>{a.type}</Badge></Table.Td>
-                                                    <Table.Td>
+                                                        <Menu position="bottom-end" shadow="md" width={200}>
+                                                            <Menu.Target>
+                                                                <ActionIcon variant="subtle" color="gray">
+                                                                    <IconDotsVertical size={16} />
+                                                                </ActionIcon>
+                                                            </Menu.Target>
+                                                            <Menu.Dropdown>
+                                                                <Menu.Item leftSection={<IconEye size={14} />} onClick={() => navigate(`/portal/grading?assignment=${a.id}`)}>View Submissions</Menu.Item>
+                                                                <Menu.Item leftSection={<IconEdit size={14} />} color="orange" onClick={() => openEditAssignment(a)}>Edit</Menu.Item>
+                                                                <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => setDeleteTarget({ id: a.id, title: a.title })}>Delete</Menu.Item>
+                                                            </Menu.Dropdown>
+                                                        </Menu>
+                                                    </Group>
+
+                                                    <Group justify="space-between" mb="xs">
+                                                        <Badge variant="dot" color={typeColor} size="sm">{a.type}</Badge>
+                                                        <Badge variant="filled" color={a._count.submissions > 0 ? 'green' : 'gray'} size="sm">
+                                                            {a._count.submissions} submitted
+                                                        </Badge>
+                                                    </Group>
+
+                                                    <Group justify="space-between">
+                                                        <Text size="xs" c="dimmed">{a.maxMarks} marks</Text>
                                                         <Group gap={4}>
-                                                            <Text size="sm" c={overdue ? 'red' : undefined} fw={overdue ? 600 : 400}>
-                                                                {format(new Date(a.dueDate), 'MMM dd, yyyy')}
+                                                            <Text size="xs" c={overdue ? 'red' : undefined} fw={overdue ? 600 : 400}>
+                                                                Due: {format(new Date(a.dueDate), 'MMM dd')}
                                                             </Text>
                                                             {overdue && <Badge size="xs" color="red" variant="filled">Overdue</Badge>}
                                                         </Group>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Badge variant="filled" color={a._count.submissions > 0 ? 'green' : 'gray'}>
-                                                            {a._count.submissions} submitted
-                                                        </Badge>
-                                                    </Table.Td>
-                                                    <Table.Td style={{ textAlign: 'right' }}>
-                                                        <Group gap="xs" justify="flex-end">
-                                                            <ActionIcon variant="subtle" color="blue" title="View Submissions" onClick={() => navigate(`/portal/grading?assignment=${a.id}`)}>
-                                                                <IconEye size={16} />
-                                                            </ActionIcon>
-                                                            <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEditAssignment(a)}>
-                                                                <IconEdit size={16} />
-                                                            </ActionIcon>
-                                                            <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setDeleteTarget({ id: a.id, title: a.title })}>
-                                                                <IconTrash size={16} />
-                                                            </ActionIcon>
-                                                        </Group>
-                                                    </Table.Td>
-                                                </Table.Tr>
+                                                    </Group>
+                                                </Card>
                                             );
                                         })}
-                                    </Table.Tbody>
-                                </Table>
+                                    </Stack>
+                                ) : (
+                                    <Table verticalSpacing="md" striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Assignment</Table.Th>
+                                                <Table.Th>Subject</Table.Th>
+                                                <Table.Th>Type</Table.Th>
+                                                <Table.Th>Due Date</Table.Th>
+                                                <Table.Th>Submissions</Table.Th>
+                                                <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {filteredAssignments.map(a => {
+                                                const overdue = isPast(new Date(a.dueDate));
+                                                const typeColor = a.type === 'EXAM' ? 'red' : a.type === 'CALA' ? 'green' : a.type === 'PROJECT' ? 'orange' : 'blue';
+                                                return (
+                                                    <Table.Tr key={a.id}>
+                                                        <Table.Td>
+                                                            <Group gap="sm">
+                                                                <ThemeIcon variant="light" color={typeColor} size="lg" radius="md">
+                                                                    <IconClipboardList size={18} />
+                                                                </ThemeIcon>
+                                                                <div>
+                                                                    <Text size="sm" fw={500}>{a.title}</Text>
+                                                                    <Text size="xs" c="dimmed">{a.maxMarks} marks</Text>
+                                                                </div>
+                                                            </Group>
+                                                        </Table.Td>
+                                                        <Table.Td>
+                                                            <Group gap="xs">
+                                                                <Badge variant="light" color="grape">{a.subject?.name || '—'}</Badge>
+                                                                {!sectionId && a.section && (
+                                                                    <Badge variant="outline" color="gray" size="xs">{a.section.classLevel?.name} {a.section.classLevel?.level ?? ''} {a.section.name}</Badge>
+                                                                )}
+                                                            </Group>
+                                                        </Table.Td>
+                                                        <Table.Td><Badge variant="dot" color={typeColor}>{a.type}</Badge></Table.Td>
+                                                        <Table.Td>
+                                                            <Group gap={4}>
+                                                                <Text size="sm" c={overdue ? 'red' : undefined} fw={overdue ? 600 : 400}>
+                                                                    {format(new Date(a.dueDate), 'MMM dd, yyyy')}
+                                                                </Text>
+                                                                {overdue && <Badge size="xs" color="red" variant="filled">Overdue</Badge>}
+                                                            </Group>
+                                                        </Table.Td>
+                                                        <Table.Td>
+                                                            <Badge variant="filled" color={a._count.submissions > 0 ? 'green' : 'gray'}>
+                                                                {a._count.submissions} submitted
+                                                            </Badge>
+                                                        </Table.Td>
+                                                        <Table.Td style={{ textAlign: 'right' }}>
+                                                            <Group gap="xs" justify="flex-end">
+                                                                <ActionIcon variant="subtle" color="blue" title="View Submissions" onClick={() => navigate(`/portal/grading?assignment=${a.id}`)}>
+                                                                    <IconEye size={16} />
+                                                                </ActionIcon>
+                                                                <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEditAssignment(a)}>
+                                                                    <IconEdit size={16} />
+                                                                </ActionIcon>
+                                                                <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setDeleteTarget({ id: a.id, title: a.title })}>
+                                                                    <IconTrash size={16} />
+                                                                </ActionIcon>
+                                                            </Group>
+                                                        </Table.Td>
+                                                    </Table.Tr>
+                                                );
+                                            })}
+                                        </Table.Tbody>
+                                    </Table>
+                                )}
                             </ScrollArea>
                         )}
                     </Card>
@@ -442,10 +501,10 @@ export function TeacherAssignments() {
                     <LoadingOverlay visible={calaLoading} zIndex={1000} overlayProps={{ radius: 'sm', blur: 2 }} pos="relative" />
                     <Group justify="space-between" mb="md">
                         <Text size="sm" c="dimmed">Continuous Assessment Learning Activities — track student competencies and practical tasks.</Text>
-                        <Group>
-                            <Select placeholder="Filter by Class" data={availableClasses} value={calaClassFilter} onChange={setCalaClassFilter} clearable searchable w={200} />
-                            <Select placeholder="Filter by Subject" data={availableSubjects} value={calaSubjectFilter} onChange={setCalaSubjectFilter} clearable searchable w={200} />
-                            <Button leftSection={<IconPlus size={16} />} color="green" onClick={openCreateCala}>Add CALA Record</Button>
+                        <Group grow={isMobile}>
+                            <Select placeholder="Filter by Class" data={availableClasses} value={calaClassFilter} onChange={setCalaClassFilter} clearable searchable w={{ base: '100%', sm: 200 }} />
+                            <Select placeholder="Filter by Subject" data={availableSubjects} value={calaSubjectFilter} onChange={setCalaSubjectFilter} clearable searchable w={{ base: '100%', sm: 200 }} />
+                            <Button leftSection={<IconPlus size={16} />} color="green" onClick={openCreateCala} fullWidth={isMobile}>Add Record</Button>
                         </Group>
                     </Group>
 
@@ -458,42 +517,76 @@ export function TeacherAssignments() {
                                 <Button variant="light" color="green" onClick={openCreateCala}>Add CALA Record</Button>
                             </Stack>
                         ) : (
-                            <ScrollArea>
-                                <Table verticalSpacing="md" striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Task Name</Table.Th>
-                                            <Table.Th>Subject</Table.Th>
-                                            <Table.Th>Student</Table.Th>
-                                            <Table.Th>Term</Table.Th>
-                                            <Table.Th>Score</Table.Th>
-                                            <Table.Th>Date</Table.Th>
-                                            <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
+                            <ScrollArea h={isMobile ? 'calc(100vh - 300px)' : 'calc(100vh - 400px)'} mih={300}>
+                                {isMobile ? (
+                                    <Stack gap="sm" p="xs">
                                         {filteredCalaRecords.map((c: any) => (
-                                            <Table.Tr key={c.id}>
-                                                <Table.Td><Text size="sm" fw={500}>{c.taskName || c.title}</Text></Table.Td>
-                                                <Table.Td><Badge variant="light" color="grape">{c.subject?.name || '—'}</Badge></Table.Td>
-                                                <Table.Td><Text size="sm">{c.student ? `${c.student.firstName} ${c.student.lastName}` : '—'}</Text></Table.Td>
-                                                <Table.Td><Text size="sm">{c.term?.name || '—'}</Text></Table.Td>
-                                                <Table.Td><Text size="sm" fw={600}>{c.score || c.marks} / {c.maxScore || c.maxMarks}</Text></Table.Td>
-                                                <Table.Td><Text size="sm">{c.date ? format(new Date(c.date), 'MMM dd, yyyy') : '—'}</Text></Table.Td>
-                                                <Table.Td style={{ textAlign: 'right' }}>
-                                                    <Group gap="xs" justify="flex-end">
-                                                        <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEditCala(c)}>
-                                                            <IconEdit size={16} />
-                                                        </ActionIcon>
-                                                        <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setCalaDeleteTarget({ id: c.id, title: c.title })}>
-                                                            <IconTrash size={16} />
-                                                        </ActionIcon>
-                                                    </Group>
-                                                </Table.Td>
-                                            </Table.Tr>
+                                            <Card key={c.id} withBorder radius="md" p="md">
+                                                <Group justify="space-between" align="flex-start" mb="xs">
+                                                    <div>
+                                                        <Text size="sm" fw={600}>{c.taskName || c.title}</Text>
+                                                        <Text size="xs" c="dimmed">{c.student ? `${c.student.firstName} ${c.student.lastName}` : '—'}</Text>
+                                                    </div>
+                                                    <Menu position="bottom-end" shadow="md" width={160}>
+                                                        <Menu.Target>
+                                                            <ActionIcon variant="subtle" color="gray">
+                                                                <IconDotsVertical size={16} />
+                                                            </ActionIcon>
+                                                        </Menu.Target>
+                                                        <Menu.Dropdown>
+                                                            <Menu.Item leftSection={<IconEdit size={14} />} color="orange" onClick={() => openEditCala(c)}>Edit</Menu.Item>
+                                                            <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => setCalaDeleteTarget({ id: c.id, title: c.title })}>Delete</Menu.Item>
+                                                        </Menu.Dropdown>
+                                                    </Menu>
+                                                </Group>
+                                                <Group justify="space-between" mb="xs">
+                                                    <Badge variant="light" color="grape" size="sm">{c.subject?.name || '—'}</Badge>
+                                                    <Text size="sm" fw={700} c="brand">{c.score || c.marks} / {c.maxScore || c.maxMarks}</Text>
+                                                </Group>
+                                                <Group justify="space-between">
+                                                    <Text size="xs" c="dimmed">{c.term?.name || '—'}</Text>
+                                                    <Text size="xs" c="dimmed">{c.date ? format(new Date(c.date), 'MMM dd, yyyy') : '—'}</Text>
+                                                </Group>
+                                            </Card>
                                         ))}
-                                    </Table.Tbody>
-                                </Table>
+                                    </Stack>
+                                ) : (
+                                    <Table verticalSpacing="md" striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Task Name</Table.Th>
+                                                <Table.Th>Subject</Table.Th>
+                                                <Table.Th>Student</Table.Th>
+                                                <Table.Th>Term</Table.Th>
+                                                <Table.Th>Score</Table.Th>
+                                                <Table.Th>Date</Table.Th>
+                                                <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {filteredCalaRecords.map((c: any) => (
+                                                <Table.Tr key={c.id}>
+                                                    <Table.Td><Text size="sm" fw={500}>{c.taskName || c.title}</Text></Table.Td>
+                                                    <Table.Td><Badge variant="light" color="grape">{c.subject?.name || '—'}</Badge></Table.Td>
+                                                    <Table.Td><Text size="sm">{c.student ? `${c.student.firstName} ${c.student.lastName}` : '—'}</Text></Table.Td>
+                                                    <Table.Td><Text size="sm">{c.term?.name || '—'}</Text></Table.Td>
+                                                    <Table.Td><Text size="sm" fw={600}>{c.score || c.marks} / {c.maxScore || c.maxMarks}</Text></Table.Td>
+                                                    <Table.Td><Text size="sm">{c.date ? format(new Date(c.date), 'MMM dd, yyyy') : '—'}</Text></Table.Td>
+                                                    <Table.Td style={{ textAlign: 'right' }}>
+                                                        <Group gap="xs" justify="flex-end">
+                                                            <ActionIcon variant="subtle" color="orange" title="Edit" onClick={() => openEditCala(c)}>
+                                                                <IconEdit size={16} />
+                                                            </ActionIcon>
+                                                            <ActionIcon variant="subtle" color="red" title="Delete" onClick={() => setCalaDeleteTarget({ id: c.id, title: c.title })}>
+                                                                <IconTrash size={16} />
+                                                            </ActionIcon>
+                                                        </Group>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                )}
                             </ScrollArea>
                         )}
                     </Card>

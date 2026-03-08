@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import {
     Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center,
-    Table, TextInput, ScrollArea, SimpleGrid, Avatar, RingProgress, Divider
+    Table, TextInput, ScrollArea, SimpleGrid, Avatar, RingProgress, Divider, Box
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconTrophy, IconMedal, IconFlame, IconStar, IconChevronUp, IconChevronDown,
@@ -44,6 +45,7 @@ const changeIcon = (change: string) => {
 };
 
 export default function StudentLeaderboard() {
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { user } = useAuth();
     const [students, setStudents] = useState<StudentRank[]>([]);
     const [loading, setLoading] = useState(true);
@@ -85,20 +87,20 @@ export default function StudentLeaderboard() {
 
             {/* My rank card */}
             {myRank && (
-                <Paper withBorder radius="md" p="lg" mb="lg" bg="var(--mantine-color-blue-light)">
-                    <Group justify="space-between">
-                        <Group>
-                            <ThemeIcon variant="filled" color="blue" size="xl" radius="md">
-                                <IconTrophy size={22} />
+                <Paper withBorder radius="md" p={isMobile ? "sm" : "lg"} mb="lg" bg="var(--mantine-color-blue-light)">
+                    <Group justify="space-between" wrap={isMobile ? "wrap" : "nowrap"}>
+                        <Group gap="sm">
+                            <ThemeIcon variant="filled" color="blue" size={isMobile ? "lg" : "xl"} radius="md">
+                                <IconTrophy size={isMobile ? 18 : 22} />
                             </ThemeIcon>
                             <div>
-                                <Text fw={700} size="lg">Your Rank: #{myRank.rank}</Text>
-                                <Text size="sm" c="dimmed">{myRank.points} points</Text>
+                                <Text fw={700} size={isMobile ? "sm" : "lg"}>Your Rank: #{myRank.rank}</Text>
+                                <Text size="xs" c="dimmed">{myRank.points} points</Text>
                             </div>
                         </Group>
-                        <Group>
-                            <Badge variant="light" color="teal">Attendance {myRank.attendance}%</Badge>
-                            <Badge variant="light" color="orange">Quiz avg {myRank.quizScore}%</Badge>
+                        <Group gap="xs">
+                            <Badge variant="light" color="teal" size={isMobile ? "xs" : "sm"}>Attendance {myRank.attendance}%</Badge>
+                            <Badge variant="light" color="orange" size={isMobile ? "xs" : "sm"}>Quiz {myRank.quizScore}%</Badge>
                         </Group>
                     </Group>
                 </Paper>
@@ -160,66 +162,100 @@ export default function StudentLeaderboard() {
                         maw={200}
                     />
                 </Group>
-                <ScrollArea>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th w={60}>Rank</Table.Th>
-                                <Table.Th>Student</Table.Th>
-                                <Table.Th>Class</Table.Th>
-                                <Table.Th>Points</Table.Th>
-                                <Table.Th>Quizzes</Table.Th>
-                                <Table.Th>Attendance</Table.Th>
-                                <Table.Th>Badges</Table.Th>
-                                <Table.Th w={40}>Trend</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {filtered.map(s => (
-                                <Table.Tr
-                                    key={s.id}
-                                    style={{ background: s.id === user?.profile?.id ? 'var(--mantine-color-blue-light)' : undefined }}
-                                >
-                                    <Table.Td>
-                                        <Text fw={700} style={{ color: medalColor(s.rank) }}>
-                                            {s.rank <= 3 ? (s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : '🥉') : `#${s.rank}`}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap="sm">
-                                            <Avatar color="blue" radius="xl" size="sm">{s.name?.[0]}</Avatar>
-                                            <div>
-                                                <Text size="sm" fw={500}>{s.name}</Text>
-                                                <Text size="xs" c="dimmed">{s.admissionNo}</Text>
-                                            </div>
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td><Text size="sm" c="dimmed">{s.class}</Text></Table.Td>
-                                    <Table.Td><Badge variant="filled" color="blue" size="sm">{s.points}</Badge></Table.Td>
-                                    <Table.Td><Text size="sm">{s.quizScore}%</Text></Table.Td>
-                                    <Table.Td>
-                                        <Badge
-                                            variant="light"
-                                            color={s.attendance >= 90 ? 'green' : s.attendance >= 75 ? 'yellow' : 'red'}
-                                            size="sm"
-                                        >
+                {isMobile ? (
+                    <Stack gap="sm" p="sm">
+                        {filtered.map(s => (
+                            <Card
+                                key={s.id}
+                                withBorder
+                                radius="md"
+                                p="sm"
+                                style={{
+                                    borderLeft: `4px solid ${medalColor(s.rank)}`,
+                                    background: s.id === user?.profile?.id ? 'var(--mantine-color-blue-light)' : undefined
+                                }}
+                            >
+                                <Group justify="space-between" wrap="nowrap">
+                                    <Group gap="sm" wrap="nowrap">
+                                        <Text fw={700} size="sm" w={20}>{s.rank}</Text>
+                                        <Avatar color="blue" radius="xl" size="sm">{s.name?.[0]}</Avatar>
+                                        <div>
+                                            <Text size="sm" fw={600} lineClamp={1}>{s.name}</Text>
+                                            <Text size="xs" c="dimmed">{s.points} pts · {s.class}</Text>
+                                        </div>
+                                    </Group>
+                                    <Group gap={4}>
+                                        {changeIcon(s.change)}
+                                        <Badge variant="light" color={s.attendance >= 90 ? 'green' : 'yellow'} size="xs">
                                             {s.attendance}%
                                         </Badge>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap={2}>
-                                            {(s.badges || []).map(b => {
-                                                const def = BADGES.find(bd => bd.id === b);
-                                                return def ? <Text key={b} title={def.name} size="sm">{def.icon}</Text> : null;
-                                            })}
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td>{changeIcon(s.change)}</Table.Td>
+                                    </Group>
+                                </Group>
+                            </Card>
+                        ))}
+                    </Stack>
+                ) : (
+                    <ScrollArea>
+                        <Table striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th w={60}>Rank</Table.Th>
+                                    <Table.Th>Student</Table.Th>
+                                    <Table.Th>Class</Table.Th>
+                                    <Table.Th>Points</Table.Th>
+                                    <Table.Th>Quizzes</Table.Th>
+                                    <Table.Th>Attendance</Table.Th>
+                                    <Table.Th>Badges</Table.Th>
+                                    <Table.Th w={40}>Trend</Table.Th>
                                 </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {filtered.map(s => (
+                                    <Table.Tr
+                                        key={s.id}
+                                        style={{ background: s.id === user?.profile?.id ? 'var(--mantine-color-blue-light)' : undefined }}
+                                    >
+                                        <Table.Td>
+                                            <Text fw={700} style={{ color: medalColor(s.rank) }}>
+                                                {s.rank <= 3 ? (s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : '🥉') : `#${s.rank}`}
+                                            </Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Group gap="sm">
+                                                <Avatar color="blue" radius="xl" size="sm">{s.name?.[0]}</Avatar>
+                                                <div>
+                                                    <Text size="sm" fw={500}>{s.name}</Text>
+                                                    <Text size="xs" c="dimmed">{s.admissionNo}</Text>
+                                                </div>
+                                            </Group>
+                                        </Table.Td>
+                                        <Table.Td><Text size="sm" c="dimmed">{s.class}</Text></Table.Td>
+                                        <Table.Td><Badge variant="filled" color="blue" size="sm">{s.points}</Badge></Table.Td>
+                                        <Table.Td><Text size="sm">{s.quizScore}%</Text></Table.Td>
+                                        <Table.Td>
+                                            <Badge
+                                                variant="light"
+                                                color={s.attendance >= 90 ? 'green' : s.attendance >= 75 ? 'yellow' : 'red'}
+                                                size="sm"
+                                            >
+                                                {s.attendance}%
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Group gap={2}>
+                                                {(s.badges || []).map(b => {
+                                                    const def = BADGES.find(bd => bd.id === b);
+                                                    return def ? <Text key={b} title={def.name} size="sm">{def.icon}</Text> : null;
+                                                })}
+                                            </Group>
+                                        </Table.Td>
+                                        <Table.Td>{changeIcon(s.change)}</Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
+                    </ScrollArea>
+                )}
             </Paper>
         </div>
     );

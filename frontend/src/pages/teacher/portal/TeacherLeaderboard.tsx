@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Title, Text, Paper, Group, Button, Stack, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Avatar, Progress, Select, TextInput, Textarea, Divider, ScrollArea, LoadingOverlay } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconTrophy, IconMedal, IconSearch, IconAward,
@@ -48,6 +48,7 @@ export default function TeacherLeaderboard() {
     const [filterClass, setFilterClass] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState<string | null>('leaderboard');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -106,10 +107,10 @@ export default function TeacherLeaderboard() {
         <div>
             <Group justify="space-between" mb="lg">
                 <div>
-                    <Title order={2}>Leaderboard & Gamification</Title>
-                    <Text c="dimmed" size="sm">Track student rankings, award badges, and encourage healthy competition</Text>
+                    <Title order={isMobile ? 3 : 2}>Leaderboard & Gamification</Title>
+                    <Text c="dimmed" size="xs">Track student rankings, award badges, and encourage competition</Text>
                 </div>
-                <Button leftSection={<IconAward size={16} />} color="yellow" variant="filled" onClick={() => setBadgeModal(true)}>
+                <Button leftSection={<IconAward size={16} />} color="yellow" variant="filled" onClick={() => setBadgeModal(true)} fullWidth={isMobile}>
                     Award Badge
                 </Button>
             </Group>
@@ -163,76 +164,110 @@ export default function TeacherLeaderboard() {
 
                     {/* Full Rankings Table */}
                     <Paper p="lg" radius="md" shadow="sm" withBorder>
-                        <Group justify="space-between" mb="md">
+                        <Group justify="space-between" mb="md" gap="sm">
                             <Text fw={600}>Full Rankings</Text>
-                            <Group>
-                                <TextInput placeholder="Search..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 200 }} />
-                                <Select placeholder="Class" data={uniqueClasses} value={filterClass} onChange={setFilterClass} clearable style={{ width: 150 }} />
+                            <Group grow={isMobile} style={{ flex: isMobile ? 1 : undefined }}>
+                                <TextInput placeholder="Search..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: isMobile ? '100%' : 200 }} />
+                                <Select placeholder="Class" data={uniqueClasses} value={filterClass} onChange={setFilterClass} clearable style={{ width: isMobile ? '100%' : 150 }} />
                             </Group>
                         </Group>
 
-                        <ScrollArea>
-                            <Table striped highlightOnHover>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Rank</Table.Th>
-                                        <Table.Th>Student</Table.Th>
-                                        <Table.Th>Class</Table.Th>
-                                        <Table.Th>Points</Table.Th>
-                                        <Table.Th>Assignments</Table.Th>
-                                        <Table.Th>Quiz Avg</Table.Th>
-                                        <Table.Th>CALA</Table.Th>
-                                        <Table.Th>Attendance</Table.Th>
-                                        <Table.Th>Badges</Table.Th>
-                                        <Table.Th>Trend</Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {filtered.map((s, i) => (
-                                        <Table.Tr key={s.id}>
-                                            <Table.Td>
-                                                <Group gap={4}>
-                                                    {i < 3 ? <IconMedal size={16} style={{ color: medalColor(i + 1) }} /> : null}
-                                                    <Text fw={i < 3 ? 700 : 400}>#{i + 1}</Text>
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Group gap="xs">
-                                                    <Avatar size={28} radius="xl" color="brand" variant="light">{s.name.split(' ').map(n => n[0]).join('')}</Avatar>
-                                                    <Text fw={600} size="sm">{s.name}</Text>
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td><Text size="sm">{s.class}</Text></Table.Td>
-                                            <Table.Td><Text fw={700} c="brand">{s.points.toLocaleString()}</Text></Table.Td>
-                                            <Table.Td>{s.assignments}/24</Table.Td>
-                                            <Table.Td>
-                                                <Group gap={4}>
-                                                    <Progress value={s.quizScore} size="xs" w={40} color={s.quizScore >= 80 ? 'green' : s.quizScore >= 60 ? 'yellow' : 'red'} />
-                                                    <Text size="xs">{s.quizScore}%</Text>
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Group gap={4}>
-                                                    <Progress value={s.calaScore} size="xs" w={40} color={s.calaScore >= 80 ? 'green' : s.calaScore >= 60 ? 'yellow' : 'red'} />
-                                                    <Text size="xs">{s.calaScore}%</Text>
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td><Badge size="sm" color={s.attendance >= 95 ? 'green' : s.attendance >= 85 ? 'yellow' : 'red'} variant="light">{s.attendance}%</Badge></Table.Td>
-                                            <Table.Td>
-                                                <Group gap={2}>
-                                                    {s.badges.slice(0, 2).map(bId => {
-                                                        const b = BADGES.find(x => x.id === bId);
-                                                        return b ? <Badge key={bId} size="xs" variant="light" color={b.color}>{b.icon}</Badge> : null;
-                                                    })}
-                                                    {s.badges.length > 2 && <Badge size="xs" variant="light">+{s.badges.length - 2}</Badge>}
-                                                </Group>
-                                            </Table.Td>
-                                            <Table.Td>{changeIcon(s.change)}</Table.Td>
+                        {isMobile ? (
+                            <Stack gap="sm">
+                                {filtered.map((s, i) => (
+                                    <Card key={s.id} withBorder p="sm" radius="md">
+                                        <Group justify="space-between" mb="xs">
+                                            <Group gap="xs">
+                                                <Text fw={700} size="sm">#{i + 1}</Text>
+                                                <Avatar size={24} radius="xl" color="brand" variant="light">{s.name.split(' ').map(n => n[0]).join('')}</Avatar>
+                                                <Text fw={600} size="sm">{s.name}</Text>
+                                            </Group>
+                                            <Badge color="brand" variant="filled">{s.points.toLocaleString()} pts</Badge>
+                                        </Group>
+                                        <Group justify="space-between" align="center">
+                                            <Text size="xs" c="dimmed">{s.class}</Text>
+                                            <Group gap={4}>
+                                                <Text size="xs">Att: {s.attendance}%</Text>
+                                                <Divider orientation="vertical" />
+                                                <Text size="xs">Quiz: {s.quizScore}%</Text>
+                                            </Group>
+                                        </Group>
+                                        <Group justify="space-between" mt="xs">
+                                            <Group gap={2}>
+                                                {s.badges.map(bId => {
+                                                    const b = BADGES.find(x => x.id === bId);
+                                                    return b ? <Badge key={bId} size="xs" variant="light" color={b.color}>{b.icon}</Badge> : null;
+                                                })}
+                                            </Group>
+                                            {changeIcon(s.change)}
+                                        </Group>
+                                    </Card>
+                                ))}
+                            </Stack>
+                        ) : (
+                            <ScrollArea>
+                                <Table striped highlightOnHover>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Rank</Table.Th>
+                                            <Table.Th>Student</Table.Th>
+                                            <Table.Th>Class</Table.Th>
+                                            <Table.Th>Points</Table.Th>
+                                            <Table.Th>Assignments</Table.Th>
+                                            <Table.Th>Quiz Avg</Table.Th>
+                                            <Table.Th>CALA</Table.Th>
+                                            <Table.Th>Attendance</Table.Th>
+                                            <Table.Th>Badges</Table.Th>
+                                            <Table.Th>Trend</Table.Th>
                                         </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-                        </ScrollArea>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {filtered.map((s, i) => (
+                                            <Table.Tr key={s.id}>
+                                                <Table.Td>
+                                                    <Group gap={4}>
+                                                        {i < 3 ? <IconMedal size={16} style={{ color: medalColor(i + 1) }} /> : null}
+                                                        <Text fw={i < 3 ? 700 : 400}>#{i + 1}</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap="xs">
+                                                        <Avatar size={28} radius="xl" color="brand" variant="light">{s.name.split(' ').map(n => n[0]).join('')}</Avatar>
+                                                        <Text fw={600} size="sm">{s.name}</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td><Text size="sm">{s.class}</Text></Table.Td>
+                                                <Table.Td><Text fw={700} c="brand">{s.points.toLocaleString()}</Text></Table.Td>
+                                                <Table.Td>{s.assignments}/24</Table.Td>
+                                                <Table.Td>
+                                                    <Group gap={4}>
+                                                        <Progress value={s.quizScore} size="xs" w={40} color={s.quizScore >= 80 ? 'green' : s.quizScore >= 60 ? 'yellow' : 'red'} />
+                                                        <Text size="xs">{s.quizScore}%</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap={4}>
+                                                        <Progress value={s.calaScore} size="xs" w={40} color={s.calaScore >= 80 ? 'green' : s.calaScore >= 60 ? 'yellow' : 'red'} />
+                                                        <Text size="xs">{s.calaScore}%</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td><Badge size="sm" color={s.attendance >= 95 ? 'green' : s.attendance >= 85 ? 'yellow' : 'red'} variant="light">{s.attendance}%</Badge></Table.Td>
+                                                <Table.Td>
+                                                    <Group gap={2}>
+                                                        {s.badges.slice(0, 2).map(bId => {
+                                                            const b = BADGES.find(x => x.id === bId);
+                                                            return b ? <Badge key={bId} size="xs" variant="light" color={b.color}>{b.icon}</Badge> : null;
+                                                        })}
+                                                        {s.badges.length > 2 && <Badge size="xs" variant="light">+{s.badges.length - 2}</Badge>}
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>{changeIcon(s.change)}</Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </ScrollArea>
+                        )}
                     </Paper>
                 </>
             )}

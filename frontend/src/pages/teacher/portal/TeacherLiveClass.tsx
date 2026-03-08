@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Title, Text, Paper, Group, Button, Stack, TextInput, Select, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Divider, ScrollArea, Textarea, NumberInput, LoadingOverlay } from '@mantine/core';
+import { Title, Text, Paper, Group, Button, Stack, TextInput, Select, Card, Badge, Grid, ActionIcon, Table, Modal, Drawer, Tabs, ThemeIcon, SimpleGrid, Box, Divider, ScrollArea, Textarea, NumberInput, LoadingOverlay, Menu } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
     IconPlus, IconTrash, IconEdit, IconSearch, IconBrandZoom,
     IconExternalLink, IconClock, IconUsers, IconVideo, IconCalendar,
-    IconCheck, IconPlayerPlay, IconCopy,
+    IconCheck, IconPlayerPlay, IconCopy, IconDotsVertical
 } from '@tabler/icons-react';
 import { api } from '../../../services/api';
 
@@ -29,6 +29,7 @@ interface LiveClass {
 export default function TeacherLiveClass() {
     const [classes, setClasses] = useState<LiveClass[]>([]);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ opened: boolean; id: string; title: string }>({ opened: false, id: '', title: '' });
     const [search, setSearch] = useState('');
@@ -207,22 +208,22 @@ export default function TeacherLiveClass() {
                 <Button leftSection={<IconPlus size={16} />} onClick={() => openEdit()}>Schedule Class</Button>
             </Group>
 
-            <SimpleGrid cols={{ base: 2, md: 4 }}>
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="sm">
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Total Classes</Text><ThemeIcon variant="light" color="blue"><IconVideo size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{classes.length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Total Classes</Text><ThemeIcon variant="light" color="blue" size="sm"><IconVideo size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{classes.length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Live Now</Text><ThemeIcon variant="light" color="red"><IconPlayerPlay size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl" c="red">{classes.filter(c => c.status === 'LIVE').length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Live Now</Text><ThemeIcon variant="light" color="red" size="sm"><IconPlayerPlay size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg" c="red">{classes.filter(c => c.status === 'LIVE').length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Upcoming</Text><ThemeIcon variant="light" color="orange"><IconCalendar size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{classes.filter(c => c.status === 'SCHEDULED').length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Upcoming</Text><ThemeIcon variant="light" color="orange" size="sm"><IconCalendar size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{classes.filter(c => c.status === 'SCHEDULED').length}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
-                    <Group justify="space-between" mb="xs"><Text size="sm" c="dimmed" fw={500}>Completed</Text><ThemeIcon variant="light" color="green"><IconCheck size={16} /></ThemeIcon></Group>
-                    <Text fw={700} size="xl">{classes.filter(c => c.status === 'COMPLETED').length}</Text>
+                    <Group justify="space-between" mb="xs"><Text size="xs" c="dimmed" fw={500}>Completed</Text><ThemeIcon variant="light" color="green" size="sm"><IconCheck size={14} /></ThemeIcon></Group>
+                    <Text fw={700} size="lg">{classes.filter(c => c.status === 'COMPLETED').length}</Text>
                 </Card>
             </SimpleGrid>
 
@@ -236,7 +237,7 @@ export default function TeacherLiveClass() {
                     </Tabs.List>
                 </Tabs>
 
-                <TextInput placeholder="Search classes..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} mb="md" style={{ maxWidth: 300 }} />
+                <TextInput placeholder="Search classes..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} mb="md" w={{ base: '100%', sm: 300 }} />
 
                 {filtered.length === 0 ? (
                     <Stack align="center" py="xl" gap="xs">
@@ -272,27 +273,40 @@ export default function TeacherLiveClass() {
 
                                 <Divider my="sm" />
 
-                                <Group justify="space-between">
-                                    <Group gap="xs">
+                                <Group justify="space-between" wrap="nowrap">
+                                    <Group gap="xs" wrap="nowrap" style={{ flex: 1 }}>
                                         {cls.status === 'SCHEDULED' && (
-                                            <Button size="xs" variant="filled" color="green" leftSection={<IconPlayerPlay size={14} />} onClick={() => startClass(cls.id, cls.meetingUrl)}>
+                                            <Button size="xs" variant="filled" color="green" leftSection={<IconPlayerPlay size={14} />} onClick={() => startClass(cls.id, cls.meetingUrl)} fullWidth={isMobile}>
                                                 Start
                                             </Button>
                                         )}
                                         {cls.status === 'LIVE' && (
-                                            <>
+                                            <Group gap="xs" grow style={{ flex: 1 }}>
                                                 <Button size="xs" variant="filled" color="blue" leftSection={<IconExternalLink size={14} />} onClick={() => window.open(cls.meetingUrl, '_blank')}>
                                                     Join
                                                 </Button>
-                                                <Button size="xs" variant="light" color="gray" onClick={() => updateStatus(cls.id, 'COMPLETED')}>End</Button>
-                                            </>
+                                                {!isMobile && (
+                                                    <Button size="xs" variant="light" color="gray" onClick={() => updateStatus(cls.id, 'COMPLETED')}>End</Button>
+                                                )}
+                                            </Group>
                                         )}
-                                        <ActionIcon variant="subtle" color="blue" title="Copy link" onClick={() => copyLink(cls.meetingUrl)}><IconCopy size={16} /></ActionIcon>
                                     </Group>
-                                    <Group gap="xs">
-                                        <ActionIcon variant="subtle" color="blue" onClick={() => openEdit(cls)}><IconEdit size={16} /></ActionIcon>
-                                        <ActionIcon variant="subtle" color="red" onClick={() => confirmDelete(cls.id, cls.title)}><IconTrash size={16} /></ActionIcon>
-                                    </Group>
+
+                                    <Menu position="bottom-end" withinPortal>
+                                        <Menu.Target>
+                                            <ActionIcon variant="subtle" color="gray">
+                                                <IconDotsVertical size={16} />
+                                            </ActionIcon>
+                                        </Menu.Target>
+                                        <Menu.Dropdown>
+                                            <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => copyLink(cls.meetingUrl)}>Copy Link</Menu.Item>
+                                            {isMobile && cls.status === 'LIVE' && (
+                                                <Menu.Item leftSection={<IconCheck size={14} />} color="gray" onClick={() => updateStatus(cls.id, 'COMPLETED')}>End Class</Menu.Item>
+                                            )}
+                                            <Menu.Item leftSection={<IconEdit size={14} />} color="blue" onClick={() => openEdit(cls)}>Edit</Menu.Item>
+                                            <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => confirmDelete(cls.id, cls.title)}>Delete</Menu.Item>
+                                        </Menu.Dropdown>
+                                    </Menu>
                                 </Group>
                             </Card>
                         ))}

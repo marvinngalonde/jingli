@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Title, Text, Button, Group, Card, Modal, TextInput, Textarea, Select, Stack, ColorInput } from '@mantine/core';
+import { Title, Text, Button, Group, Card, Modal, TextInput, Textarea, Select, Stack, ColorInput, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import FullCalendar from '@fullcalendar/react';
@@ -29,6 +30,7 @@ const CalendarPage = () => {
     const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [opened, setOpened] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<SchoolEvent | null>(null);
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const form = useForm({
         initialValues: {
@@ -138,13 +140,13 @@ const CalendarPage = () => {
                     border-color: var(--mantine-color-brand-8) !important;
                 }
             `}</style>
-            <Group justify="space-between">
+            <Group justify="space-between" align="center">
                 <div>
-                    <Title order={2}>School Calendar</Title>
-                    <Text c="dimmed">Manage school events, holidays, and exam schedules</Text>
+                    <Title order={isMobile ? 3 : 2}>School Calendar</Title>
+                    <Text c="dimmed" size="xs">Manage school events, holidays, and exam schedules</Text>
                 </div>
                 {isAdmin && (
-                    <Button leftSection={<IconPlus size={18} />} onClick={() => { form.reset(); setSelectedEvent(null); setOpened(true); }}>
+                    <Button leftSection={<IconPlus size={18} />} onClick={() => { form.reset(); setSelectedEvent(null); setOpened(true); }} fullWidth={isMobile}>
                         Add Event
                     </Button>
                 )}
@@ -153,8 +155,12 @@ const CalendarPage = () => {
             <Card withBorder radius="md" p="md">
                 <FullCalendar
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                    initialView="dayGridMonth"
-                    headerToolbar={{
+                    initialView={isMobile ? "dayGridMonth" : "dayGridMonth"}
+                    headerToolbar={isMobile ? {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'today'
+                    } : {
                         left: 'prev,next today',
                         center: 'title',
                         right: 'dayGridMonth,timeGridWeek,timeGridDay'
@@ -162,7 +168,7 @@ const CalendarPage = () => {
                     events={events as any}
                     dateClick={handleDateClick}
                     eventClick={handleEventClick}
-                    height="70vh"
+                    height={isMobile ? "calc(100vh - 250px)" : "70vh"}
                 />
             </Card>
 
@@ -171,10 +177,10 @@ const CalendarPage = () => {
                     <Stack>
                         <TextInput label="Event Title" placeholder="e.g., Annual Sports Day" required {...form.getInputProps('title')} />
                         <Textarea label="Description" placeholder="Event details..." {...form.getInputProps('description')} />
-                        <Group grow>
+                        <Stack gap="sm">
                             <DatePickerInput label="Start Date" required {...form.getInputProps('startDate')} />
                             <DatePickerInput label="End Date" required {...form.getInputProps('endDate')} />
-                        </Group>
+                        </Stack>
                         <Select
                             label="Event Type"
                             data={[

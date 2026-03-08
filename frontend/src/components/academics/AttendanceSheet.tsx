@@ -12,8 +12,10 @@ import {
     Paper,
     Select,
     SegmentedControl,
-    Center
+    Center,
+    Stack
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { DateInput } from '@mantine/dates';
 import { IconCheck, IconX, IconClock, IconDeviceFloppy } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
@@ -32,6 +34,7 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedClassId, setSelectedClassId] = useState<string | null>(initialClassId || null);
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     // Data
     const [students, setStudents] = useState<Student[]>([]);
@@ -146,32 +149,35 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
 
     return (
         <Paper p="md" radius="md" withBorder>
-            <Group justify="space-between" mb="md">
-                <Group>
+            <Group justify="space-between" mb="md" gap="md">
+                <Group style={{ flex: 1 }} gap="xs">
                     <Select
                         placeholder="Select Class"
                         data={classes}
                         value={selectedClassId}
                         onChange={setSelectedClassId}
                         searchable
-                        w={200}
+                        flex={1}
+                        miw={isMobile ? '100%' : 200}
                     />
                     <DateInput
                         value={selectedDate}
                         onChange={(d) => d && setSelectedDate(d)}
                         placeholder="Date"
-                        w={150}
+                        flex={1}
+                        miw={isMobile ? '100%' : 150}
                     />
                 </Group>
-                <Group>
-                    <Button variant="default" size="xs" onClick={() => markAll('PRESENT')}>All Present</Button>
+                <Group justify={isMobile ? 'space-between' : 'flex-end'} w={isMobile ? '100%' : 'auto'}>
+                    <Button variant="default" size="sm" onClick={() => markAll('PRESENT')} flex={isMobile ? 1 : undefined}>All Present</Button>
                     <Button
                         leftSection={<IconDeviceFloppy size={16} />}
                         loading={saveMutation.isPending}
                         onClick={handleSave}
                         disabled={!selectedClassId || students.length === 0}
+                        flex={isMobile ? 1 : undefined}
                     >
-                        Save Attendance
+                        Save
                     </Button>
                 </Group>
             </Group>
@@ -183,70 +189,121 @@ export function AttendanceSheet({ classId: initialClassId }: AttendanceSheetProp
             ) : students.length === 0 ? (
                 <Center p="xl"><Text c="dimmed">No students found in this class.</Text></Center>
             ) : (
-                <Table striped verticalSpacing="sm">
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>Student</Table.Th>
-                            <Table.Th>Status</Table.Th>
-                            <Table.Th>Current State</Table.Th>
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
+                isMobile ? (
+                    <Stack gap="sm">
                         {students.map(student => {
                             const record = attendanceMap[student.id];
-                            const status = record?.status || 'PRESENT'; // Visual default only, not saved yet
+                            const status = record?.status || 'PRESENT';
 
                             return (
-                                <Table.Tr key={student.id}>
-                                    <Table.Td>
+                                <Paper key={student.id} p="sm" withBorder radius="md">
+                                    <Group justify="space-between" mb="xs">
                                         <Group gap="sm">
-                                            <Avatar src={student.photoUrl} radius="xl" size="sm" color="initials">
+                                            <Avatar src={student.photoUrl} radius="xl" size="md" color="initials">
                                                 {student.firstName[0]}{student.lastName[0]}
                                             </Avatar>
                                             <div>
-                                                <Text size="sm" fw={500}>{student.firstName} {student.lastName}</Text>
+                                                <Text size="sm" fw={600}>{student.firstName} {student.lastName}</Text>
                                                 <Text size="xs" c="dimmed">{student.admissionNo}</Text>
                                             </div>
                                         </Group>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <SegmentedControl
-                                            size="sm"
-                                            value={status}
-                                            onChange={(val) => handleStatusChange(student.id, val)}
-                                            radius="xl"
-                                            data={[
-                                                { label: 'Present', value: 'PRESENT' },
-                                                { label: 'Absent', value: 'ABSENT' },
-                                                { label: 'Late', value: 'LATE' },
-                                                { label: 'Excused', value: 'EXCUSED' },
-                                            ]}
-                                            color={
-                                                status === 'PRESENT' ? 'green' :
-                                                    status === 'ABSENT' ? 'red' :
-                                                        status === 'LATE' ? 'yellow' : 'blue'
-                                            }
-                                        />
-                                    </Table.Td>
-                                    <Table.Td>
                                         {modifiedRecords.has(student.id) ? (
                                             <Badge color="yellow" variant="light">Pending</Badge>
                                         ) : record ? (
-                                            <Badge
-                                                color={record.status === 'PRESENT' ? 'green' : record.status === 'ABSENT' ? 'red' : 'yellow'}
-                                                variant="light"
-                                            >
-                                                Saved
-                                            </Badge>
+                                            <Badge color="green" variant="light">Saved</Badge>
                                         ) : (
                                             <Badge color="gray" variant="light">Unsaved</Badge>
                                         )}
-                                    </Table.Td>
-                                </Table.Tr>
+                                    </Group>
+
+                                    <SegmentedControl
+                                        fullWidth
+                                        size="xs"
+                                        value={status}
+                                        onChange={(val) => handleStatusChange(student.id, val)}
+                                        radius="md"
+                                        data={[
+                                            { label: 'Present', value: 'PRESENT' },
+                                            { label: 'Absent', value: 'ABSENT' },
+                                            { label: 'Late', value: 'LATE' },
+                                            { label: 'Excused', value: 'EXCUSED' },
+                                        ]}
+                                        color={
+                                            status === 'PRESENT' ? 'green' :
+                                                status === 'ABSENT' ? 'red' :
+                                                    status === 'LATE' ? 'yellow' : 'blue'
+                                        }
+                                    />
+                                </Paper>
                             );
                         })}
-                    </Table.Tbody>
-                </Table>
+                    </Stack>
+                ) : (
+                    <Table striped verticalSpacing="sm">
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>Student</Table.Th>
+                                <Table.Th>Status</Table.Th>
+                                <Table.Th>Current State</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {students.map(student => {
+                                const record = attendanceMap[student.id];
+                                const status = record?.status || 'PRESENT';
+
+                                return (
+                                    <Table.Tr key={student.id}>
+                                        <Table.Td>
+                                            <Group gap="sm">
+                                                <Avatar src={student.photoUrl} radius="xl" size="sm" color="initials">
+                                                    {student.firstName[0]}{student.lastName[0]}
+                                                </Avatar>
+                                                <div>
+                                                    <Text size="sm" fw={500}>{student.firstName} {student.lastName}</Text>
+                                                    <Text size="xs" c="dimmed">{student.admissionNo}</Text>
+                                                </div>
+                                            </Group>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <SegmentedControl
+                                                size="sm"
+                                                value={status}
+                                                onChange={(val) => handleStatusChange(student.id, val)}
+                                                radius="xl"
+                                                data={[
+                                                    { label: 'Present', value: 'PRESENT' },
+                                                    { label: 'Absent', value: 'ABSENT' },
+                                                    { label: 'Late', value: 'LATE' },
+                                                    { label: 'Excused', value: 'EXCUSED' },
+                                                ]}
+                                                color={
+                                                    status === 'PRESENT' ? 'green' :
+                                                        status === 'ABSENT' ? 'red' :
+                                                            status === 'LATE' ? 'yellow' : 'blue'
+                                                }
+                                            />
+                                        </Table.Td>
+                                        <Table.Td>
+                                            {modifiedRecords.has(student.id) ? (
+                                                <Badge color="yellow" variant="light">Pending</Badge>
+                                            ) : record ? (
+                                                <Badge
+                                                    color={record.status === 'PRESENT' ? 'green' : record.status === 'ABSENT' ? 'red' : 'yellow'}
+                                                    variant="light"
+                                                >
+                                                    Saved
+                                                </Badge>
+                                            ) : (
+                                                <Badge color="gray" variant="light">Unsaved</Badge>
+                                            )}
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
+                        </Table.Tbody>
+                    </Table>
+                )
             )}
         </Paper>
     );

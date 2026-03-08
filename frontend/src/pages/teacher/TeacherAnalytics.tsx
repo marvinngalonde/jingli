@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
-import { Title, Text, Paper, Group, Card, Badge, Grid, ThemeIcon, SimpleGrid, Progress, RingProgress, Stack, Select, Table, Box, ScrollArea } from '@mantine/core';
+import { Title, Text, Paper, Group, Card, Badge, Grid, ThemeIcon, SimpleGrid, Progress, RingProgress, Stack, Select, Table, Box, ScrollArea, Menu, ActionIcon } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
     IconChartBar, IconUsers, IconTrendingUp, IconAlertTriangle,
     IconClipboardList, IconClock, IconFlame, IconSchool,
@@ -12,6 +13,7 @@ import {
 
 export default function TeacherAnalytics() {
     const [period, setPeriod] = useState<string | null>('this-term');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const { data, isLoading } = useQuery({
         queryKey: ['teacherAnalytics', period],
@@ -26,7 +28,7 @@ export default function TeacherAnalytics() {
 
     return (
         <div>
-            <Group justify="space-between" mb="lg">
+            <Stack gap="md" mb="lg">
                 <div>
                     <Title order={2}>Analytics & Insights</Title>
                     <Text c="dimmed" size="sm">Track student engagement, syllabus coverage, and identify at-risk students</Text>
@@ -40,41 +42,41 @@ export default function TeacherAnalytics() {
                     ]}
                     value={period}
                     onChange={setPeriod}
-                    style={{ width: 150 }}
+                    w={isMobile ? '100%' : 150}
                 />
-            </Group>
+            </Stack>
 
             {/* Overview Stats */}
-            <SimpleGrid cols={{ base: 2, md: 4 }} mb="lg">
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} mb="lg" spacing="sm">
                 <Card shadow="sm" radius="md" p="md" withBorder>
                     <Group justify="space-between" mb="xs">
-                        <Text size="sm" c="dimmed" fw={500}>Total Students</Text>
-                        <ThemeIcon variant="light" color="blue"><IconUsers size={16} /></ThemeIcon>
+                        <Text size="xs" c="dimmed" fw={500}>Total Students</Text>
+                        <ThemeIcon variant="light" color="blue" size="sm"><IconUsers size={14} /></ThemeIcon>
                     </Group>
-                    <Text fw={700} size="xl">{overallStats.totalStudents}</Text>
+                    <Text fw={700} size="lg">{overallStats.totalStudents}</Text>
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
                     <Group justify="space-between" mb="xs">
-                        <Text size="sm" c="dimmed" fw={500}>Avg Engagement</Text>
-                        <ThemeIcon variant="light" color="green"><IconTrendingUp size={16} /></ThemeIcon>
+                        <Text size="xs" c="dimmed" fw={500}>Engagement</Text>
+                        <ThemeIcon variant="light" color="green" size="sm"><IconTrendingUp size={14} /></ThemeIcon>
                     </Group>
-                    <Text fw={700} size="xl">{overallStats.avgEngagement}%</Text>
+                    <Text fw={700} size="lg">{overallStats.avgEngagement}%</Text>
                     <Progress value={overallStats.avgEngagement} size="xs" mt="xs" color="green" />
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
                     <Group justify="space-between" mb="xs">
-                        <Text size="sm" c="dimmed" fw={500}>Syllabus Coverage</Text>
-                        <ThemeIcon variant="light" color="orange"><IconSchool size={16} /></ThemeIcon>
+                        <Text size="xs" c="dimmed" fw={500}>Coverage</Text>
+                        <ThemeIcon variant="light" color="orange" size="sm"><IconSchool size={14} /></ThemeIcon>
                     </Group>
-                    <Text fw={700} size="xl">{overallStats.syllabusCompletion}%</Text>
+                    <Text fw={700} size="lg">{overallStats.syllabusCompletion}%</Text>
                     <Progress value={overallStats.syllabusCompletion} size="xs" mt="xs" color="orange" />
                 </Card>
                 <Card shadow="sm" radius="md" p="md" withBorder>
                     <Group justify="space-between" mb="xs">
-                        <Text size="sm" c="dimmed" fw={500}>At-Risk Students</Text>
-                        <ThemeIcon variant="light" color="red"><IconAlertTriangle size={16} /></ThemeIcon>
+                        <Text size="xs" c="dimmed" fw={500}>At-Risk</Text>
+                        <ThemeIcon variant="light" color="red" size="sm"><IconAlertTriangle size={14} /></ThemeIcon>
                     </Group>
-                    <Text fw={700} size="xl" c="red">{overallStats.atRiskCount}</Text>
+                    <Text fw={700} size="lg" c="red">{overallStats.atRiskCount}</Text>
                 </Card>
             </SimpleGrid>
 
@@ -159,40 +161,66 @@ export default function TeacherAnalytics() {
             {/* Assignment Completion */}
             <Paper p="lg" radius="md" shadow="sm" withBorder mb="lg">
                 <Text fw={600} mb="md">Assignment Completion Rates</Text>
-                <ScrollArea>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Assignment</Table.Th>
-                                <Table.Th>Subject</Table.Th>
-                                <Table.Th>Submitted</Table.Th>
-                                <Table.Th>Rate</Table.Th>
-                                <Table.Th>Avg Score</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {assignmentStats.map((a: any, i: number) => {
-                                const rate = Math.round((a.submitted / a.total) * 100);
-                                return (
-                                    <Table.Tr key={i}>
-                                        <Table.Td fw={500}>{a.name}</Table.Td>
-                                        <Table.Td><Badge size="sm" variant="light">{a.subject}</Badge></Table.Td>
-                                        <Table.Td>{a.submitted}/{a.total}</Table.Td>
-                                        <Table.Td>
-                                            <Group gap="xs">
-                                                <Progress value={rate} size="sm" w={60} color={rate >= 90 ? 'green' : rate >= 75 ? 'orange' : 'red'} />
-                                                <Text size="xs" fw={600}>{rate}%</Text>
-                                            </Group>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge color={a.avgScore >= 75 ? 'green' : a.avgScore >= 60 ? 'orange' : 'red'} variant="light">{a.avgScore}%</Badge>
-                                        </Table.Td>
-                                    </Table.Tr>
-                                );
-                            })}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
+                {isMobile ? (
+                    <Stack gap="sm">
+                        {assignmentStats.map((a: any, i: number) => {
+                            const rate = Math.round((a.submitted / a.total) * 100);
+                            return (
+                                <Card key={i} withBorder radius="md" p="sm">
+                                    <Group justify="space-between" mb={4}>
+                                        <Text size="sm" fw={600}>{a.name}</Text>
+                                        <Badge size="xs" variant="light">{a.subject}</Badge>
+                                    </Group>
+                                    <Group justify="space-between" align="center">
+                                        <Text size="xs" c="dimmed">{a.submitted}/{a.total} submitted</Text>
+                                        <Group gap={6}>
+                                            <Progress value={rate} size="xs" w={50} color={rate >= 90 ? 'green' : rate >= 75 ? 'orange' : 'red'} />
+                                            <Text size="xs" fw={700}>{rate}%</Text>
+                                        </Group>
+                                    </Group>
+                                    <Group justify="flex-end" mt={8}>
+                                        <Badge size="xs" color={a.avgScore >= 75 ? 'green' : a.avgScore >= 60 ? 'orange' : 'red'}>Avg: {a.avgScore}%</Badge>
+                                    </Group>
+                                </Card>
+                            );
+                        })}
+                    </Stack>
+                ) : (
+                    <ScrollArea>
+                        <Table striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Assignment</Table.Th>
+                                    <Table.Th>Subject</Table.Th>
+                                    <Table.Th>Submitted</Table.Th>
+                                    <Table.Th>Rate</Table.Th>
+                                    <Table.Th>Avg Score</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {assignmentStats.map((a: any, i: number) => {
+                                    const rate = Math.round((a.submitted / a.total) * 100);
+                                    return (
+                                        <Table.Tr key={i}>
+                                            <Table.Td fw={500}>{a.name}</Table.Td>
+                                            <Table.Td><Badge size="sm" variant="light">{a.subject}</Badge></Table.Td>
+                                            <Table.Td>{a.submitted}/{a.total}</Table.Td>
+                                            <Table.Td>
+                                                <Group gap="xs">
+                                                    <Progress value={rate} size="sm" w={60} color={rate >= 90 ? 'green' : rate >= 75 ? 'orange' : 'red'} />
+                                                    <Text size="xs" fw={600}>{rate}%</Text>
+                                                </Group>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge color={a.avgScore >= 75 ? 'green' : a.avgScore >= 60 ? 'orange' : 'red'} variant="light">{a.avgScore}%</Badge>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                })}
+                            </Table.Tbody>
+                        </Table>
+                    </ScrollArea>
+                )}
             </Paper>
 
             {/* At-Risk Students */}

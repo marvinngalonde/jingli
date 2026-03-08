@@ -7,6 +7,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconDotsVertical } from '@tabler/icons-react';
+import { Menu } from '@mantine/core';
 
 interface Submission {
     id: string;
@@ -40,6 +43,7 @@ function TeacherGrading() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const assignmentQuery = searchParams.get('assignment');
+    const isMobile = useMediaQuery('(max-width: 48em)');
 
     const [activeTab, setActiveTab] = useState<string | null>(assignmentQuery ? 'assignment' : 'pending');
     const [selectedAssignment, setSelectedAssignment] = useState<string | null>(assignmentQuery);
@@ -214,37 +218,60 @@ function TeacherGrading() {
                                         <Text fw={600} size="sm">{group.header}</Text>
                                         <Badge ml="auto" color="orange">{group.submissions.length} pending</Badge>
                                     </Group>
-                                    <ScrollArea>
-                                        <Table verticalSpacing="md" striped highlightOnHover>
-                                            <Table.Thead>
-                                                <Table.Tr>
-                                                    <Table.Th>Student</Table.Th>
-                                                    <Table.Th>Submitted</Table.Th>
-                                                    <Table.Th>Status</Table.Th>
-                                                    <Table.Th style={{ textAlign: 'right' }}>Action</Table.Th>
-                                                </Table.Tr>
-                                            </Table.Thead>
-                                            <Table.Tbody>
+                                    <ScrollArea h={isMobile ? 'calc(100vh - 350px)' : undefined}>
+                                        {isMobile ? (
+                                            <Stack gap="sm" p="xs">
                                                 {group.submissions.map(s => (
-                                                    <Table.Tr key={s.id}>
-                                                        <Table.Td>
+                                                    <Card key={s.id} withBorder radius="md" p="md">
+                                                        <Group justify="space-between" align="flex-start" mb="xs">
                                                             <Group gap="sm">
-                                                                <ActionIcon variant="light" radius="xl" size="lg"><IconUser size={18} /></ActionIcon>
+                                                                <ActionIcon variant="light" radius="xl" size="md"><IconUser size={16} /></ActionIcon>
                                                                 <div>
-                                                                    <Text size="sm" fw={500}>{s.student.firstName} {s.student.lastName}</Text>
+                                                                    <Text size="sm" fw={600}>{s.student.firstName} {s.student.lastName}</Text>
                                                                     <Text size="xs" c="dimmed">{s.student.admissionNo}</Text>
                                                                 </div>
                                                             </Group>
-                                                        </Table.Td>
-                                                        <Table.Td><Text size="sm">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text></Table.Td>
-                                                        <Table.Td><Badge color="orange" variant="light">Needs Grading</Badge></Table.Td>
-                                                        <Table.Td style={{ textAlign: 'right' }}>
                                                             <Button variant="light" size="xs" onClick={() => openGrading(s)}>Grade</Button>
-                                                        </Table.Td>
-                                                    </Table.Tr>
+                                                        </Group>
+                                                        <Group justify="space-between">
+                                                            <Badge color="orange" variant="light" size="sm">Needs Grading</Badge>
+                                                            <Text size="xs" c="dimmed">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text>
+                                                        </Group>
+                                                    </Card>
                                                 ))}
-                                            </Table.Tbody>
-                                        </Table>
+                                            </Stack>
+                                        ) : (
+                                            <Table verticalSpacing="md" striped highlightOnHover>
+                                                <Table.Thead>
+                                                    <Table.Tr>
+                                                        <Table.Th>Student</Table.Th>
+                                                        <Table.Th>Submitted</Table.Th>
+                                                        <Table.Th>Status</Table.Th>
+                                                        <Table.Th style={{ textAlign: 'right' }}>Action</Table.Th>
+                                                    </Table.Tr>
+                                                </Table.Thead>
+                                                <Table.Tbody>
+                                                    {group.submissions.map(s => (
+                                                        <Table.Tr key={s.id}>
+                                                            <Table.Td>
+                                                                <Group gap="sm">
+                                                                    <ActionIcon variant="light" radius="xl" size="lg"><IconUser size={18} /></ActionIcon>
+                                                                    <div>
+                                                                        <Text size="sm" fw={500}>{s.student.firstName} {s.student.lastName}</Text>
+                                                                        <Text size="xs" c="dimmed">{s.student.admissionNo}</Text>
+                                                                    </div>
+                                                                </Group>
+                                                            </Table.Td>
+                                                            <Table.Td><Text size="sm">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text></Table.Td>
+                                                            <Table.Td><Badge color="orange" variant="light">Needs Grading</Badge></Table.Td>
+                                                            <Table.Td style={{ textAlign: 'right' }}>
+                                                                <Button variant="light" size="xs" onClick={() => openGrading(s)}>Grade</Button>
+                                                            </Table.Td>
+                                                        </Table.Tr>
+                                                    ))}
+                                                </Table.Tbody>
+                                            </Table>
+                                        )}
                                     </ScrollArea>
                                 </Card>
                             ))}
@@ -254,26 +281,26 @@ function TeacherGrading() {
 
                 {/* ─── BY ASSIGNMENT TAB ─── */}
                 <Tabs.Panel value="assignment" pt="md">
-                    <Group justify="space-between" mb="md">
+                    <Stack gap="xs" mb="md">
                         <Select
-                            placeholder="Select an assignment to view submissions..."
+                            placeholder="Select assignment..."
                             data={assignmentOptions}
                             value={selectedAssignment}
                             onChange={setSelectedAssignment}
                             searchable
-                            style={{ minWidth: 350 }}
+                            w={{ base: '100%', sm: 350 }}
                         />
                         {assignmentSubmissions.length > 0 && (
-                            <Group className="no-print">
-                                <Button variant="light" color="gray" leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>Print / Save PDF</Button>
-                                <Button variant="light" leftSection={<IconDownload size={16} />} onClick={exportCSV}>Export CSV</Button>
+                            <Group className="no-print" grow>
+                                <Button variant="light" color="gray" leftSection={<IconPrinter size={16} />} onClick={() => window.print()} size={isMobile ? "xs" : "sm"}>Print</Button>
+                                <Button variant="light" leftSection={<IconDownload size={16} />} onClick={exportCSV} size={isMobile ? "xs" : "sm"}>Export</Button>
                             </Group>
                         )}
-                    </Group>
+                    </Stack>
 
                     {/* Stats Panel */}
                     {assignStats && (
-                        <SimpleGrid cols={{ base: 2, md: 5 }} mb="md">
+                        <SimpleGrid cols={{ base: 1, xs: 2, sm: 3, md: 5 }} mb="md">
                             <Paper p="md" radius="md" shadow="sm" withBorder>
                                 <Text size="xs" c="dimmed">Total</Text>
                                 <Text fw={700} size="lg">{assignStats.total}</Text>
@@ -307,51 +334,85 @@ function TeacherGrading() {
                         <Text ta="center" c="dimmed" p="xl">No submissions for this assignment yet.</Text>
                     ) : (
                         <Card withBorder radius="md" p={0}>
-                            <ScrollArea>
-                                <Table verticalSpacing="md" striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Student</Table.Th>
-                                            <Table.Th>Submitted</Table.Th>
-                                            <Table.Th>Score</Table.Th>
-                                            <Table.Th>Status</Table.Th>
-                                            <Table.Th style={{ textAlign: 'right' }}>Action</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
+                            <ScrollArea h={isMobile ? 'calc(100vh - 350px)' : 'calc(100vh - 450px)'} mih={300}>
+                                {isMobile ? (
+                                    <Stack gap="sm" p="xs">
                                         {assignmentSubmissions.map(s => (
-                                            <Table.Tr key={s.id}>
-                                                <Table.Td>
+                                            <Card key={s.id} withBorder radius="md" p="md">
+                                                <Group justify="space-between" align="flex-start" mb="xs">
                                                     <Group gap="sm">
-                                                        <ActionIcon variant="light" radius="xl" size="lg"><IconUser size={18} /></ActionIcon>
+                                                        <ActionIcon variant="light" radius="xl" size="md"><IconUser size={16} /></ActionIcon>
                                                         <div>
-                                                            <Text size="sm" fw={500}>{s.student.firstName} {s.student.lastName}</Text>
+                                                            <Text size="sm" fw={600}>{s.student.firstName} {s.student.lastName}</Text>
                                                             <Text size="xs" c="dimmed">{s.student.admissionNo}</Text>
                                                         </div>
                                                     </Group>
-                                                </Table.Td>
-                                                <Table.Td><Text size="sm">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text></Table.Td>
-                                                <Table.Td>
-                                                    {s.marks !== null ? (
-                                                        <Badge color="green" variant="filled">{s.marks} / {s.assignment?.maxMarks}</Badge>
-                                                    ) : (
-                                                        <Text size="sm" c="dimmed">—</Text>
-                                                    )}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge color={s.marks !== null ? 'green' : 'orange'} variant="light">
-                                                        {s.marks !== null ? 'Graded' : 'Pending'}
-                                                    </Badge>
-                                                </Table.Td>
-                                                <Table.Td style={{ textAlign: 'right' }} className="no-print">
                                                     <Button variant={s.marks !== null ? 'subtle' : 'light'} size="xs" onClick={() => openGrading(s)}>
                                                         {s.marks !== null ? 'Re-Grade' : 'Grade'}
                                                     </Button>
-                                                </Table.Td>
-                                            </Table.Tr>
+                                                </Group>
+                                                <Group justify="space-between">
+                                                    <Group gap={5}>
+                                                        {s.marks !== null ? (
+                                                            <Badge color="green" variant="filled" size="sm">{s.marks} / {s.assignment?.maxMarks}</Badge>
+                                                        ) : (
+                                                            <Text size="xs" c="dimmed">—</Text>
+                                                        )}
+                                                        <Badge color={s.marks !== null ? 'green' : 'orange'} variant="light" size="sm">
+                                                            {s.marks !== null ? 'Graded' : 'Pending'}
+                                                        </Badge>
+                                                    </Group>
+                                                    <Text size="xs" c="dimmed">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text>
+                                                </Group>
+                                            </Card>
                                         ))}
-                                    </Table.Tbody>
-                                </Table>
+                                    </Stack>
+                                ) : (
+                                    <Table verticalSpacing="md" striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Student</Table.Th>
+                                                <Table.Th>Submitted</Table.Th>
+                                                <Table.Th>Score</Table.Th>
+                                                <Table.Th>Status</Table.Th>
+                                                <Table.Th style={{ textAlign: 'right' }}>Action</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {assignmentSubmissions.map(s => (
+                                                <Table.Tr key={s.id}>
+                                                    <Table.Td>
+                                                        <Group gap="sm">
+                                                            <ActionIcon variant="light" radius="xl" size="lg"><IconUser size={18} /></ActionIcon>
+                                                            <div>
+                                                                <Text size="sm" fw={500}>{s.student.firstName} {s.student.lastName}</Text>
+                                                                <Text size="xs" c="dimmed">{s.student.admissionNo}</Text>
+                                                            </div>
+                                                        </Group>
+                                                    </Table.Td>
+                                                    <Table.Td><Text size="sm">{format(new Date(s.submittedAt), 'MMM dd, hh:mm a')}</Text></Table.Td>
+                                                    <Table.Td>
+                                                        {s.marks !== null ? (
+                                                            <Badge color="green" variant="filled">{s.marks} / {s.assignment?.maxMarks}</Badge>
+                                                        ) : (
+                                                            <Text size="sm" c="dimmed">—</Text>
+                                                        )}
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Badge color={s.marks !== null ? 'green' : 'orange'} variant="light">
+                                                            {s.marks !== null ? 'Graded' : 'Pending'}
+                                                        </Badge>
+                                                    </Table.Td>
+                                                    <Table.Td style={{ textAlign: 'right' }} className="no-print">
+                                                        <Button variant={s.marks !== null ? 'subtle' : 'light'} size="xs" onClick={() => openGrading(s)}>
+                                                            {s.marks !== null ? 'Re-Grade' : 'Grade'}
+                                                        </Button>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                )}
                             </ScrollArea>
                         </Card>
                     )}

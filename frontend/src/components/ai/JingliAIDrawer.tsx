@@ -6,7 +6,7 @@ import { aiService } from '../../services/aiService';
 import type { ChatMessage } from '../../services/aiService';
 import { useAuth } from '../../context/AuthContext';
 import jaiLogo from '../../assets/logos/jai-trans.png';
-import { useDisclosure, useClipboard } from '@mantine/hooks';
+import { useDisclosure, useClipboard, useMediaQuery } from '@mantine/hooks';
 
 interface Session {
     id: string;
@@ -26,10 +26,18 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
     const [loading, setLoading] = useState(false);
     const [history, setHistory] = useState<Session[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-    const [sidebarOpened, { toggle: toggleSidebar }] = useDisclosure(true);
+    const [sidebarOpened, { toggle: toggleSidebar, close: closeSidebar }] = useDisclosure(true);
     const [selectedFile, setSelectedFile] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const viewport = useRef<HTMLDivElement>(null);
+
+    // Close sidebar by default on mobile
+    useEffect(() => {
+        if (isMobile) {
+            closeSidebar();
+        }
+    }, [isMobile]);
 
     const scrollToBottom = () => {
         viewport.current?.scrollTo({ top: viewport.current.scrollHeight, behavior: 'smooth' });
@@ -168,13 +176,16 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
             <Flex style={{ flex: 1, height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
                 {/* Sidebar */}
                 <Box style={{
-                    width: sidebarOpened ? 260 : 48,
-                    borderRight: '1px solid var(--mantine-color-gray-2)',
-                    display: 'flex',
+                    width: sidebarOpened ? (isMobile ? '100%' : 260) : (isMobile ? 0 : 48),
+                    borderRight: !isMobile ? '1px solid var(--mantine-color-gray-2)' : 'none',
+                    display: isMobile && !sidebarOpened ? 'none' : 'flex',
                     flexDirection: 'column',
                     background: 'var(--mantine-color-gray-0)',
-                    transition: 'width 0.2s ease',
-                    overflow: 'hidden'
+                    transition: 'all 0.2s ease',
+                    overflow: 'hidden',
+                    position: isMobile && sidebarOpened ? 'absolute' : 'relative',
+                    zIndex: isMobile ? 100 : 1,
+                    height: '100%'
                 }} p={sidebarOpened ? "md" : "xs"}>
                     <Group justify={sidebarOpened ? "space-between" : "center"} mb="xs" wrap="nowrap">
                         {sidebarOpened && (
