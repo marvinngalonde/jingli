@@ -17,10 +17,6 @@ export class SystemController {
     @Post('install')
     @ApiOperation({ summary: 'Run installation wizard' })
     async install(@Body() installDto: any) {
-        const status = await this.systemService.checkStatus();
-        if (status.isInstalled) {
-            throw new ForbiddenException('System is already installed.');
-        }
         return this.systemService.installSystem(installDto);
     }
 

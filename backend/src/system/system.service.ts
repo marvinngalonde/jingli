@@ -19,10 +19,6 @@ export class SystemService {
     }
 
     async installSystem(data: any) {
-        const status = await this.checkStatus();
-        if (status.isInstalled) {
-            throw new BadRequestException('System is already installed.');
-        }
 
         const {
             schoolName,
