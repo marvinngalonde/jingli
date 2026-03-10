@@ -81,6 +81,7 @@ export function DashboardLayout() {
     const userRole = user?.role || 'admin';
     const r = userRole;
     const isAdmin = isAdminRole(r);
+    const aiEnabled = user?.school?.aiEnabled ?? user?.role?.toLowerCase() === 'system_admin';
     const isTeacher = isTeacherRole(r);
     const isFinance = ['BURSAR', 'FINANCE'].includes(r.toUpperCase());
     const isLibrarian = r.toUpperCase() === 'LIBRARIAN';
@@ -297,11 +298,13 @@ export function DashboardLayout() {
                             </ActionIcon>
                         </Tooltip>
 
-                        <Tooltip label="AI Assistant">
-                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
-                            </ActionIcon>
-                        </Tooltip>
+                        {aiEnabled && (
+                            <Tooltip label="AI Assistant">
+                                <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                                    <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
+                                </ActionIcon>
+                            </Tooltip>
+                        )}
 
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>

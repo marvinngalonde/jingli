@@ -49,8 +49,8 @@ export class RolesGuard implements CanActivate {
             return true;
         }
 
-        // SUPER_ADMIN and ADMIN always pass (superuser override)
-        if (userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN) {
+        // SUPER_ADMIN, ADMIN, and SYSTEM_ADMIN always pass (superuser override)
+        if (userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN || userRole === UserRole.SYSTEM_ADMIN) {
             return true;
         }
 

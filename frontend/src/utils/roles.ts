@@ -44,6 +44,9 @@ export const ALL_STAFF_ROLES = [...ADMIN_ROLES, ...TEACHER_ROLES, ...SPECIALIST_
 export function getDashboardPath(role: string): string {
     const upper = role?.toUpperCase() || '';
 
+    if (upper === 'SYSTEM_ADMIN') {
+        return '/system-admin';
+    }
     if (TEACHER_ROLES.map(r => r.toUpperCase()).includes(upper)) {
         return '/teacher/dashboard';
     }

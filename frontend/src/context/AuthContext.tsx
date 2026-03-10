@@ -19,6 +19,7 @@ export interface UserProfile {
         config: any;
         email?: string;
         address?: string;
+        aiEnabled?: boolean;
     };
 }
 

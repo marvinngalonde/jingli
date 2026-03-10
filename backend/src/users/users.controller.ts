@@ -17,7 +17,7 @@ export class UsersController {
     async getAll(@Request() req: any, @Query('includeInactive') includeInactive?: string) {
         const me = await this.usersService.findMe(req.user.id);
         if (!me) return [];
-        return this.usersService.findAll(me.schoolId, includeInactive === 'true');
+        return this.usersService.findAll(me.schoolId!, includeInactive === 'true');
     }
 
     @Post()
@@ -25,7 +25,7 @@ export class UsersController {
     async create(@Request() req: any, @Body() body: any) {
         const me = await this.usersService.findMe(req.user.id);
         if (!me || !ADMIN_ROLES.includes(me.role)) throw new ForbiddenException('Admin access required');
-        return this.usersService.create(me.schoolId, body);
+        return this.usersService.create(me.schoolId!, body);
     }
 
     @Patch(':id')
@@ -64,6 +64,6 @@ export class UsersController {
     async search(@Request() req: any) {
         const me = await this.usersService.findMe(req.user.id);
         if (!me) return [];
-        return this.usersService.findAll(me.schoolId);
+        return this.usersService.findAll(me.schoolId!);
     }
 }

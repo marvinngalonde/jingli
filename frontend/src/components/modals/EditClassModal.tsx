@@ -28,8 +28,8 @@ export function EditClassModal({ opened, onClose, onSuccess, section, classLevel
         validate: {
             levelName: (val) => !val ? 'Level name is required' : null,
             levelNumber: (val) => (!val || val < 1) ? 'Level number must be at least 1' : null,
-            sectionName: (val) => !val ? 'Section name is required' : null,
-            capacity: (val) => (!val || val < 1) ? 'Capacity must be at least 1' : null,
+            sectionName: (val) => (section && !val) ? 'Section name is required' : null,
+            capacity: (val) => (section && (!val || val < 1)) ? 'Capacity must be at least 1' : null,
         },
     });
 

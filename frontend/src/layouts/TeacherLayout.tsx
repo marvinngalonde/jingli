@@ -48,6 +48,7 @@ export function TeacherLayout() {
     const userRole = user?.role || 'teacher';
     const isAdmin = isAdminRole(userRole);
     const isTeacher = isTeacherRole(userRole);
+    const aiEnabled = user?.school?.aiEnabled ?? false;
 
     const hasRole = (check: string) => {
         const lcCheck = check.toLowerCase();
@@ -193,11 +194,13 @@ export function TeacherLayout() {
                             </ActionIcon>
                         </Tooltip>
 
-                        <Tooltip label="AI Assistant">
-                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
-                            </ActionIcon>
-                        </Tooltip>
+                        {aiEnabled && (
+                            <Tooltip label="AI Assistant">
+                                <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                                    <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
+                                </ActionIcon>
+                            </Tooltip>
+                        )}
 
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>

@@ -50,6 +50,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { LiveClassesModule } from './live-classes/live-classes.module';
 import { InquiriesModule } from './inquiries/inquiries.module';
+import { SystemAdminModule } from './system-admin/system-admin.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { InquiriesModule } from './inquiries/inquiries.module';
     QuizzesModule,
     LiveClassesModule,
     InquiriesModule,
+    SystemAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

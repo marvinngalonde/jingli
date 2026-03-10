@@ -22,6 +22,7 @@ import {
     IconClipboardCheck,
     IconSearch,
     IconBuildingFortress,
+    IconSettings,
 } from '@tabler/icons-react';
 
 import logoFull from '../assets/logos/logo-trans.png';
@@ -42,6 +43,7 @@ export function ReceptionLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
+    const aiEnabled = user?.school?.aiEnabled ?? false;
 
     const fetchUnreadCount = useCallback(async () => {
         try {
@@ -56,7 +58,12 @@ export function ReceptionLayout() {
         return () => clearInterval(interval);
     }, [fetchUnreadCount]);
 
-    const links = [
+    const handleCloseNotif = () => {
+        closeNotif();
+        fetchUnreadCount();
+    };
+
+    const linkGroups = [
         {
             title: 'Overview', links: [
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/reception/dashboard' },
@@ -97,7 +104,27 @@ export function ReceptionLayout() {
     ];
 
     const renderNavLink = (link: any) => {
-        const isActive = location.pathname === link.to;
+        const isActive = location.pathname === link.to ||
+            (link.to !== '/reception/dashboard' && location.pathname.startsWith(link.to));
+
+        if (!desktopOpened) {
+            return (
+                <Tooltip label={link.label} key={link.label} position="right" withArrow>
+                    <ActionIcon
+                        size="xl"
+                        variant={isActive ? 'light' : 'subtle'}
+                        color={isActive ? 'brand' : 'gray'}
+                        onClick={() => navigate(link.to)}
+                        radius="md"
+                        my={2}
+                        mx="auto"
+                        style={{ display: 'flex' }}
+                    >
+                        <link.icon size={20} stroke={1.5} />
+                    </ActionIcon>
+                </Tooltip>
+            );
+        }
 
         return (
             <NavLink
@@ -106,7 +133,7 @@ export function ReceptionLayout() {
                 leftSection={
                     <ThemeIcon
                         variant={isActive ? 'filled' : 'light'}
-                        color={isActive ? 'blue' : 'gray'}
+                        color={isActive ? 'brand' : 'gray'}
                         size="md"
                         radius="md"
                     >
@@ -116,6 +143,7 @@ export function ReceptionLayout() {
                 active={isActive}
                 onClick={() => navigate(link.to)}
                 variant="light"
+                color="brand"
                 py={8}
                 my={2}
                 style={{ borderRadius: 'var(--mantine-radius-md)', textDecoration: 'none' }}
@@ -126,57 +154,136 @@ export function ReceptionLayout() {
     return (
         <AppShell
             header={{ height: 64 }}
-            navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: true } }}
+            navbar={{
+                width: desktopOpened ? 260 : 80,
+                breakpoint: 'sm',
+                collapsed: { mobile: !mobileOpened },
+            }}
             padding="md"
-            styles={{ main: { background: 'var(--app-surface-dim)' } }}
+            styles={{
+                main: { background: 'var(--app-surface-dim)' },
+            }}
         >
-            <AppShell.Header px="md">
-                <Group h="100%" justify="space-between">
+            {/* ─── HEADER ─── */}
+            <AppShell.Header style={{ borderBottom: '1px solid var(--app-border-light)', background: 'var(--app-header-bg)' }}>
+                <Group h="100%" px="lg" justify="space-between">
                     <Group>
-                        <img src={logoFull} alt="Logo" style={{ height: 36 }} />
+                        <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
+                        <img
+                            src={logoFull}
+                            alt="Jingli Logo"
+                            style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+                        />
                     </Group>
+
                     <Group gap="sm">
-                        <Badge variant="light" color="blue" size="lg" hiddenFrom="sm">Reception</Badge>
-                        <Badge variant="light" color="blue" size="lg" visibleFrom="sm">Reception Desk</Badge>
+                        <Badge
+                            variant="light"
+                            color="blue"
+                            size="lg"
+                            radius="md"
+                            styles={{ root: { textTransform: 'none' } }}
+                            visibleFrom="md"
+                        >
+                            Reception Desk
+                        </Badge>
+
                         <Tooltip label="Notifications">
-                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif}>
-                                <Indicator color="red" label={unreadCount} disabled={unreadCount === 0} size={16}>
-                                    <IconBell size={20} />
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={openNotif} pos="relative">
+                                <Indicator
+                                    color="red"
+                                    size={unreadCount > 0 ? 16 : 0}
+                                    offset={4}
+                                    processing={unreadCount > 0}
+                                    label={unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : undefined}
+                                    disabled={unreadCount === 0}
+                                >
+                                    <IconBell size={20} stroke={1.5} />
                                 </Indicator>
                             </ActionIcon>
                         </Tooltip>
-                        <Tooltip label="AI Assistant">
-                            <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
-                                <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
-                            </ActionIcon>
-                        </Tooltip>
+
+                        {aiEnabled && (
+                            <Tooltip label="AI Assistant">
+                                <ActionIcon variant="subtle" color="blue" size="lg" onClick={openAi}>
+                                    <img src={jaiLogo} alt="AI" style={{ height: 22 }} />
+                                </ActionIcon>
+                            </Tooltip>
+                        )}
+
                         <Menu shadow="md" width={200} position="bottom-end">
                             <Menu.Target>
                                 <UnstyledButton>
-                                    <Avatar color="brand" radius="md">{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                    <Group gap="xs">
+                                        <Avatar radius="md" color="brand" size={34}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                        <Box visibleFrom="xs">
+                                            <IconChevronDown size={14} color="gray" />
+                                        </Box>
+                                    </Group>
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
                                 <Menu.Label>{user?.email}</Menu.Label>
-                                <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={() => { logout(); navigate('/login'); }}>Logout</Menu.Item>
+                                <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+                                <Menu.Divider />
+                                <Menu.Item
+                                    color="red"
+                                    leftSection={<IconLogout size={14} />}
+                                    onClick={() => { logout(); navigate('/login'); }}
+                                >
+                                    Logout
+                                </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
                     </Group>
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar p="sm" style={{ background: 'var(--app-sidebar-bg)' }}>
-                <AppShell.Section grow component={ScrollArea}>
-                    {links.map((group, i) => (
-                        <Box key={i} mb="lg">
-                            <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>{group.title}</Text>
-                            {group.links.map(renderNavLink)}
-                            {i < links.length - 1 && <Divider my="sm" variant="dotted" />}
-                        </Box>
-                    ))}
+            {/* ─── SIDEBAR ─── */}
+            <AppShell.Navbar style={{ backgroundColor: 'var(--app-sidebar-bg)', borderRight: '1px solid var(--app-border-light)' }}>
+                {/* User Profile + Collapse Toggle */}
+                <AppShell.Section p={desktopOpened ? 'md' : 'xs'} style={{ borderBottom: '1px solid var(--app-border-light)' }}>
+                    {desktopOpened ? (
+                        <Group justify="space-between">
+                            <Group>
+                                <Avatar radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
+                                <div>
+                                    <Text size="sm" fw={600} lh={1.2}>{user?.email?.split('@')[0]}</Text>
+                                    <Text size="xs" c="dimmed">{user?.role?.replace(/_/g, ' ')}</Text>
+                                </div>
+                            </Group>
+                            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm" title="Collapse sidebar">
+                                <IconLayoutSidebarLeftCollapse size={18} stroke={1.5} />
+                            </ActionIcon>
+                        </Group>
+                    ) : (
+                        <Tooltip label="Expand sidebar" position="right">
+                            <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleDesktop} mx="auto" style={{ display: 'flex' }}>
+                                <IconLayoutSidebarLeftExpand size={20} stroke={1.5} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
+                </AppShell.Section>
+
+                {/* Nav Links */}
+                <AppShell.Section grow component={ScrollArea} mt="xs" scrollbarSize={6}>
+                    <Box p="sm">
+                        {linkGroups.map((group, i) => (
+                            <Box key={i}>
+                                {i > 0 && <Divider my="sm" />}
+                                {desktopOpened && (
+                                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mb={4}>
+                                        {group.title}
+                                    </Text>
+                                )}
+                                {group.links.map(renderNavLink)}
+                            </Box>
+                        ))}
+                    </Box>
                 </AppShell.Section>
             </AppShell.Navbar>
 
+            {/* ─── MAIN CONTENT ─── */}
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
@@ -184,7 +291,7 @@ export function ReceptionLayout() {
             <MobileBottomNav links={mobileNavLinks} />
 
             <JingliAIDrawer opened={aiOpened} onClose={closeAi} />
-            <NotificationsDrawer opened={notifOpened} onClose={closeNotif} />
+            <NotificationsDrawer opened={notifOpened} onClose={handleCloseNotif} />
         </AppShell>
     );
 }

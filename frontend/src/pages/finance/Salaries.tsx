@@ -24,7 +24,7 @@ export default function Salaries() {
     const [search, setSearch] = useState('');
 
     const form = useForm({
-        initialValues: { staffId: '', amount: 0, baseSalary: 0, allowances: 0, deductions: 0, month: new Date().getMonth() + 1, year: new Date().getFullYear(), method: 'BANK_TRANSFER', currency: 'USD', notes: '' },
+        initialValues: { staffId: '', amount: 0, baseSalary: 0, allowances: 0, deductions: 0, month: new Date().getMonth() + 1, year: new Date().getFullYear(), method: 'ONLINE', currency: 'USD', notes: '' },
         validate: {
             staffId: (v) => (!v ? 'Staff member required' : null),
             amount: (v) => (v <= 0 ? 'Amount must be > 0' : null),
@@ -63,7 +63,7 @@ export default function Salaries() {
                 amount: item.amount || 0,
                 month: item.month || new Date().getMonth() + 1,
                 year: item.year || new Date().getFullYear(),
-                method: item.method || 'BANK_TRANSFER',
+                method: item.method || 'ONLINE',
                 currency: item.currency || 'USD',
                 baseSalary: item.baseSalary || 0,
                 allowances: item.allowances || 0,
@@ -253,7 +253,13 @@ export default function Salaries() {
                             <Select label="Month" data={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} required {...form.getInputProps('month')} />
                             <NumberInput label="Year" min={2020} max={2030} required {...form.getInputProps('year')} />
                         </Group>
-                        <Select label="Payment Method" data={['BANK_TRANSFER', 'CASH', 'CHEQUE', 'MOBILE_MONEY']} {...form.getInputProps('method')} />
+                        <Select label="Payment Method" data={[
+                            { value: 'ONLINE', label: 'Bank Transfer / Online' },
+                            { value: 'CASH', label: 'Cash' },
+                            { value: 'CARD', label: 'Card' },
+                            { value: 'CHEQUE', label: 'Cheque' },
+                            { value: 'MOBILE_MONEY', label: 'Mobile Money' },
+                        ]} {...form.getInputProps('method')} />
                         <Select label="Currency" data={['USD', 'ZWL', 'ZAR', 'BWP']} {...form.getInputProps('currency')} />
                         <TextInput label="Notes" {...form.getInputProps('notes')} />
                         <Group justify="flex-end" mt="md">

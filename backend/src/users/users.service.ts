@@ -24,6 +24,7 @@ export class UsersService {
                         name: true,
                         config: true,
                         logoUrl: true,
+                        aiEnabled: true,
                     }
                 }
             },

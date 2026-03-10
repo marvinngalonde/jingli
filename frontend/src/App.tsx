@@ -102,6 +102,11 @@ import Expenses from './pages/finance/Expenses';
 import { ReceptionLayout } from './layouts/ReceptionLayout';
 import ReceptionDashboard from './pages/reception/ReceptionDashboard';
 import FeeCollection from './pages/reception/FeeCollection';
+import { SystemAdminLayout } from './layouts/SystemAdminLayout';
+import GlobalDashboard from './pages/system-admin/GlobalDashboard';
+import SchoolManager from './pages/system-admin/SchoolManager';
+import GlobalUsers from './pages/system-admin/GlobalUsers';
+import PlatformSettings from './pages/system-admin/PlatformSettings';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -279,6 +284,14 @@ function AppContent() {
           <Route path="/reception/hostel" element={<Hostel />} />
           <Route path="/reception/events" element={<Events />} />
           <Route path="/reception/facilities" element={<Facilities />} />
+        </Route>
+
+        {/* Global System Admin Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}><SystemAdminLayout /></ProtectedRoute>}>
+          <Route path="/system-admin" element={<GlobalDashboard />} />
+          <Route path="/system-admin/schools" element={<SchoolManager />} />
+          <Route path="/system-admin/users" element={<GlobalUsers />} />
+          <Route path="/system-admin/settings" element={<PlatformSettings />} />
         </Route>
       </Routes>
     </BrowserRouter >

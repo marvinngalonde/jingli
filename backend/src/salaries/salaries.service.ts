@@ -104,12 +104,12 @@ export class SalariesService {
 
         if (!current) return null;
 
-        const newBase = baseSalary !== undefined ? baseSalary : Number(current.baseSalary);
-        const newAllowances = allowances !== undefined ? allowances : Number(current.allowances);
-        const newDeductions = deductions !== undefined ? deductions : Number(current.deductions);
+        const newBase = baseSalary != null ? Number(baseSalary) : Number(current.baseSalary);
+        const newAllowances = allowances != null ? Number(allowances) : Number(current.allowances);
+        const newDeductions = deductions != null ? Number(deductions) : Number(current.deductions);
 
         // Calculate net amount automate
-        const netAmount = amount !== undefined ? amount : (newBase + newAllowances - newDeductions);
+        const netAmount = amount != null ? Number(amount) : (newBase + newAllowances - newDeductions);
 
         return this.prisma.salaryPayment.update({
             where: { id, schoolId },

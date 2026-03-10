@@ -295,7 +295,7 @@ export class AiService {
 
                 for (const call of functionCalls!) {
                     if (call.name === "getNotices") {
-                        const notices = await this.handleGetNotices(context.schoolId, (call.args as any).limit || 5);
+                        const notices = await this.handleGetNotices(context.schoolId!, (call.args as any).limit || 5);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -303,7 +303,7 @@ export class AiService {
                             }
                         });
                     } else if (call.name === "getFinanceSummary") {
-                        const summary = await this.handleGetFinanceSummary(context.schoolId);
+                        const summary = await this.handleGetFinanceSummary(context.schoolId!);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -311,7 +311,7 @@ export class AiService {
                             }
                         });
                     } else if (call.name === "getStudentStats") {
-                        const stats = await this.handleGetStudentStats(context.schoolId);
+                        const stats = await this.handleGetStudentStats(context.schoolId!);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -319,7 +319,7 @@ export class AiService {
                             }
                         });
                     } else if (call.name === "getClassStructure") {
-                        const structure = await this.handleGetClassStructure(context.schoolId);
+                        const structure = await this.handleGetClassStructure(context.schoolId!);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -360,7 +360,7 @@ export class AiService {
                         });
                     } else if (call.name === "generateQuiz" && context.userId) {
                         const args = call.args as any;
-                        const quiz = await this.handleGenerateQuiz(context.userId, context.schoolId, args, modelId);
+                        const quiz = await this.handleGenerateQuiz(context.userId, context.schoolId!, args, modelId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -369,7 +369,7 @@ export class AiService {
                         });
                     } else if (call.name === "bulkEnrollStudents" && context.userId && context.role === 'ADMIN') {
                         const args = call.args as any;
-                        const result = await this.handleBulkEnrollStudents(context.schoolId, args.sectionId, args.students);
+                        const result = await this.handleBulkEnrollStudents(context.schoolId!, args.sectionId, args.students);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -377,7 +377,7 @@ export class AiService {
                             }
                         });
                     } else if (call.name === "analyzeFinancialHealth") {
-                        const analysis = await this.handleAnalyzeFinancialHealth(context.schoolId);
+                        const analysis = await this.handleAnalyzeFinancialHealth(context.schoolId!);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -385,7 +385,7 @@ export class AiService {
                             }
                         });
                     } else if (call.name === "generateExecutiveSummary") {
-                        const summary = await this.handleGenerateExecutiveSummary(context.schoolId);
+                        const summary = await this.handleGenerateExecutiveSummary(context.schoolId!);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -394,7 +394,7 @@ export class AiService {
                         });
                     } else if (call.name === "getStudentsInSection") {
                         const args = call.args as any;
-                        const result = await this.handleGetStudentsInSection(context.schoolId, args.sectionId);
+                        const result = await this.handleGetStudentsInSection(context.schoolId!, args.sectionId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -403,7 +403,7 @@ export class AiService {
                         });
                     } else if (call.name === "updateStudentMark" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
                         const args = call.args as any;
-                        const result = await this.handleUpdateStudentMark(context.userId, context.schoolId, args);
+                        const result = await this.handleUpdateStudentMark(context.userId, context.schoolId!, args);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -412,7 +412,7 @@ export class AiService {
                         });
                     } else if (call.name === "predictStudentRisk" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
                         const args = call.args as any;
-                        const result = await this.handlePredictStudentRisk(context.schoolId, args.studentId);
+                        const result = await this.handlePredictStudentRisk(context.schoolId!, args.studentId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -421,7 +421,7 @@ export class AiService {
                         });
                     } else if (call.name === "summarizeStudentBehavior" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
                         const args = call.args as any;
-                        const result = await this.handleSummarizeStudentBehavior(context.schoolId, args.studentId);
+                        const result = await this.handleSummarizeStudentBehavior(context.schoolId!, args.studentId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -439,7 +439,7 @@ export class AiService {
                         });
                     } else if (call.name === "suggestLearningResources") {
                         const args = call.args as any;
-                        const result = await this.handleSuggestLearningResources(context.schoolId, args.studentId);
+                        const result = await this.handleSuggestLearningResources(context.schoolId!, args.studentId);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -448,7 +448,7 @@ export class AiService {
                         });
                     } else if (call.name === "processDocument") {
                         const args = call.args as any;
-                        const result = await this.handleProcessDocument(context.schoolId, args);
+                        const result = await this.handleProcessDocument(context.schoolId!, args);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -1126,7 +1126,7 @@ export class AiService {
         let subjects: string[] = [];
         if (user.studentProfile) {
             const studentSubjects = await this.prisma.subject.findMany({
-                where: { schoolId: user.schoolId },
+                where: { schoolId: user.schoolId ?? '' },
                 take: 5
             });
             subjects = studentSubjects.map(s => s.name);
@@ -1138,7 +1138,7 @@ export class AiService {
             role: user.role,
             subjects,
             schoolId: user.schoolId,
-            schoolName: user.school.name
+            schoolName: user.school?.name ?? 'Jingli HQ'
         };
     }
 }
