@@ -30,11 +30,12 @@ export function TeacherTimetable() {
         enabled: !!user?.profile?.id
     });
 
-    const { data: teachers = [] } = useQuery({
+    const { data: teachersData = [] } = useQuery({
         queryKey: ['staff'],
         queryFn: () => api.get('/staff').then(res => res.data),
         enabled: !!user?.profile?.id
     });
+    const teachers = Array.isArray(teachersData) ? teachersData : (teachersData as any).data || [];
 
     const entries = entriesData;
     const loading = loadingEntries && !!user?.profile?.id;

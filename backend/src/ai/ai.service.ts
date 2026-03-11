@@ -1,7 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class AiService {
@@ -9,7 +10,8 @@ export class AiService {
 
     constructor(
         private configService: ConfigService,
-        private prisma: PrismaService
+        private prisma: PrismaService,
+        private supabase: SupabaseService
     ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) {
@@ -236,12 +238,61 @@ export class AiService {
                                                 address: { type: "STRING" },
                                                 name: { type: "STRING" },
                                                 purpose: { type: "STRING" },
-                                                idProof: { type: "STRING" }
+                                                idProof: { type: "STRING" },
+                                                sectionQuery: { type: "STRING", description: "Human readable class/section name like 'Form 1 Blue' or the exact section ID." }
                                             }
                                         }
                                     }
                                 },
                                 required: ["entityType", "records"]
+                            }
+                        },
+                        {
+                            name: "addSubjects",
+                            description: "Adds one or more subjects to the school's curriculum. Each subject needs a name, a short code, and optionally a department. If the user provides a list, extract and add all of them.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    subjects: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                name: { type: "STRING", description: "Full subject name, e.g. 'Mathematics'" },
+                                                code: { type: "STRING", description: "Short subject code, e.g. 'MATH101'. Generate one if not provided." },
+                                                department: { type: "STRING", description: "Optional department, e.g. 'Sciences'" }
+                                            },
+                                            required: ["name", "code"]
+                                        }
+                                    }
+                                },
+                                required: ["subjects"]
+                            }
+                        },
+                        {
+                            name: "addClasses",
+                            description: "Adds new Class Levels (e.g. Form 1, Grade 1) and their associated Sections (e.g. Blue, Red, A, B). Use this to build the academic structure.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    classes: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                name: { type: "STRING", description: "Name of the level, e.g. 'Form 1' or 'Grade 1'" },
+                                                level: { type: "NUMBER", description: "Numeric level for sorting, e.g. 1" },
+                                                sections: {
+                                                    type: "ARRAY",
+                                                    items: { type: "STRING" },
+                                                    description: "Optional list of section names, e.g. ['Blue', 'Red', 'Green']"
+                                                }
+                                            },
+                                            required: ["name", "level"]
+                                        }
+                                    }
+                                },
+                                required: ["classes"]
                             }
                         }
                     ]
@@ -272,12 +323,16 @@ export class AiService {
                                         * Notice Drafting (draftOfficialNotice).
                                         * Learning resource guidance (suggestLearningResources).
                                         * Data Import (importData) for extracting parsed lists of Students, Staff, and Visitors from provided context.
+                                        * Add Subjects (addSubjects) to the curriculum from a list or description.
+                                        * Add Classes (addClasses) to build the academic structure with class levels and their sections.
                                     - Analysis: Financial health (analyzeFinancialHealth), Executive summaries (generateExecutiveSummary).
 
                                     REQUIREMENTS: 
                                     - Use tools proactively whenever numerical, statistical, or structured data is needed.
+                                    - If the user asks to enroll/add students to a specific class (e.g. "Form 1 Blue"), DO NOT ask them for the Section ID. Proactively use 'getClassStructure' to find the correct ID yourself and pass it or the section name in 'sectionQuery'.
                                     - SECURITY: You must only perform operations authorized for the user's role (${context.role}). If an operation is unauthorized, politely refuse and explain.
-                                    - When evaluating pasted text or uploaded files containing lists of people, you act as a data engineer. Clean, format, and structure the data into the exact schema expected by the importData tool and automatically import them.
+                                    - If the user provides pasted text or uploaded files WITHOUT clear instructions on what they want to do with it, DO NOT automatically perform actions. Ask them precisely what they want to do (e.g. 'Would you like me to import these as Students?').
+                                    - ONLY act automatically if the user's intent is clear (e.g., 'Import this list of students'). In that case, act as a data engineer, clean/format the data into the exact schema expected by the appropriate tool, and execute it.
                                     - Be precise. If a mark is updated, confirm the specific record changed.
                                     - Use formatting (bold, tables) for clarity.
                                     - Rebranding: Refer to yourself only as "Jingli AI".`,
@@ -491,6 +546,24 @@ export class AiService {
                     } else if (call.name === "importData") {
                         const args = call.args as any;
                         const result = await this.handleImportData(context.schoolId!, args.entityType, args.records);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "addSubjects") {
+                        const args = call.args as any;
+                        const result = await this.handleAddSubjects(context.schoolId!, args.subjects);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "addClasses") {
+                        const args = call.args as any;
+                        const result = await this.handleAddClasses(context.schoolId!, args.classes);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -865,22 +938,81 @@ export class AiService {
             const results = [];
 
             if (entityType === "STUDENT") {
+                // Pre-fetch all sections for easier mapping if sectionQuery is a name
+                const allSections = await this.prisma.classSection.findMany({
+                    where: { schoolId },
+                    include: { classLevel: true }
+                });
+
                 for (const r of records) {
                     const admissionNo = `S${Math.floor(10000 + Math.random() * 90000)}`;
                     const username = `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}`;
+                    const email = r.email || `${username}@school.com`;
+
+                    // Smart resolve sectionId (strip spaces and punctuation for robust matching)
+                    let finalSectionId = null;
+                    if (r.sectionQuery) {
+                        const rawQuery = r.sectionQuery.toString();
+                        const cleanSq = rawQuery.replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+                        const matched = allSections.find(s => {
+                            if (s.id === rawQuery) return true;
+
+                            const cleanSecName = s.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                            const cleanLevelName = s.classLevel.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                            const levelNum = s.classLevel.level.toString();
+
+                            return (
+                                cleanSecName === cleanSq ||
+                                `${cleanLevelName}${cleanSecName}` === cleanSq ||
+                                `${cleanLevelName}${levelNum}${cleanSecName}` === cleanSq ||
+                                `${levelNum}${cleanSecName}` === cleanSq // e.g. "1blue"
+                            );
+                        });
+                        if (matched) finalSectionId = matched.id;
+                    }
+
+                    if (!finalSectionId) {
+                        throw new BadRequestException(`Could not resolve class section for student ${r.firstName} ${r.lastName}. Please pass a valid sectionQuery.`);
+                    }
+
+                    const supabaseClient = this.supabase.getClient();
+                    const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
+                        email: email,
+                        password: 'Temporary123!',
+                        email_confirm: true,
+                        user_metadata: {
+                            role: 'STUDENT',
+                            username: username,
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            schoolId: schoolId,
+                        }
+                    });
+
+                    if (authError && !authError.message.includes('already registered')) {
+                        console.error('Supabase Auth Creation Error:', authError);
+                        continue;
+                    }
+
+                    const supabaseUid = authUser?.user?.id;
+
                     const user = await this.prisma.user.create({
                         data: {
                             schoolId,
                             username,
-                            passwordHash: '$2b$10$YourDefaultHash',
+                            email,
+                            passwordHash: 'SUPABASE_MANAGED',
                             role: 'STUDENT',
+                            supabaseUid,
+                            status: 'ACTIVE'
                         }
                     });
                     const student = await this.prisma.student.create({
                         data: {
                             schoolId,
                             userId: user.id,
-                            sectionId: r.sectionId || null,
+                            sectionId: finalSectionId,
                             admissionNo,
                             firstName: r.firstName,
                             lastName: r.lastName,
@@ -895,13 +1027,39 @@ export class AiService {
             } else if (entityType === "STAFF") {
                 for (const r of records) {
                     const username = `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}`;
+                    const email = r.email || `${username}@school.com`;
+                    const role = r.role?.toUpperCase() || 'TEACHER';
+
+                    const supabaseClient = this.supabase.getClient();
+                    const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
+                        email: email,
+                        password: 'Temporary123!',
+                        email_confirm: true,
+                        user_metadata: {
+                            role: role,
+                            username: username,
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            schoolId: schoolId,
+                        }
+                    });
+
+                    if (authError && !authError.message.includes('already registered')) {
+                        console.error('Supabase Auth Creation Error:', authError);
+                        continue;
+                    }
+
+                    const supabaseUid = authUser?.user?.id;
+
                     const user = await this.prisma.user.create({
                         data: {
                             schoolId,
                             username,
-                            email: r.email || `${username}@school.com`,
-                            passwordHash: '$2b$10$YourDefaultHash',
-                            role: 'TEACHER',
+                            email,
+                            passwordHash: 'SUPABASE_MANAGED',
+                            role: role as any,
+                            supabaseUid,
+                            status: 'ACTIVE'
                         }
                     });
                     const staff = await this.prisma.staff.create({
@@ -940,6 +1098,91 @@ export class AiService {
         } catch (error) {
             console.error("Import Data Error:", error);
             return `Error importing ${entityType} data. Check field mappings.`;
+        }
+    }
+
+    private async handleAddSubjects(schoolId: string, subjects: { name: string; code: string; department?: string }[]) {
+        try {
+            const results = [];
+            const skipped = [];
+
+            for (const s of subjects) {
+                // Skip if subject code already exists in this school
+                const existing = await this.prisma.subject.findUnique({
+                    where: { schoolId_code: { schoolId, code: s.code.toUpperCase() } }
+                });
+
+                if (existing) {
+                    skipped.push(`${s.name} (code "${s.code}" already exists)`);
+                    continue;
+                }
+
+                const subject = await this.prisma.subject.create({
+                    data: {
+                        schoolId,
+                        name: s.name,
+                        code: s.code.toUpperCase(),
+                        department: s.department || null,
+                    }
+                });
+                results.push(`${subject.name} (${subject.code})`);
+            }
+
+            const summary = [];
+            if (results.length > 0) summary.push(`Added ${results.length} subject(s): ${results.join(', ')}`);
+            if (skipped.length > 0) summary.push(`Skipped ${skipped.length}: ${skipped.join(', ')}`);
+            return summary.join('. ') || 'No subjects were added.';
+        } catch (error) {
+            console.error('Add Subjects Error:', error);
+            return 'Error adding subjects. Please try again.';
+        }
+    }
+
+    private async handleAddClasses(schoolId: string, classes: { name: string; level: number; sections?: string[] }[]) {
+        try {
+            const results = [];
+            let sectionCount = 0;
+
+            for (const c of classes) {
+                // Upsert class level
+                let level = await this.prisma.classLevel.findFirst({
+                    where: { schoolId, level: c.level, name: c.name }
+                });
+
+                if (!level) {
+                    level = await this.prisma.classLevel.create({
+                        data: { schoolId, name: c.name, level: c.level }
+                    });
+                }
+
+                results.push(level.name);
+
+                // Add sections if provided
+                if (c.sections && c.sections.length > 0) {
+                    for (const secName of c.sections) {
+                        const existingSec = await this.prisma.classSection.findFirst({
+                            where: { schoolId, classLevelId: level.id, name: secName }
+                        });
+
+                        if (!existingSec) {
+                            await this.prisma.classSection.create({
+                                data: {
+                                    schoolId,
+                                    classLevelId: level.id,
+                                    name: secName,
+                                    capacity: 40 // Default
+                                }
+                            });
+                            sectionCount++;
+                        }
+                    }
+                }
+            }
+
+            return `Successfully processed ${results.length} class level(s) (${results.join(', ')}). Added ${sectionCount} new sections in total.`;
+        } catch (error) {
+            console.error('Add Classes Error:', error);
+            return 'Failed to add classes and sections. Please try again.';
         }
     }
 
@@ -1279,6 +1522,8 @@ export class AiService {
                 return managementRoles.includes(role);
 
             case 'bulkEnrollStudents':
+            case 'addSubjects':
+            case 'addClasses':
                 return managementRoles.includes(role);
 
             case 'updateStudentMark':

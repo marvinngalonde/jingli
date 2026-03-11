@@ -100,10 +100,10 @@ export class UsersService {
 
     async getStats(schoolId: string) {
         const [total, admins, teachers, students, active, inactive] = await Promise.all([
-            this.prisma.user.count({ where: { schoolId } }),
-            this.prisma.user.count({ where: { schoolId, role: 'ADMIN' } }),
-            this.prisma.user.count({ where: { schoolId, role: 'TEACHER' } }),
-            this.prisma.user.count({ where: { schoolId, role: 'STUDENT' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'ACTIVE' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'ACTIVE', role: 'ADMIN' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'ACTIVE', role: 'TEACHER' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'ACTIVE', role: 'STUDENT' } }),
             this.prisma.user.count({ where: { schoolId, status: 'ACTIVE' } }),
             this.prisma.user.count({ where: { schoolId, status: 'INACTIVE' } }),
         ]);
@@ -124,6 +124,14 @@ export class UsersService {
         }
     ) {
         const password = data.password || 'Temporary123!';
+
+        // 0. Check for duplicate username within the same school
+        const existingUser = await this.prisma.user.findFirst({
+            where: { schoolId, username: data.username }
+        });
+        if (existingUser) {
+            throw new BadRequestException(`The username "${data.username}" is already taken. Please choose a different username.`);
+        }
 
         // 1. Create User in Supabase Auth via Admin API
         const supabase = this.supabase.getClient();

@@ -26,7 +26,7 @@ export default function TeacherLibrary() {
             setLoading(true);
             try {
                 const { data } = await api.get('/library/books');
-                setBooks(Array.isArray(data) ? data : []);
+                setBooks(Array.isArray(data) ? data : data?.data || []);
             } catch {
                 notifications.show({ title: 'Error', message: 'Failed to load library catalog', color: 'red' });
             } finally {

@@ -23,15 +23,17 @@ export default function Library() {
     const [issueOpened, { open: openIssue, close: closeIssue }] = useDisclosure(false);
 
     // Queries
-    const { data: books = [], isLoading: booksLoading } = useQuery({
+    const { data: booksData = [], isLoading: booksLoading } = useQuery({
         queryKey: ['libraryBooks'],
         queryFn: libraryService.getAllBooks
     });
+    const books: Book[] = Array.isArray(booksData) ? booksData : (booksData as any).data || [];
 
-    const { data: circulation = [], isLoading: circLoading } = useQuery({
+    const { data: circData = [], isLoading: circLoading } = useQuery({
         queryKey: ['libraryCirculation'],
         queryFn: libraryService.getCirculation
     });
+    const circulation: CirculationRecord[] = Array.isArray(circData) ? circData : (circData as any).data || [];
 
     const { data: studentsData, isLoading: studentsLoading } = useQuery({
         queryKey: ['libraryStudents'],

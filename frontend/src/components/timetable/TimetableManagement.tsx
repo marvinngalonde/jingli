@@ -60,7 +60,8 @@ export function TimetableManagement({ isStudentOrParent = false }: TimetableMana
 
     const { data: classes = [], isLoading: classesLoading } = useQuery({ queryKey: ['classes'], queryFn: () => classesApi.getAll() });
     const { data: subjects = [], isLoading: subjectsLoading } = useQuery({ queryKey: ['subjects'], queryFn: () => subjectsApi.getAll() });
-    const { data: teachers = [], isLoading: teachersLoading } = useQuery({ queryKey: ['staff'], queryFn: () => api.get('/staff').then(res => res.data) });
+    const { data: teachersData = [], isLoading: teachersLoading } = useQuery({ queryKey: ['staff'], queryFn: () => api.get('/staff').then(res => res.data) });
+    const teachers = Array.isArray(teachersData) ? teachersData : (teachersData as any).data || [];
     const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => api.get('/subjects/allocations').then(res => res.data) });
     const { data: entries = [], isLoading: entriesLoading } = useQuery({
         queryKey: ['timetable', selectedSectionId],

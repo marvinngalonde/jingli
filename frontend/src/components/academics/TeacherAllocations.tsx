@@ -39,7 +39,7 @@ export function TeacherAllocations() {
         const sectionOpts: any[] = [];
         classesRaw.forEach((lvl: any) => {
             lvl.sections?.forEach((sec: any) => {
-                sectionOpts.push({ value: sec.id, label: `${lvl.name} - ${sec.name}`.trim() });
+                sectionOpts.push({ value: sec.id, label: `${lvl.name} ${lvl.level} - ${sec.name}`.trim() });
             });
         });
         return sectionOpts;
