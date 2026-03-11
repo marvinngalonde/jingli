@@ -164,21 +164,35 @@ export class InvoicesService {
         };
     }
 
-    async findAll(schoolId: string, studentId?: string) {
+    async findAll(schoolId: string, studentId?: string, page = 1, limit = 20) {
+        const skip = (page - 1) * limit;
         const where: any = { schoolId };
         if (studentId) where.studentId = studentId;
 
-        return this.prisma.invoice.findMany({
-            where,
-            include: {
-                student: { select: { firstName: true, lastName: true, admissionNo: true } },
-                feeStructure: { include: { feeHead: true } },
-                transactions: true,
-            },
-            orderBy: {
-                issueDate: 'desc',
-            }
-        });
+        const [data, total] = await Promise.all([
+            this.prisma.invoice.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    student: { select: { firstName: true, lastName: true, admissionNo: true } },
+                    feeStructure: { include: { feeHead: true } },
+                    transactions: true,
+                },
+                orderBy: {
+                    issueDate: 'desc',
+                }
+            }),
+            this.prisma.invoice.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async findOne(id: string, schoolId: string) {

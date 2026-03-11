@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Select, Stack, LoadingOverlay, ActionIcon, NumberInput } from '@mantine/core';
+import { Title, Tabs, Paper, Text, Group, Button, Table, Badge, Grid, Card, ThemeIcon, Drawer, Select, Stack, LoadingOverlay, ActionIcon, NumberInput, Pagination } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
@@ -112,13 +112,14 @@ export default function Finance() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<string | null>('structures');
+    const [page, setPage] = useState(1);
 
     // Data State for Invoices
     const { data: financeData, isLoading: loading } = useQuery({
-        queryKey: ['financeInvoices', user?.schoolId],
+        queryKey: ['financeInvoices', user?.schoolId, page],
         queryFn: async () => {
             const [data, statsData] = await Promise.all([
-                financeService.getInvoices(user?.schoolId || ''),
+                financeService.getInvoices(user?.schoolId || '', undefined, page, 20),
                 financeService.getStats()
             ]);
             return { invoices: data, stats: statsData };
@@ -126,7 +127,8 @@ export default function Finance() {
         enabled: !!user?.schoolId && activeTab === 'invoices'
     });
 
-    const invoices = financeData?.invoices || [];
+    const invoices = financeData?.invoices.data || [];
+    const totalPages = financeData?.invoices.totalPages || 1;
     const stats = financeData?.stats || null;
 
     // Invoice Generation State
@@ -275,6 +277,11 @@ export default function Finance() {
                                 }
                             </Table.Tbody>
                         </Table>
+                        {totalPages > 1 && (
+                            <Group justify="flex-end" mt="md">
+                                <Pagination total={totalPages} value={page} onChange={setPage} />
+                            </Group>
+                        )}
                     </Paper>
                 </Tabs.Panel>
             </Tabs>

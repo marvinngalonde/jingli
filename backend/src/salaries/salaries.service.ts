@@ -68,19 +68,28 @@ export class SalariesService {
         return { count, message: `Created ${count} payroll entries for ${month}/${year}` };
     }
 
-    async findAll(schoolId: string, month?: number, year?: number) {
+    async findAll(schoolId: string, month?: number, year?: number, page = 1, limit = 20) {
         const where: any = { schoolId };
         if (month) where.month = month;
         if (year) where.year = year;
 
-        return this.prisma.salaryPayment.findMany({
-            where,
-            include: {
-                staff: { select: { id: true, firstName: true, lastName: true, employeeId: true, designation: true, department: true } },
-                processor: { select: { id: true, username: true } },
-            },
-            orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }],
-        });
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.salaryPayment.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    staff: { select: { id: true, firstName: true, lastName: true, employeeId: true, designation: true, department: true } },
+                    processor: { select: { id: true, username: true } },
+                },
+                orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }],
+            }),
+            this.prisma.salaryPayment.count({ where })
+        ]);
+
+        return { data, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
     }
 
     async findOne(id: string, schoolId: string) {

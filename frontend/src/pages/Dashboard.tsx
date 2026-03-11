@@ -71,7 +71,9 @@ function AdminDashboard() {
 
     return (
         <div>
-            <Title order={2} mb="lg">Super Admin Dashboard</Title>
+            <Title order={4} mb="md" fw={700} style={{ color: 'var(--mantine-color-dark-8)' }}>
+                Admin Dashboard
+            </Title>
 
             {/* Stats Cards */}
             <Grid gutter="lg">

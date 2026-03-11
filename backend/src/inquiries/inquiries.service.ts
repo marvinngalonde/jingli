@@ -21,11 +21,21 @@ export class InquiriesService {
         });
     }
 
-    async findAll(schoolId: string) {
-        return this.prisma.inquiry.findMany({
-            where: { schoolId },
-            orderBy: { id: 'desc' }
-        });
+    async findAll(schoolId: string, page = 1, limit = 20) {
+        const skip = (page - 1) * limit;
+        const where = { schoolId };
+
+        const [data, total] = await Promise.all([
+            this.prisma.inquiry.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { id: 'desc' }
+            }),
+            this.prisma.inquiry.count({ where })
+        ]);
+
+        return { data, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
     }
 
     async findOne(id: string) {

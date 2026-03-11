@@ -76,7 +76,8 @@ export default function Classes({ asComponent }: { asComponent?: boolean }) {
 
     const teachers = useMemo(() => {
         const teachingRoles = ['TEACHER', 'SUBJECT_TEACHER', 'CLASS_TEACHER', 'SENIOR_TEACHER', 'HOD'];
-        return staffList.filter((s: any) => s.designation?.toLowerCase().includes('teacher') || teachingRoles.includes(s.user?.role || ''));
+        const staffData = Array.isArray(staffList) ? staffList : (staffList as any)?.data || [];
+        return staffData.filter((s: any) => s.designation?.toLowerCase().includes('teacher') || teachingRoles.includes(s.user?.role || ''));
     }, [staffList]);
 
     // Flatten class levels into rows (one row per section)

@@ -55,7 +55,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
             });
 
             // Fetch students for parent linking
-            studentService.getAll().then(data => setStudents(data)).catch(console.error);
+            studentService.getAll({ limit: 1000 }).then(result => setStudents(result.data)).catch(console.error);
         }
     }, [opened, user]);
 

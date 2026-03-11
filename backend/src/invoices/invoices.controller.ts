@@ -47,9 +47,21 @@ export class InvoicesController {
     @Get()
     @ApiOperation({ summary: 'List Invoices' })
     @ApiQuery({ name: 'studentId', required: false })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.BURSAR, UserRole.SCHOOL_HEAD, UserRole.RECEPTION, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN, UserRole.PARENT, UserRole.STUDENT)
-    findAll(@Req() req: any, @Query('studentId') studentId?: string) {
-        return this.invoicesService.findAll(req.user.schoolId, studentId);
+    findAll(
+        @Req() req: any,
+        @Query('studentId') studentId?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.invoicesService.findAll(
+            req.user.schoolId,
+            studentId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get(':id')

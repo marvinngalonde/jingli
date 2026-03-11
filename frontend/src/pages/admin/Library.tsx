@@ -33,15 +33,15 @@ export default function Library() {
         queryFn: libraryService.getCirculation
     });
 
-    const { data: studentsRaw = [], isLoading: studentsLoading } = useQuery({
+    const { data: studentsData, isLoading: studentsLoading } = useQuery({
         queryKey: ['libraryStudents'],
-        queryFn: () => studentService.getAll()
+        queryFn: () => studentService.getAll({ limit: 1000 })
     });
 
-    const students = useMemo(() => studentsRaw.map(s => ({
+    const students = useMemo(() => (studentsData?.data || []).map((s: any) => ({
         value: s.id,
         label: `${s.firstName} ${s.lastName} (${s.admissionNo})`
-    })), [studentsRaw]);
+    })), [studentsData]);
 
     const loading = booksLoading || circLoading || studentsLoading;
 

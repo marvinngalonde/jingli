@@ -30,17 +30,30 @@ export class VisitorsController {
     @Get()
     @ApiOperation({ summary: 'Get all visitors' })
     @ApiQuery({ name: 'status', required: false, enum: VisitorStatus })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
-    findAll(@Req() req: any, @Query('status') status?: VisitorStatus) {
-        return this.visitorsService.findAll(req.user.schoolId, status);
+    findAll(
+        @Req() req: any,
+        @Query('status') status?: VisitorStatus,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.visitorsService.findAll(
+            req.user.schoolId,
+            status,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get('export/pdf')
     @ApiOperation({ summary: 'Export visitor log as PDF' })
     @Roles(UserRole.SECURITY_GUARD, UserRole.SENIOR_CLERK, UserRole.DEPUTY_HEAD, UserRole.SCHOOL_HEAD, UserRole.SUPER_ADMIN)
     async exportPdf(@Req() req: any, @Res() res: Response) {
-        const visitors = await this.visitorsService.findAll(req.user.schoolId);
-        const rows = (visitors as any[]).map(v => ({
+        const result = await this.visitorsService.findAll(req.user.schoolId, undefined, 1, 10000);
+        const visitors = result.data;
+        const rows = visitors.map(v => ({
             name: v.name,
             phone: v.phone,
             purpose: v.purpose,

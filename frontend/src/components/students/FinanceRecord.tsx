@@ -34,7 +34,7 @@ export function FinanceRecord({ studentId }: FinanceRecordProps) {
         setLoading(true);
         try {
             const result = await financeService.getInvoices('', studentId);
-            setInvoices(result);
+            setInvoices(Array.isArray(result) ? result : (result as any).data || []);
         } catch (error) {
             console.error(error);
             notifications.show({ title: 'Error', message: 'Failed to load invoices', color: 'red' });

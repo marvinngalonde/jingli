@@ -63,23 +63,39 @@ export class GuardiansService {
         });
     }
 
-    async findAll(schoolId: string) {
-        return this.prisma.guardian.findMany({
-            where: { schoolId },
-            include: {
-                user: { select: { email: true, status: true } },
-                students: {
-                    include: {
-                        student: {
-                            select: { firstName: true, lastName: true, admissionNo: true }
+    async findAll(schoolId: string, page = 1, limit = 20) {
+        const skip = (page - 1) * limit;
+        const where = { schoolId };
+
+        const [data, total] = await Promise.all([
+            this.prisma.guardian.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    user: { select: { email: true, status: true } },
+                    students: {
+                        include: {
+                            student: {
+                                select: { firstName: true, lastName: true, admissionNo: true }
+                            }
                         }
                     }
+                },
+                orderBy: {
+                    lastName: 'asc',
                 }
-            },
-            orderBy: {
-                lastName: 'asc',
-            }
-        });
+            }),
+            this.prisma.guardian.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async findOne(id: string) {

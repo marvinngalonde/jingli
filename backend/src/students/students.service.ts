@@ -1,36 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
 @Injectable()
 export class StudentsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly supabaseService: SupabaseService
+    ) { }
 
     async create(createDto: CreateStudentDto) {
-        // Similar to Staff, we need a User. 
-        // Student email might be optional or generated? 
-        // If email provided, create user. If not, generate dummy?
-        // Schema says User email is required. 
         if (!createDto.schoolId) {
-            throw new Error('School ID is required'); // Should be injected by Controller
+            throw new Error('School ID is required');
         }
 
-        // Generate Admission No if not provided
         let admissionNo = createDto.admissionNo;
         if (!admissionNo) {
             const year = new Date().getFullYear();
             const prefix = `${year}-`;
-
-            // Find last student with this prefix to determine sequence
             const lastStudent = await this.prisma.student.findFirst({
-                where: {
-                    schoolId: createDto.schoolId,
-                    admissionNo: { startsWith: prefix }
-                },
+                where: { schoolId: createDto.schoolId, admissionNo: { startsWith: prefix } },
                 orderBy: { admissionNo: 'desc' }
             });
-
             let sequence = 1;
             if (lastStudent) {
                 const parts = lastStudent.admissionNo.split('-');
@@ -38,32 +31,51 @@ export class StudentsService {
                     sequence = parseInt(parts[1]) + 1;
                 }
             }
-
             admissionNo = `${prefix}${sequence.toString().padStart(4, '0')}`;
         }
 
-        // Generate Roll No if not provided
         let rollNo = createDto.rollNo;
         if (!rollNo) {
-            // Count students in this section to determine next roll no
             const count = await this.prisma.student.count({
-                where: {
-                    sectionId: createDto.sectionId
-                }
+                where: { sectionId: createDto.sectionId }
             });
             rollNo = (count + 1).toString();
         }
 
-        const email = createDto.email || `${admissionNo}@student.school.com`; // Fallback
+        const email = createDto.email || `${admissionNo.toLowerCase()}@student.school.com`;
+        const tempPassword = 'Temp1234!'; // Define a default or get from createDto
 
+        // 1. Create User in Supabase Auth first
+        const supabase = this.supabaseService.getClient();
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: email,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: {
+                username: admissionNo,
+                firstName: createDto.firstName,
+                lastName: createDto.lastName,
+                role: 'STUDENT',
+                schoolId: createDto.schoolId,
+            }
+        });
+
+        if (authError) {
+            console.error('Supabase Auth Creation Error in Student:', authError);
+            throw new BadRequestException(`Auth creation failed: ${authError.message}`);
+        }
+
+        const supabaseUid = authUser.user.id;
+
+        // 2. Create local User and Student
         const user = await this.prisma.user.create({
             data: {
                 username: admissionNo,
                 schoolId: createDto.schoolId,
                 email: email,
-                passwordHash: 'temp_hash_student',
+                passwordHash: 'SUPABASE_MANAGED',
                 role: 'STUDENT',
-                // Profiles handle names
+                supabaseUid: supabaseUid,
             }
         });
 
@@ -90,7 +102,7 @@ export class StudentsService {
         });
     }
 
-    async findAll(schoolId: string, sectionId?: string, teacherId?: string) {
+    async findAll(schoolId: string, page = 1, limit = 20, sectionId?: string, teacherId?: string) {
         const where: any = {
             schoolId,
             user: { status: 'ACTIVE' }
@@ -100,9 +112,9 @@ export class StudentsService {
         if (teacherId) {
             // Find staff record for this user
             const staff = await this.prisma.staff.findUnique({ where: { userId: teacherId } });
-            if (!staff) return []; // No staff record found for this user
+            if (!staff) return { data: [], total: 0, page, pageSize: limit, totalPages: 0 };
 
-            // Find all sections this teacher is assigned to (either as class teacher or subject teacher)
+            // Find all sections this teacher is assigned to
             const [subjectAllocs, classSections] = await Promise.all([
                 this.prisma.subjectAllocation.findMany({ where: { staffId: staff.id }, select: { sectionId: true } }),
                 this.prisma.classSection.findMany({ where: { classTeacherId: staff.id }, select: { id: true } })
@@ -113,32 +125,44 @@ export class StudentsService {
                 ...classSections.map(s => s.id)
             ]);
 
-            if (teacherSectionIds.size === 0) return []; // Teacher has no assigned sections
+            if (teacherSectionIds.size === 0) return { data: [], total: 0, page, pageSize: limit, totalPages: 0 };
 
             if (where.sectionId) {
-                // If they requested a specific section, check if they are authorized for it
-                if (!teacherSectionIds.has(where.sectionId)) return [];
+                if (!teacherSectionIds.has(where.sectionId)) return { data: [], total: 0, page, pageSize: limit, totalPages: 0 };
             } else {
-                // Otherwise, restrict to only their sections
                 where.sectionId = { in: Array.from(teacherSectionIds) };
             }
         }
 
-        return this.prisma.student.findMany({
-            where,
-            include: {
-                // user: { select: { email: true, status: true } }, // User might not be needed for simple lists
-                section: {
-                    include: { classLevel: true }
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.student.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    section: {
+                        include: { classLevel: true }
+                    },
+                    guardians: {
+                        include: { guardian: true }
+                    }
                 },
-                guardians: {
-                    include: { guardian: true }
+                orderBy: {
+                    lastName: 'asc',
                 }
-            },
-            orderBy: {
-                lastName: 'asc',
-            }
-        });
+            }),
+            this.prisma.student.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async findOne(id: string, schoolId: string) {

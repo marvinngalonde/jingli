@@ -44,7 +44,8 @@ export function TeacherAllocations() {
         });
         return sectionOpts;
     }, [classesRaw]);
-    const teachers = useMemo(() => staffRaw.filter((s: any) => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
+    const teachers = useMemo(() => (Array.isArray(staffRaw) ? staffRaw : (staffRaw as any)?.data || [])
+        .filter((s: any) => s.designation?.toLowerCase().includes('teacher') || s.user?.role === 'TEACHER')
         .map((s: any) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })), [staffRaw]);
 
     const allocateMutation = useMutation({

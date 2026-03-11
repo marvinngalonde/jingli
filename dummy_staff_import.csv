@@ -1,0 +1,4 @@
+firstName,lastName,email,phone,role,gender
+Alice,Johnson,alice.j@school.com,555-0101,Teacher,Female
+Bob,Smith,bob.s@school.com,555-0102,Teacher,Male
+Charlie,Brown,charlie.b@school.com,555-0103,Admin,Male

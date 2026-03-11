@@ -71,10 +71,11 @@ export default function Students() {
         validate: { studentId: (v) => (!v ? 'Student is required' : null), reason: (v) => (!v ? 'Reason is required' : null) }
     });
 
-    const { data: students = [], isLoading: studentsLoading } = useQuery({
+    const { data: studentsData, isLoading: studentsLoading } = useQuery({
         queryKey: ['students'],
         queryFn: () => studentService.getAll()
     });
+    const students = studentsData?.data || [];
 
     const { data: lateArrivals = [], isLoading: lateLoading } = useQuery({
         queryKey: ['lateArrivals'],
@@ -181,7 +182,7 @@ export default function Students() {
     // Stats calculation
     const today = new Date().toDateString();
     const stats = [
-        { title: 'Total Students', value: students.length, icon: IconUsers, color: 'blue' },
+        { title: 'Total Students', value: studentsData?.total || students.length, icon: IconUsers, color: 'blue' },
         { title: 'Late Today', value: lateArrivals.filter(l => new Date(l.arrivalTime).toDateString() === today).length, icon: IconClock, color: 'orange' },
         { title: 'Gate Passes Issued', value: gatePasses.filter(p => new Date(p.issuedAt).toDateString() === today).length, icon: IconDoorExit, color: 'teal' },
     ];

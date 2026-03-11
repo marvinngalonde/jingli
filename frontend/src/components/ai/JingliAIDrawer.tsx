@@ -7,6 +7,7 @@ import type { ChatMessage } from '../../services/aiService';
 import { useAuth } from '../../context/AuthContext';
 import jaiLogo from '../../assets/logos/jai-trans.png';
 import { useDisclosure, useClipboard, useMediaQuery } from '@mantine/hooks';
+import * as xlsx from 'xlsx';
 
 interface Session {
     id: string;
@@ -27,7 +28,7 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
     const [history, setHistory] = useState<Session[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [sidebarOpened, { toggle: toggleSidebar, close: closeSidebar }] = useDisclosure(true);
-    const [selectedFile, setSelectedFile] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
+    const [selectedFile, setSelectedFile] = useState<{ base64?: string; mimeType: string; name: string; extractedText?: string } | null>(null);
     const isMobile = useMediaQuery('(max-width: 48em)');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const viewport = useRef<HTMLDivElement>(null);
@@ -97,16 +98,33 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const base64 = (event.target?.result as string).split(',')[1];
-                setSelectedFile({
-                    base64,
-                    mimeType: file.type,
-                    name: file.name
-                });
-            };
-            reader.readAsDataURL(file);
+            if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                    const workbook = xlsx.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = xlsx.utils.sheet_to_json(worksheet);
+                    setSelectedFile({
+                        mimeType: file.type || 'text/csv',
+                        name: file.name,
+                        extractedText: JSON.stringify(json, null, 2)
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = (event.target?.result as string).split(',')[1];
+                    setSelectedFile({
+                        base64,
+                        mimeType: file.type,
+                        name: file.name
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
         }
     };
 
@@ -126,10 +144,14 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
         setLoading(true);
 
         try {
+            const promptContent = currentFile?.extractedText
+                ? `${userMsg.content}\n\n[Attached Data from ${currentFile.name}]:\n${currentFile.extractedText}`
+                : userMsg.content;
+
             const response = await aiService.sendMessage(
                 user.id,
                 currentSessionId,
-                userMsg.content,
+                promptContent,
                 currentFile?.base64,
                 currentFile?.mimeType,
                 'gemini-2.5-flash'
@@ -321,9 +343,9 @@ export function JingliAIDrawer({ opened, onClose }: JingliAIDrawerProps) {
                                     ref={fileInputRef}
                                     style={{ display: 'none' }}
                                     onChange={handleFileSelect}
-                                    accept="image/*,application/pdf"
+                                    accept="image/*,application/pdf,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 />
-                                <Tooltip label="Attach file (Image/PDF)">
+                                <Tooltip label="Attach file (Image/PDF/CSV/Excel)">
                                     <ActionIcon
                                         variant="subtle"
                                         color="gray"

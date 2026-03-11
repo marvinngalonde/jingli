@@ -45,8 +45,8 @@ export default function DashboardContent() {
             ]);
 
             // Calculate stats
-            const totalStudents = students?.length || 0;
-            const totalStaff = staff?.length || 0;
+            const totalStudents = students?.total || (students as any)?.length || 0;
+            const totalStaff = staff?.total || (staff as any)?.length || 0;
             const presentToday = attendance?.filter((a: any) => a.status === 'PRESENT').length || 0;
             const attendanceRate = attendance?.length > 0
                 ? Math.round((presentToday / attendance.length) * 100)

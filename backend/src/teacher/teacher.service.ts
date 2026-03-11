@@ -162,7 +162,7 @@ export class TeacherService {
         return Array.from(sectionMap.values());
     }
 
-    async getClassStudents(user: any, sectionId: string) {
+    async getClassStudents(user: any, sectionId: string, page = 1, limit = 20) {
         // Verify teacher actually teaches this section
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
@@ -188,21 +188,36 @@ export class TeacherService {
             throw new NotFoundException('You do not have access to this class.');
         }
 
-        return this.prisma.student.findMany({
-            where: { sectionId },
-            include: {
-                user: {
-                    select: { email: true }
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.student.findMany({
+                where: { sectionId },
+                skip,
+                take: limit,
+                include: {
+                    user: {
+                        select: { email: true }
+                    },
+                    _count: {
+                        select: { attendance: { where: { status: 'ABSENT' } } }
+                    }
                 },
-                _count: {
-                    select: { attendance: { where: { status: 'ABSENT' } } }
-                }
-            },
-            orderBy: [
-                { firstName: 'asc' },
-                { lastName: 'asc' }
-            ]
-        });
+                orderBy: [
+                    { firstName: 'asc' },
+                    { lastName: 'asc' }
+                ]
+            }),
+            this.prisma.student.count({ where: { sectionId } })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async getSectionMaterials(user: any, sectionId: string) {

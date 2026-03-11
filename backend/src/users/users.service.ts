@@ -67,19 +67,48 @@ export class UsersService {
         };
     }
 
-    async findAll(schoolId: string, includeInactive = false) {
-        return this.prisma.user.findMany({
-            where: {
-                schoolId,
-                ...(!includeInactive ? { status: 'ACTIVE' } : {}),
-            },
-            include: {
-                staffProfile: { select: { firstName: true, lastName: true, employeeId: true } },
-                studentProfile: { select: { firstName: true, lastName: true, admissionNo: true } },
-                guardianProfile: { select: { firstName: true, lastName: true } },
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+    async findAll(schoolId: string, page = 1, limit = 20, includeInactive = false) {
+        const skip = (page - 1) * limit;
+        const where: any = {
+            schoolId,
+            ...(!includeInactive ? { status: 'ACTIVE' } : {}),
+        };
+
+        const [data, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    staffProfile: { select: { firstName: true, lastName: true, employeeId: true } },
+                    studentProfile: { select: { firstName: true, lastName: true, admissionNo: true } },
+                    guardianProfile: { select: { firstName: true, lastName: true } },
+                },
+                orderBy: { createdAt: 'desc' }
+            }),
+            this.prisma.user.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
+    }
+
+    async getStats(schoolId: string) {
+        const [total, admins, teachers, students, active, inactive] = await Promise.all([
+            this.prisma.user.count({ where: { schoolId } }),
+            this.prisma.user.count({ where: { schoolId, role: 'ADMIN' } }),
+            this.prisma.user.count({ where: { schoolId, role: 'TEACHER' } }),
+            this.prisma.user.count({ where: { schoolId, role: 'STUDENT' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'ACTIVE' } }),
+            this.prisma.user.count({ where: { schoolId, status: 'INACTIVE' } }),
+        ]);
+
+        return { total, admins, teachers, students, active, inactive };
     }
 
     async create(

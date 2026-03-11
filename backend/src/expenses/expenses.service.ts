@@ -21,18 +21,26 @@ export class ExpensesService {
         });
     }
 
-    async findAll(schoolId: string, category?: string, status?: string) {
+    async findAll(schoolId: string, category?: string, status?: string, page = 1, limit = 20) {
         const where: any = { schoolId };
         if (category) where.category = category;
         if (status) where.status = status;
 
-        return this.prisma.expense.findMany({
-            where,
-            include: {
-                approver: { select: { id: true, username: true, email: true } },
-            },
-            orderBy: { date: 'desc' },
-        });
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            this.prisma.expense.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    approver: { select: { id: true, username: true, email: true } },
+                },
+                orderBy: { date: 'desc' },
+            }),
+            this.prisma.expense.count({ where })
+        ]);
+
+        return { data, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
     }
 
     async findOne(id: string, schoolId: string) {

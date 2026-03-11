@@ -26,19 +26,20 @@ import { ActionMenu } from '../../components/common/ActionMenu';
 export default function StaffPage() {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
     const [filteredData, setFilteredData] = useState<Staff[]>([]);
     const [deptFilter, setDeptFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
     const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
     const queryClient = useQueryClient();
 
-    const { data: staffList = [], isLoading } = useQuery({
-        queryKey: ['staff'],
-        queryFn: staffService.getAll,
+    const { data: staffList, isLoading } = useQuery({
+        queryKey: ['staff', page],
+        queryFn: () => staffService.getAll({ page, limit: 20 }),
     });
 
     useEffect(() => {
-        let result = staffList;
+        let result = staffList?.data || [];
         if (search) {
             const lowerSearch = search.toLowerCase();
             result = result.filter(item =>
@@ -188,9 +189,9 @@ export default function StaffPage() {
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{
-                    total: Math.ceil(filteredData.length / 10),
-                    page: 1,
-                    onChange: () => { }
+                    total: staffList?.totalPages || 1,
+                    page: page,
+                    onChange: setPage
                 }}
                 filterSlot={
                     <Select

@@ -17,11 +17,14 @@ export class LibraryService {
         });
     }
 
-    async findAllBooks(schoolId: string) {
-        return this.prisma.book.findMany({
-            where: { schoolId },
-            orderBy: { createdAt: 'desc' },
-        });
+    async findAllBooks(schoolId: string, page = 1, limit = 20) {
+        const where = { schoolId };
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            this.prisma.book.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+            this.prisma.book.count({ where })
+        ]);
+        return { data, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
     }
 
     async updateBook(id: string, dto: UpdateBookDto, schoolId: string) {
@@ -110,16 +113,22 @@ export class LibraryService {
         });
     }
 
-    async findAllCirculation(schoolId: string) {
-        return this.prisma.bookCirculation.findMany({
-            where: { schoolId },
-            include: {
-                book: true,
-                student: {
-                    select: { firstName: true, lastName: true, admissionNo: true }
-                }
-            },
-            orderBy: { issueDate: 'desc' },
-        });
+    async findAllCirculation(schoolId: string, page = 1, limit = 20) {
+        const where = { schoolId };
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            this.prisma.bookCirculation.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    book: true,
+                    student: { select: { firstName: true, lastName: true, admissionNo: true } }
+                },
+                orderBy: { issueDate: 'desc' },
+            }),
+            this.prisma.bookCirculation.count({ where })
+        ]);
+        return { data, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
     }
 }

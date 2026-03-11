@@ -30,10 +30,18 @@ export class StudentsController {
 
     @Get()
     @ApiOperation({ summary: 'Get all students' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @ApiQuery({ name: 'sectionId', required: false })
     @ApiQuery({ name: 'teacherId', required: false })
     @Roles(UserRole.SENIOR_CLERK, UserRole.CLASS_TEACHER, UserRole.SUBJECT_TEACHER, UserRole.HOD, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.SUPER_ADMIN, UserRole.SEN_COORDINATOR)
-    findAll(@Req() req: any, @Query('sectionId') sectionId?: string, @Query('teacherId') teacherId?: string) {
+    findAll(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+        @Query('sectionId') sectionId?: string,
+        @Query('teacherId') teacherId?: string
+    ) {
         // Strict scope enforcement: if caller is a teacher, they can ONLY fetch their own students
         const role = req.user.role as UserRole;
         const isTeacher = ([UserRole.SUBJECT_TEACHER, UserRole.CLASS_TEACHER, UserRole.SENIOR_TEACHER, UserRole.HOD, UserRole.SEN_COORDINATOR] as UserRole[]).includes(role);
@@ -41,13 +49,21 @@ export class StudentsController {
         // Force teacherId to be the logged-in user if they are a teacher, preventing them from querying other teachers' scopes
         const enforcedTeacherId = isTeacher ? req.user.id : teacherId;
 
-        return this.studentsService.findAll(req.user.schoolId, sectionId, enforcedTeacherId);
+        return this.studentsService.findAll(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20,
+            sectionId,
+            enforcedTeacherId
+        );
     }
 
     @Get('export/pdf')
     @ApiOperation({ summary: 'Export students directory as PDF' })
     async exportPdf(@Req() req: any, @Res() res: Response) {
-        const students = await this.studentsService.findAll(req.user.schoolId);
+        // Fetch a large number of students for the directory export (effectively unpaginated)
+        const paginatedResult = await this.studentsService.findAll(req.user.schoolId, 1, 10000);
+        const students = paginatedResult.data;
         const rows = (students as any[]).map(s => ({
             admissionNo: s.admissionNo,
             name: `${s.firstName} ${s.lastName}`,

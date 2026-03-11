@@ -32,12 +32,22 @@ export class SalariesController {
     @ApiOperation({ summary: 'List Salary Payments' })
     @ApiQuery({ name: 'month', required: false })
     @ApiQuery({ name: 'year', required: false })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
-    findAll(@Req() req: any, @Query('month') month?: string, @Query('year') year?: string) {
+    findAll(
+        @Req() req: any,
+        @Query('month') month?: string,
+        @Query('year') year?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
         return this.salariesService.findAll(
             req.user.schoolId,
             month ? parseInt(month) : undefined,
             year ? parseInt(year) : undefined,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20,
         );
     }
 

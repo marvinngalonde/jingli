@@ -31,9 +31,9 @@ export interface CreateVisitorDto {
 }
 
 export const visitorsService = {
-    getAll: async (status?: VisitorStatus): Promise<Visitor[]> => {
+    getAll: async (status?: VisitorStatus, page = 1, limit = 20): Promise<{ data: Visitor[], total: number, page: number, pageSize: number, totalPages: number }> => {
         const response = await api.get('/visitors', {
-            params: { status }
+            params: { status, page, limit }
         });
         return response.data;
     },

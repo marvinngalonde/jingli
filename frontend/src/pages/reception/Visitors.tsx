@@ -1,4 +1,4 @@
-import { Button, Group, Badge, Modal, TextInput, Select, Stack, Loader, Center, Text } from '@mantine/core';
+import { Button, Group, Badge, Modal, TextInput, Select, Stack, Loader, Center, Text, Pagination } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserPlus, IconLogout, IconPrinter, IconDownload } from '@tabler/icons-react';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -13,6 +13,7 @@ import { exportToCsv, exportToPdf } from '../../utils/exportUtils';
 
 export default function Visitors() {
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
     const [opened, { open, close }] = useDisclosure(false);
     const queryClient = useQueryClient();
 
@@ -31,10 +32,13 @@ export default function Visitors() {
         },
     });
 
-    const { data: visitors = [], isLoading } = useQuery({
-        queryKey: ['visitors'],
-        queryFn: () => visitorsService.getAll()
+    const { data: visitorsData, isLoading } = useQuery({
+        queryKey: ['visitors', page],
+        queryFn: () => visitorsService.getAll(undefined, page, 20)
     });
+
+    const visitors = visitorsData?.data || [];
+    const totalPages = visitorsData?.totalPages || 1;
 
     const checkInMutation = useMutation({
         mutationFn: visitorsService.create,
@@ -171,12 +175,19 @@ export default function Visitors() {
             {isLoading ? (
                 <Center p="xl"><Loader /></Center>
             ) : (
-                <DataTable
-                    data={filteredVisitors}
-                    columns={columns}
-                    search={search}
-                    onSearchChange={setSearch}
-                />
+                <>
+                    <DataTable
+                        data={filteredVisitors}
+                        columns={columns}
+                        search={search}
+                        onSearchChange={setSearch}
+                    />
+                    {totalPages > 1 && (
+                        <Group justify="flex-end" mt="md">
+                            <Pagination total={totalPages} value={page} onChange={setPage} />
+                        </Group>
+                    )}
+                </>
             )}
 
             <Modal opened={opened} onClose={close} title="Visitor Check In">

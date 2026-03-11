@@ -18,8 +18,8 @@ export function StaffPicker({ label = 'Staff Member', placeholder = 'Search by n
 
     useEffect(() => {
         setLoading(true);
-        staffService.getAll()
-            .then(data => setStaff(data))
+        staffService.getAll({ limit: 1000 })
+            .then(result => setStaff(result.data))
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);

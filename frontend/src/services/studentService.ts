@@ -3,8 +3,8 @@ import type { Student, CreateStudentDto, UpdateStudentDto } from '../types/stude
 
 export const studentService = {
     // Get all students
-    async getAll(filters?: { sectionId?: string; schoolId?: string }) {
-        const { data } = await api.get<Student[]>('/students', { params: filters });
+    async getAll(filters?: { sectionId?: string; schoolId?: string; page?: number; limit?: number }) {
+        const { data } = await api.get<{ data: Student[], total: number, page: number, pageSize: number, totalPages: number }>('/students', { params: filters });
         return data;
     },
 

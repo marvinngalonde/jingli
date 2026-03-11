@@ -23,18 +23,33 @@ export class VisitorsService {
         });
     }
 
-    async findAll(schoolId: string, status?: VisitorStatus) {
+    async findAll(schoolId: string, status?: VisitorStatus, page = 1, limit = 20) {
         const where: any = { schoolId };
         if (status) {
             where.status = status;
         }
 
-        return this.prisma.visitor.findMany({
-            where,
-            orderBy: {
-                checkIn: 'desc',
-            }
-        });
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.visitor.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: {
+                    checkIn: 'desc',
+                }
+            }),
+            this.prisma.visitor.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async findOne(id: string, schoolId: string) {

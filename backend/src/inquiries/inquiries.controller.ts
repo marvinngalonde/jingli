@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { InquiriesService } from './inquiries.service';
 import { CreateInquiryDto } from './dto/create-inquiry.dto';
 import { UpdateInquiryDto } from './dto/update-inquiry.dto';
@@ -25,9 +25,19 @@ export class InquiriesController {
 
     @Get()
     @ApiOperation({ summary: 'Get all inquiries' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.RECEPTION, UserRole.SENIOR_CLERK, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    findAll(@Req() req: any) {
-        return this.inquiriesService.findAll(req.user.schoolId);
+    findAll(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.inquiriesService.findAll(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get(':id')

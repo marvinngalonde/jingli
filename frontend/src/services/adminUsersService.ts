@@ -12,8 +12,13 @@ export interface AdminUser {
 }
 
 export const adminUsersService = {
-    getAllUsers: async (includeInactive = false): Promise<AdminUser[]> => {
-        const response = await api.get<AdminUser[]>(`/users${includeInactive ? '?includeInactive=true' : ''}`);
+    getAllUsers: async (includeInactive = false, page = 1, limit = 20): Promise<{ data: AdminUser[], total: number, page: number, pageSize: number, totalPages: number }> => {
+        const response = await api.get(`/users?includeInactive=${includeInactive}&page=${page}&limit=${limit}`);
+        return response.data;
+    },
+
+    getStats: async (): Promise<{ total: number, admins: number, teachers: number, students: number, active: number, inactive: number }> => {
+        const response = await api.get('/users/stats');
         return response.data;
     },
 

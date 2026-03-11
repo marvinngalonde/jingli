@@ -18,8 +18,8 @@ export function StudentPicker({ label = 'Student', placeholder = 'Search by name
 
     useEffect(() => {
         setLoading(true);
-        studentService.getAll()
-            .then(data => setStudents(data))
+        studentService.getAll({ limit: 1000 })
+            .then(result => setStudents(result.data))
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);

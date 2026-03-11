@@ -25,9 +25,23 @@ export class ExpensesController {
     @ApiOperation({ summary: 'List Expenses' })
     @ApiQuery({ name: 'category', required: false })
     @ApiQuery({ name: 'status', required: false })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.BURSAR, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
-    findAll(@Req() req: any, @Query('category') category?: string, @Query('status') status?: string) {
-        return this.expensesService.findAll(req.user.schoolId, category, status);
+    findAll(
+        @Req() req: any,
+        @Query('category') category?: string,
+        @Query('status') status?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.expensesService.findAll(
+            req.user.schoolId,
+            category,
+            status,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get('stats')

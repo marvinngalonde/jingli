@@ -59,9 +59,11 @@ export const financeService = {
     },
 
     // --- Invoices ---
-    getInvoices: async (_schoolId: string, studentId?: string): Promise<Invoice[]> => {
+    getInvoices: async (_schoolId: string, studentId?: string, page?: number, limit?: number): Promise<{ data: Invoice[], total: number, page: number, pageSize: number, totalPages: number }> => {
         const params: any = {};
         if (studentId) params.studentId = studentId;
+        if (page) params.page = page;
+        if (limit) params.limit = limit;
         const response = await api.get('/invoices', { params });
         return response.data;
     },

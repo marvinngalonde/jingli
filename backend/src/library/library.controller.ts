@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { LibraryService } from './library.service';
 import { CreateBookDto, IssueBookDto, UpdateBookDto } from './dto/library.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
@@ -23,9 +23,11 @@ export class LibraryController {
 
     @Get('books')
     @ApiOperation({ summary: 'Get all books in the library' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.LIBRARIAN, UserRole.SUPER_ADMIN, UserRole.SUBJECT_TEACHER, UserRole.CLASS_TEACHER, UserRole.STUDENT)
-    findAllBooks(@Req() req: any) {
-        return this.libraryService.findAllBooks(req.user.schoolId);
+    findAllBooks(@Req() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.libraryService.findAllBooks(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
     }
 
     @Patch('books/:id')
@@ -58,8 +60,10 @@ export class LibraryController {
 
     @Get('circulation')
     @ApiOperation({ summary: 'Get all circulation records' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.LIBRARIAN, UserRole.SUPER_ADMIN)
-    findAllCirculation(@Req() req: any) {
-        return this.libraryService.findAllCirculation(req.user.schoolId);
+    findAllCirculation(@Req() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.libraryService.findAllCirculation(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
     }
 }

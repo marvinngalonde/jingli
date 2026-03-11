@@ -1,37 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 
 @Injectable()
 export class StaffService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly supabaseService: SupabaseService
+    ) { }
 
     async create(schoolId: string, createDto: CreateStaffDto) {
-        // In a real flow, we would create a User (Auth) first or link to an existing one.
-        // Here we assume we might create a placeholder User or just the Staff profile if User creation is separate.
-        // For strict relation, we need a userId.
-        // OPTION 1: Create User + Staff transaction (Recommended but requires password etc)
-        // OPTION 2: Create Staff and assume User exists (passed in DTO?)
-        // OPTION 3: Just create Staff (but schema says userId is unique & required!)
+        const username = `${createDto.firstName.toLowerCase()}.${createDto.lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}`;
+        const email = createDto.email;
+        const tempPassword = 'Temp1234!'; // Default temporary password
 
-        // Schema:
-        // model Staff { ... userId String @unique ... user User ... }
+        // 1. Create User in Supabase Auth first
+        const supabase = this.supabaseService.getClient();
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: email,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: {
+                username: username,
+                firstName: createDto.firstName,
+                lastName: createDto.lastName,
+                role: 'TEACHER', // You could map designation to role here if needed
+                schoolId: schoolId,
+            }
+        });
 
-        // So we MUST have a userId.
-        // For this phase, I'll assume we creating a User stub internally or we need to pass a userId.
-        // Let's autopopulate a user stub for now to satisfy constraint, 
-        // OR better: Create a User with the provided email and a default password.
+        if (authError) {
+            console.error('Supabase Auth Creation Error in Staff:', authError);
+            throw new BadRequestException(`Auth creation failed: ${authError.message}`);
+        }
 
-        // Let's create the User first.
+        const supabaseUid = authUser.user.id;
 
+        // 2. Create local User and Staff Profile
         const user = await this.prisma.user.create({
             data: {
-                username: `${createDto.firstName.toLowerCase()}.${createDto.lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
+                username: username,
                 schoolId: schoolId,
-                email: createDto.email,
-                passwordHash: 'temp_hash', // In real app, handle this securely
-                role: 'TEACHER', // Defaulting to teacher for staff, or pass in DTO?
+                email: email,
+                passwordHash: 'SUPABASE_MANAGED',
+                role: 'TEACHER', // Defaulting to teacher, could be dynamic
+                supabaseUid: supabaseUid,
             }
         });
 
@@ -54,25 +69,41 @@ export class StaffService {
         });
     }
 
-    async findAll(schoolId: string) {
-        return this.prisma.staff.findMany({
-            where: {
-                schoolId,
-                user: { status: 'ACTIVE' }
-            },
-            include: {
-                user: {
-                    select: {
-                        email: true,
-                        role: true,
-                        status: true
+    async findAll(schoolId: string, page = 1, limit = 20) {
+        const skip = (page - 1) * limit;
+        const where: any = {
+            schoolId,
+            user: { status: 'ACTIVE' }
+        };
+
+        const [data, total] = await Promise.all([
+            this.prisma.staff.findMany({
+                where,
+                skip,
+                take: limit,
+                include: {
+                    user: {
+                        select: {
+                            email: true,
+                            role: true,
+                            status: true
+                        }
                     }
+                },
+                orderBy: {
+                    lastName: 'asc',
                 }
-            },
-            orderBy: {
-                lastName: 'asc',
-            }
-        });
+            }),
+            this.prisma.staff.count({ where })
+        ]);
+
+        return {
+            data,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async findOne(id: string) {

@@ -24,9 +24,19 @@ export class GuardiansController {
 
     @Get()
     @ApiOperation({ summary: 'Get all guardians' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.SENIOR_CLERK, UserRole.RECEPTION)
-    findAll(@Req() req: any) {
-        return this.guardiansService.findAll(req.user.schoolId);
+    findAll(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.guardiansService.findAll(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get(':id')

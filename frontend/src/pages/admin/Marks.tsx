@@ -58,18 +58,21 @@ export default function Marks() {
             const exam = exams.find(e => e.id === examId);
             if (!exam) return;
 
-            const [classData, allStudents, existingResults] = await Promise.all([
-                academicsService.getClass(exam.classLevelId),
-                studentService.getAll({ schoolId: user?.schoolId }),
-                examsService.getExamResults(examId)
-            ]);
+            const classData = await academicsService.getClass(exam.classLevelId);
+            const validSections = classData.sections || [];
 
-            const validSectionIds = classData.sections?.map((s: any) => s.id) || [];
-            const roster = allStudents.filter((s: any) => validSectionIds.includes(s.sectionId)).map((s: any) => ({
+            // Fetch students for all valid sections
+            const sectionStudentsPromises = validSections.map((s: any) => academicsService.getStudentsInSection(s.id));
+            const studentsLists = await Promise.all(sectionStudentsPromises);
+            const allStudents = studentsLists.flat();
+
+            const existingResults = await examsService.getExamResults(examId);
+
+            const roster = allStudents.map((s: any) => ({
                 id: s.id,
                 name: `${s.firstName} ${s.lastName}`,
                 admissionNo: s.admissionNo,
-                sectionName: s.section?.name || 'Unknown',
+                sectionName: validSections.find(sec => sec.id === s.sectionId)?.name || 'Unknown',
             }));
 
             const gradebook: StudentMark[] = roster.map((student: any) => {

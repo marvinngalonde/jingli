@@ -16,17 +16,20 @@ export default function FeeCollection() {
 
     const queryClient = useQueryClient();
 
-    const { data: students, isLoading: studentsLoading } = useQuery({
+    const { data: studentsData, isLoading: studentsLoading } = useQuery({
         queryKey: ['students-search', search],
         queryFn: () => studentService.getAll(), // Ideally we'd have a search endpoint
         enabled: search.length > 2
     });
 
-    const { data: invoices, isLoading: invoicesLoading } = useQuery({
+    const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
         queryKey: ['student-invoices', selectedStudent?.id],
         queryFn: () => financeService.getInvoices('', selectedStudent?.id),
         enabled: !!selectedStudent
     });
+
+    const studentsArr = studentsData?.data || [];
+    const invoicesArr: any[] = Array.isArray(invoicesData) ? invoicesData : (invoicesData as any)?.data || [];
 
     const collectPaymentMutation = useMutation({
         mutationFn: (data: any) => financeService.collectPayment({
@@ -46,7 +49,7 @@ export default function FeeCollection() {
         }
     });
 
-    const filteredStudents = students?.filter(s =>
+    const filteredStudents = studentsArr.filter((s: any) =>
         (s.firstName + ' ' + s.lastName).toLowerCase().includes(search.toLowerCase()) ||
         s.admissionNo?.toLowerCase().includes(search.toLowerCase())
     ) || [];
@@ -130,7 +133,7 @@ export default function FeeCollection() {
                         <Title order={4}>Student Invoices</Title>
                         {invoicesLoading ? (
                             <Text>Loading invoices...</Text>
-                        ) : invoices?.length === 0 ? (
+                        ) : invoicesArr?.length === 0 ? (
                             <Text c="dimmed">No pending invoices found for this student. A Bursar must generate an invoice before fees can be collected.</Text>
                         ) : (
                             <Table verticalSpacing="md" withTableBorder withColumnBorders>
@@ -145,7 +148,7 @@ export default function FeeCollection() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {invoices?.map((inv: any) => {
+                                    {invoicesArr?.map((inv: any) => {
                                         const totalAmount = Number(inv.amount || 0);
                                         const paidAmount = inv.transactions?.reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
                                         const balance = totalAmount - paidAmount;

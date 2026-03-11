@@ -28,15 +28,27 @@ export class StaffController {
 
     @Get()
     @ApiOperation({ summary: 'Get all staff for a school' })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.HOD, UserRole.SENIOR_CLERK, UserRole.SUPER_ADMIN)
-    findAll(@Req() req: any) {
-        return this.staffService.findAll(req.user.schoolId);
+    findAll(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.staffService.findAll(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get('export/pdf')
     @ApiOperation({ summary: 'Export staff directory as PDF' })
     async exportPdf(@Req() req: any, @Res() res: Response) {
-        const staff = await this.staffService.findAll(req.user.schoolId);
+        // Fetch a large number of staff for the directory export
+        const paginatedResult = await this.staffService.findAll(req.user.schoolId, 1, 10000);
+        const staff = paginatedResult.data;
         const rows = (staff as any[]).map(s => ({
             employeeId: s.employeeId,
             name: `${s.firstName} ${s.lastName}`,

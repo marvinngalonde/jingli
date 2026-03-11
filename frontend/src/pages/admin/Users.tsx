@@ -14,6 +14,7 @@ import {
     Tabs,
     Switch,
     Badge,
+    Pagination,
 } from '@mantine/core';
 import {
     IconPlus,
@@ -46,12 +47,20 @@ export default function Users() {
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [drawerUser, setDrawerUser] = useState<AdminUser | null>(null);
     const [showInactive, setShowInactive] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [stats, setStats] = useState({ total: 0, admins: 0, teachers: 0, students: 0, active: 0, inactive: 0 });
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const data = await adminUsersService.getAllUsers(showInactive);
-            setUsers(data);
+            const [usersData, statsData] = await Promise.all([
+                adminUsersService.getAllUsers(showInactive, page, 20),
+                adminUsersService.getStats()
+            ]);
+            setUsers(usersData.data);
+            setTotalPages(usersData.totalPages);
+            setStats(statsData);
         } catch (error) {
             console.error('Failed to load users', error);
         } finally {
@@ -61,19 +70,7 @@ export default function Users() {
 
     useEffect(() => {
         loadUsers();
-    }, [showInactive]);
-
-    // Statistics Calculation
-    const stats = useMemo(() => {
-        const total = users.length;
-        const admins = users.filter(u => u.role === 'ADMIN').length;
-        const teachers = users.filter(u => u.role === 'TEACHER').length;
-        const students = users.filter(u => u.role === 'STUDENT').length;
-        const active = users.filter(u => u.status === 'ACTIVE').length;
-        const inactive = users.filter(u => u.status === 'INACTIVE').length;
-
-        return { total, admins, teachers, students, active, inactive };
-    }, [users]);
+    }, [showInactive, page]);
 
     const handleDelete = async () => {
         if (!selectedUser) return;
@@ -260,6 +257,11 @@ export default function Users() {
                     onSearchChange={setSearch}
                     pagination={{ total: 1, page: 1, onChange: () => { } }}
                 />
+                {totalPages > 1 && (
+                    <Group justify="flex-end" mt="md">
+                        <Pagination total={totalPages} value={page} onChange={setPage} />
+                    </Group>
+                )}
             </Box>
 
             <UserForm

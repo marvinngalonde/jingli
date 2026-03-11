@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Delete, Param, UseGuards, Request, ForbiddenException, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
 
@@ -14,10 +14,23 @@ export class UsersController {
 
     @Get()
     @ApiOperation({ summary: 'Get all users in school' })
-    async getAll(@Request() req: any, @Query('includeInactive') includeInactive?: string) {
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
+    @ApiQuery({ name: 'includeInactive', required: false })
+    async getAll(
+        @Request() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+        @Query('includeInactive') includeInactive?: string
+    ) {
         const me = await this.usersService.findMe(req.user.id);
         if (!me) return [];
-        return this.usersService.findAll(me.schoolId!, includeInactive === 'true');
+        return this.usersService.findAll(
+            me.schoolId!,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20,
+            includeInactive === 'true'
+        );
     }
 
     @Post()
@@ -57,6 +70,14 @@ export class UsersController {
     getMe(@Request() req: any) {
         // req.user is populated by SupabaseGuard
         return this.usersService.findMe(req.user.id);
+    }
+
+    @Get('stats')
+    @ApiOperation({ summary: 'Get user statistics' })
+    async getStats(@Request() req: any) {
+        const me = await this.usersService.findMe(req.user.id);
+        if (!me) return null;
+        return this.usersService.getStats(me.schoolId!);
     }
 
     @Get('search')

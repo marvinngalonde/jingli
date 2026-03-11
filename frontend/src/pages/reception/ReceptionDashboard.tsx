@@ -38,20 +38,24 @@ const QUICK_ACTIONS = [
 export default function ReceptionDashboard() {
     const navigate = useNavigate();
 
-    const { data: visitors, isLoading: visitorsLoading } = useQuery({
+    const { data: visitorsData, isLoading: visitorsLoading } = useQuery({
         queryKey: ['reception-visitors'],
-        queryFn: () => visitorsService.getAll(),
+        queryFn: () => visitorsService.getAll(undefined, 1, 100),
     });
+
+    const visitors = visitorsData?.data;
 
     const { data: attendance, isLoading: attendanceLoading } = useQuery({
         queryKey: ['reception-attendance'],
         queryFn: () => attendanceService.getByDate(new Date().toISOString().split('T')[0]),
     });
 
-    const { data: students, isLoading: studentsLoading } = useQuery({
+    const { data: studentsData, isLoading: studentsLoading } = useQuery({
         queryKey: ['reception-students'],
-        queryFn: () => studentService.getAll(),
+        queryFn: () => studentService.getAll({ limit: 1000 }),
     });
+
+    const students = studentsData?.data;
 
     const visitorsToday = visitors?.filter(v => new Date(v.checkIn).toDateString() === new Date().toDateString()) || [];
     const currentlyIn = visitorsToday.filter(v => v.status === 'IN').length;
@@ -60,7 +64,7 @@ export default function ReceptionDashboard() {
     const totalCount = attendance?.length || 0;
     const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
     const lateCount = attendance?.filter(a => a.status === 'LATE').length || 0;
-    const pendingAdmissions = students?.filter(s => !s.sectionId).length || 0;
+    const pendingAdmissions = students?.filter((s: any) => !s.sectionId).length || 0;
     const recentVisitors = visitorsToday.slice(0, 5);
 
     const now = new Date();

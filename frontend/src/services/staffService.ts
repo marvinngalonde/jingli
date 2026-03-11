@@ -2,8 +2,8 @@ import { api } from './api';
 import type { Staff, CreateStaffDto, UpdateStaffDto } from '../types/staff';
 
 export const staffService = {
-    getAll: async () => {
-        const response = await api.get<Staff[]>('/staff');
+    getAll: async (params?: { page?: number, limit?: number }) => {
+        const response = await api.get<{ data: Staff[], total: number, page: number, pageSize: number, totalPages: number }>('/staff', { params });
         return response.data;
     },
 

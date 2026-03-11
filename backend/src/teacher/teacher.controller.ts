@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Req, UseGuards, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Req, UseGuards, Param, Body, Query } from '@nestjs/common';
 import { TeacherService } from './teacher.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
 
@@ -23,8 +23,18 @@ export class TeacherController {
     }
 
     @Get('classes/:sectionId/students')
-    getClassStudents(@Req() req: any, @Param('sectionId') sectionId: string) {
-        return this.teacherService.getClassStudents(req.user, sectionId);
+    getClassStudents(
+        @Req() req: any,
+        @Param('sectionId') sectionId: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.teacherService.getClassStudents(
+            req.user,
+            sectionId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20
+        );
     }
 
     @Get('classes/:sectionId/materials')

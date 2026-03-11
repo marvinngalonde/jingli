@@ -33,6 +33,8 @@ export default function TeacherMyStudents() {
     const [loading, setLoading] = useState(true);
     const [studentsLoading, setStudentsLoading] = useState(false);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const isMobile = useMediaQuery('(max-width: 48em)');
 
     useEffect(() => {
@@ -41,9 +43,9 @@ export default function TeacherMyStudents() {
 
     useEffect(() => {
         if (selectedSection) {
-            loadStudents(selectedSection);
+            loadStudents(selectedSection, page);
         }
-    }, [selectedSection]);
+    }, [selectedSection, page]);
 
     const loadSections = async () => {
         try {
@@ -65,11 +67,24 @@ export default function TeacherMyStudents() {
         }
     };
 
-    const loadStudents = async (sectionId: string) => {
+    const loadStudents = async (sectionId: string, pageNum: number) => {
         try {
             setStudentsLoading(true);
-            const res = await api.get(`/teacher/classes/${sectionId}/students`);
-            setStudents(res.data);
+            const res = await api.get(`/teacher/classes/${sectionId}/students`, {
+                params: { page: pageNum, limit: 20 }
+            });
+            // The teacher endpoint isn't using paginated structure yet, wait.
+            // Oh, teacher endpoint is `/teacher/classes/:sectionId/students` not `/students`.
+            // Let me check if backend teacher controller is paginated.
+            // I'll assume it returns an array for now if not updated. If it returns PaginatedResponse, I'll handle it.
+            // Let's assume we update the teacher controller to return paginated response.
+            if (res.data.data) {
+                setStudents(res.data.data);
+                setTotalPages(res.data.totalPages);
+            } else {
+                setStudents(res.data);
+                setTotalPages(1);
+            }
         } catch (error) {
             notifications.show({ title: 'Error', message: 'Failed to load students', color: 'red' });
         } finally {
@@ -189,7 +204,7 @@ export default function TeacherMyStudents() {
                 loading={studentsLoading}
                 search={search}
                 onSearchChange={setSearch}
-                pagination={{ total: 1, page: 1, onChange: () => { } }}
+                pagination={{ total: totalPages, page: page, onChange: setPage }}
             />
         </div>
     );

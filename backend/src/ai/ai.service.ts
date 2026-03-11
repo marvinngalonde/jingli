@@ -213,6 +213,36 @@ export class AiService {
                                 },
                                 required: ["studentId"]
                             }
+                        },
+                        {
+                            name: "importData",
+                            description: "Imports records (Students, Staff, Visitors) into the system. You are provided with unstructured text, CSV lines, or parsed JSON text. You MUST preprocess and structure this data into an array of objects matching the required schema. If any fields are missing (like admission number), generate them or leave them null if optional.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    entityType: { type: "STRING", enum: ["STUDENT", "STAFF", "VISITOR"], description: "The type of entity to import." },
+                                    records: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                firstName: { type: "STRING" },
+                                                lastName: { type: "STRING" },
+                                                email: { type: "STRING" },
+                                                phone: { type: "STRING" },
+                                                role: { type: "STRING" },
+                                                gender: { type: "STRING" },
+                                                dob: { type: "STRING" },
+                                                address: { type: "STRING" },
+                                                name: { type: "STRING" },
+                                                purpose: { type: "STRING" },
+                                                idProof: { type: "STRING" }
+                                            }
+                                        }
+                                    }
+                                },
+                                required: ["entityType", "records"]
+                            }
                         }
                     ]
                 }
@@ -241,10 +271,13 @@ export class AiService {
                                         * Bulk Enrollment (bulkEnrollStudents).
                                         * Notice Drafting (draftOfficialNotice).
                                         * Learning resource guidance (suggestLearningResources).
+                                        * Data Import (importData) for extracting parsed lists of Students, Staff, and Visitors from provided context.
                                     - Analysis: Financial health (analyzeFinancialHealth), Executive summaries (generateExecutiveSummary).
 
                                     REQUIREMENTS: 
                                     - Use tools proactively whenever numerical, statistical, or structured data is needed.
+                                    - SECURITY: You must only perform operations authorized for the user's role (${context.role}). If an operation is unauthorized, politely refuse and explain.
+                                    - When evaluating pasted text or uploaded files containing lists of people, you act as a data engineer. Clean, format, and structure the data into the exact schema expected by the importData tool and automatically import them.
                                     - Be precise. If a mark is updated, confirm the specific record changed.
                                     - Use formatting (bold, tables) for clarity.
                                     - Rebranding: Refer to yourself only as "Jingli AI".`,
@@ -326,7 +359,7 @@ export class AiService {
                                 response: { content: structure }
                             }
                         });
-                    } else if (call.name === "getStudentAcademicProfile" && context.userId) {
+                    } else if (call.name === "getStudentAcademicProfile") {
                         const profile = await this.handleGetStudentAcademicProfile(context.userId);
                         toolResults.push({
                             functionResponse: {
@@ -334,7 +367,7 @@ export class AiService {
                                 response: { content: profile }
                             }
                         });
-                    } else if (call.name === "getStudentFinancials" && context.userId) {
+                    } else if (call.name === "getStudentFinancials") {
                         const financials = await this.handleGetStudentFinancials(context.userId, context.role);
                         toolResults.push({
                             functionResponse: {
@@ -342,7 +375,7 @@ export class AiService {
                                 response: { content: financials }
                             }
                         });
-                    } else if (call.name === "getStudentAssignments" && context.userId) {
+                    } else if (call.name === "getStudentAssignments") {
                         const assignments = await this.handleGetStudentAssignments(context.userId);
                         toolResults.push({
                             functionResponse: {
@@ -350,7 +383,7 @@ export class AiService {
                                 response: { content: assignments }
                             }
                         });
-                    } else if (call.name === "getTeacherSchedule" && context.userId) {
+                    } else if (call.name === "getTeacherSchedule") {
                         const schedule = await this.handleGetTeacherSchedule(context.userId);
                         toolResults.push({
                             functionResponse: {
@@ -358,7 +391,7 @@ export class AiService {
                                 response: { content: schedule }
                             }
                         });
-                    } else if (call.name === "generateQuiz" && context.userId) {
+                    } else if (call.name === "generateQuiz") {
                         const args = call.args as any;
                         const quiz = await this.handleGenerateQuiz(context.userId, context.schoolId!, args, modelId);
                         toolResults.push({
@@ -367,7 +400,7 @@ export class AiService {
                                 response: { content: quiz }
                             }
                         });
-                    } else if (call.name === "bulkEnrollStudents" && context.userId && context.role === 'ADMIN') {
+                    } else if (call.name === "bulkEnrollStudents") {
                         const args = call.args as any;
                         const result = await this.handleBulkEnrollStudents(context.schoolId!, args.sectionId, args.students);
                         toolResults.push({
@@ -401,7 +434,7 @@ export class AiService {
                                 response: { content: result }
                             }
                         });
-                    } else if (call.name === "updateStudentMark" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
+                    } else if (call.name === "updateStudentMark") {
                         const args = call.args as any;
                         const result = await this.handleUpdateStudentMark(context.userId, context.schoolId!, args);
                         toolResults.push({
@@ -410,7 +443,7 @@ export class AiService {
                                 response: { content: result }
                             }
                         });
-                    } else if (call.name === "predictStudentRisk" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
+                    } else if (call.name === "predictStudentRisk") {
                         const args = call.args as any;
                         const result = await this.handlePredictStudentRisk(context.schoolId!, args.studentId);
                         toolResults.push({
@@ -419,7 +452,7 @@ export class AiService {
                                 response: { content: result }
                             }
                         });
-                    } else if (call.name === "summarizeStudentBehavior" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
+                    } else if (call.name === "summarizeStudentBehavior") {
                         const args = call.args as any;
                         const result = await this.handleSummarizeStudentBehavior(context.schoolId!, args.studentId);
                         toolResults.push({
@@ -428,7 +461,7 @@ export class AiService {
                                 response: { content: result }
                             }
                         });
-                    } else if (call.name === "draftOfficialNotice" && (context.role === 'TEACHER' || context.role === 'ADMIN')) {
+                    } else if (call.name === "draftOfficialNotice") {
                         const args = call.args as any;
                         const result = await this.handleDraftOfficialNotice(args);
                         toolResults.push({
@@ -449,6 +482,15 @@ export class AiService {
                     } else if (call.name === "processDocument") {
                         const args = call.args as any;
                         const result = await this.handleProcessDocument(context.schoolId!, args);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "importData") {
+                        const args = call.args as any;
+                        const result = await this.handleImportData(context.schoolId!, args.entityType, args.records);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -818,6 +860,89 @@ export class AiService {
         }
     }
 
+    private async handleImportData(schoolId: string, entityType: string, records: any[]) {
+        try {
+            const results = [];
+
+            if (entityType === "STUDENT") {
+                for (const r of records) {
+                    const admissionNo = `S${Math.floor(10000 + Math.random() * 90000)}`;
+                    const username = `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}`;
+                    const user = await this.prisma.user.create({
+                        data: {
+                            schoolId,
+                            username,
+                            passwordHash: '$2b$10$YourDefaultHash',
+                            role: 'STUDENT',
+                        }
+                    });
+                    const student = await this.prisma.student.create({
+                        data: {
+                            schoolId,
+                            userId: user.id,
+                            sectionId: r.sectionId || null,
+                            admissionNo,
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            gender: r.gender || 'UNKNOWN',
+                            dob: r.dob ? new Date(r.dob) : null,
+                            address: r.address || '',
+                            enrollmentDate: new Date(),
+                        }
+                    });
+                    results.push(`${student.firstName} ${student.lastName}`);
+                }
+            } else if (entityType === "STAFF") {
+                for (const r of records) {
+                    const username = `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}`;
+                    const user = await this.prisma.user.create({
+                        data: {
+                            schoolId,
+                            username,
+                            email: r.email || `${username}@school.com`,
+                            passwordHash: '$2b$10$YourDefaultHash',
+                            role: 'TEACHER',
+                        }
+                    });
+                    const staff = await this.prisma.staff.create({
+                        data: {
+                            schoolId,
+                            userId: user.id,
+                            employeeId: `EMP${Math.floor(1000 + Math.random() * 9000)}`,
+                            designation: r.role || 'Teacher',
+                            department: 'General',
+                            joinDate: new Date(),
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            phone: r.phone || '',
+                        }
+                    });
+                    results.push(`${staff.firstName} ${staff.lastName}`);
+                }
+            } else if (entityType === "VISITOR") {
+                for (const r of records) {
+                    const visitor = await this.prisma.visitor.create({
+                        data: {
+                            schoolId,
+                            name: r.name || `${r.firstName} ${r.lastName}`,
+                            phone: r.phone || '',
+                            purpose: r.purpose || 'General Visit',
+                            idProof: r.idProof || '',
+                            status: 'IN',
+                            checkIn: new Date()
+                        }
+                    });
+                    results.push(visitor.name);
+                }
+            }
+
+            return `Successfully imported ${results.length} ${entityType.toLowerCase()}(s): ${results.join(', ')}`;
+        } catch (error) {
+            console.error("Import Data Error:", error);
+            return `Error importing ${entityType} data. Check field mappings.`;
+        }
+    }
+
     private async handleAnalyzeFinancialHealth(schoolId: string) {
         try {
             const invoices = await this.prisma.invoice.findMany({
@@ -1140,5 +1265,50 @@ export class AiService {
             schoolId: user.schoolId,
             schoolName: user.school?.name ?? 'Jingli HQ'
         };
+    }
+
+    private isAuthorized(role: string, toolName: string, args?: any): boolean {
+        const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'SCHOOL_HEAD'];
+        const managementRoles = [...adminRoles, 'HR_MANAGER', 'DEPUTY_HEAD', 'BURSAR'];
+        const academicRoles = [...managementRoles, 'TEACHER'];
+        const clericalRoles = [...managementRoles, 'RECEPTION', 'SENIOR_CLERK'];
+
+        switch (toolName) {
+            case 'importData':
+                if (args?.entityType === 'VISITOR') return clericalRoles.includes(role);
+                return managementRoles.includes(role);
+
+            case 'bulkEnrollStudents':
+                return managementRoles.includes(role);
+
+            case 'updateStudentMark':
+                return academicRoles.includes(role);
+
+            case 'predictStudentRisk':
+            case 'summarizeStudentBehavior':
+            case 'getStudentsInSection':
+            case 'getTeacherSchedule':
+            case 'generateQuiz':
+                return academicRoles.includes(role);
+
+            case 'analyzeFinancialHealth':
+            case 'generateExecutiveSummary':
+                return [...adminRoles, 'FINANCE', 'BURSAR'].includes(role);
+
+            case 'draftOfficialNotice':
+                return role !== 'STUDENT' && role !== 'PARENT';
+
+            case 'getStudentAcademicProfile':
+            case 'getStudentFinancials':
+            case 'getStudentAssignments':
+            case 'suggestLearningResources':
+            case 'getNotices':
+            case 'getClassStructure':
+            case 'processDocument':
+                return true; // Generally safe viewing tools
+
+            default:
+                return false;
+        }
     }
 }
