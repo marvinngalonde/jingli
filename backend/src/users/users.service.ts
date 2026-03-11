@@ -159,6 +159,11 @@ export class UsersService {
                     });
                 } else if (data.role === 'STUDENT') {
                     const section = await tx.classSection.findFirst({ where: { schoolId } });
+
+                    if (!section) {
+                        throw new BadRequestException('Cannot create student: No class sections exist for this school. Please create a Class and Section first.');
+                    }
+
                     await tx.student.create({
                         data: {
                             userId: user.id,
@@ -166,7 +171,7 @@ export class UsersService {
                             firstName: data.firstName,
                             lastName: data.lastName,
                             admissionNo: `ADM-${Date.now()}`,
-                            sectionId: section?.id || '',
+                            sectionId: section.id,
                             enrollmentDate: new Date(),
                         }
                     });
