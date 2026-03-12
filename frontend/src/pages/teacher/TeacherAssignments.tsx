@@ -127,7 +127,7 @@ export function TeacherAssignments() {
 
     const { data: studentsData = [] } = useQuery({
         queryKey: ['teacherClassStudents', targetSectionId],
-        queryFn: () => api.get(`/teacher/classes/${targetSectionId}/students`).then(res => res.data),
+        queryFn: () => api.get(`/teacher/classes/${targetSectionId}/students`).then(res => res.data.data ? res.data.data : res.data),
         enabled: !!targetSectionId
     });
 

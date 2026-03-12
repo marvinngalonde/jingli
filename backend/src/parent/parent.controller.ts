@@ -46,4 +46,9 @@ export class ParentController {
     getChildSubjects(@Req() req: any, @Param('studentId') studentId: string) {
         return this.parentService.getChildSubjects(req.user, studentId);
     }
+
+    @Get('children/:studentId/exams')
+    getChildExams(@Req() req: any, @Param('studentId') studentId: string) {
+        return this.parentService.getChildExams(req.user, studentId);
+    }
 }

@@ -148,7 +148,7 @@ export class StudentService {
                 assignmentId,
                 studentId: student.id,
                 fileUrl: data.fileUrl,
-                feedback: data.content // Treating feedback as student notes temporarily, or a new migration runs later
+                content: data.content
             }
         });
     }
@@ -209,9 +209,72 @@ export class StudentService {
             include: {
                 subject: { select: { name: true, code: true } },
                 teacher: { select: { firstName: true, lastName: true } },
-                _count: { select: { questions: true } }
+                _count: { select: { questions: true } },
+                attempts: {
+                    where: { studentId: student.id },
+                    orderBy: { startTime: 'desc' },
+                    take: 1
+                }
             },
             orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getQuizQuestions(quizId: string, user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id }
+        });
+        if (!student) throw new NotFoundException('Student profile not found');
+
+        const quiz = await this.prisma.quiz.findFirst({
+            where: { id: quizId, sectionId: student.sectionId, isPublished: true },
+            include: { questions: { select: { id: true, question: true, options: true, marks: true } } }
+        });
+
+        if (!quiz) throw new NotFoundException('Quiz not found or not published');
+
+        // Note: We deliberately exclude correctAnswer from the payload so students can't cheat
+        return quiz.questions.map(q => ({
+            id: q.id,
+            text: q.question,
+            options: q.options,
+            points: q.marks
+        }));
+    }
+
+    async submitQuiz(quizId: string, data: any, user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id }
+        });
+        if (!student) throw new NotFoundException('Student profile not found');
+
+        const quiz = await this.prisma.quiz.findUnique({
+            where: { id: quizId },
+            include: { questions: true }
+        });
+
+        if (!quiz) throw new NotFoundException('Quiz not found');
+
+        let score = 0;
+        const totalMarks = quiz.questions.reduce((sum, q) => sum + (q.marks || 1), 0);
+
+        // Calculate score
+        for (const answer of (data.answers || [])) {
+            const question = quiz.questions.find(q => q.id === answer.questionId);
+            if (question && question.correctAnswer && question.correctAnswer.toString() === answer.answer?.toString()) {
+                score += question.marks || 1;
+            }
+        }
+
+        return this.prisma.quizAttempt.create({
+            data: {
+                quizId,
+                studentId: student.id,
+                score,
+                endTime: new Date(),
+                status: 'COMPLETED',
+                answers: data.answers || []
+            }
         });
     }
 
@@ -228,6 +291,27 @@ export class StudentService {
                 teacher: { select: { firstName: true, lastName: true } }
             },
             orderBy: { scheduledFor: 'asc' }
+        });
+    }
+
+    async getExams(user: any) {
+        const student = await this.prisma.student.findFirst({
+            where: { userId: user.id },
+            include: { section: true }
+        });
+
+        if (!student || !student.sectionId) throw new NotFoundException('Student profile not found');
+
+        return this.prisma.exam.findMany({
+            where: {
+                classLevelId: student.section!.classLevelId
+            },
+            include: {
+                subject: { select: { name: true, code: true } },
+                classLevel: { select: { name: true, level: true } },
+                term: { select: { name: true } }
+            },
+            orderBy: { date: 'asc' }
         });
     }
 }

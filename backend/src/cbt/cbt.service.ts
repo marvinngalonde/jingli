@@ -30,7 +30,11 @@ export class CbtService {
         questions: { orderBy: { order: 'asc' } },
         subject: { select: { name: true, code: true } },
         section: { select: { name: true, classLevel: { select: { name: true } } } },
-        _count: { select: { attempts: true } }
+        _count: { select: { attempts: true } },
+        attempts: {
+          orderBy: { startTime: 'desc' },
+          include: { student: { select: { firstName: true, lastName: true, admissionNo: true } } }
+        }
       }
     });
 
@@ -97,11 +101,38 @@ export class CbtService {
         quizId: quiz.id,
         question: dto.text,
         options: dto.options,
-        correctAnswer: dto.correctAnswer,
+        correctAnswer: dto.correctAnswer !== undefined && dto.correctAnswer !== null ? dto.correctAnswer.toString() : null,
         explanation: dto.explanation,
         marks: dto.points || 1,
         order: nextOrder
       }
+    });
+  }
+
+  async updateQuestion(quizId: string, questionId: string, dto: any, user: any) {
+    const quiz = await this.getQuizById(quizId, user);
+    const q = await this.prisma.quizQuestion.findFirst({ where: { id: questionId, quizId: quiz.id } });
+    if (!q) throw new NotFoundException('Question not found');
+
+    return this.prisma.quizQuestion.update({
+      where: { id: q.id },
+      data: {
+        question: dto.text,
+        options: dto.options,
+        correctAnswer: dto.correctAnswer !== undefined && dto.correctAnswer !== null ? dto.correctAnswer.toString() : null,
+        explanation: dto.explanation,
+        marks: dto.points
+      }
+    });
+  }
+
+  async removeQuestion(quizId: string, questionId: string, user: any) {
+    const quiz = await this.getQuizById(quizId, user);
+    const q = await this.prisma.quizQuestion.findFirst({ where: { id: questionId, quizId: quiz.id } });
+    if (!q) throw new NotFoundException('Question not found');
+
+    return this.prisma.quizQuestion.delete({
+      where: { id: q.id }
     });
   }
 }

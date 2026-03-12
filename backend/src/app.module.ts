@@ -51,6 +51,7 @@ import { QuizzesModule } from './quizzes/quizzes.module';
 import { LiveClassesModule } from './live-classes/live-classes.module';
 import { InquiriesModule } from './inquiries/inquiries.module';
 import { SystemAdminModule } from './system-admin/system-admin.module';
+import { GateModule } from './gate/gate.module';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { SystemAdminModule } from './system-admin/system-admin.module';
     LiveClassesModule,
     InquiriesModule,
     SystemAdminModule,
+    GateModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     Title, Text, Card, Group, Badge, Paper, ThemeIcon, Stack, Loader, Center,
     Button, Progress, Radio, Divider, Alert, Box, ActionIcon, Tooltip,
-    RingProgress, SimpleGrid, Modal
+    RingProgress, SimpleGrid, Modal, Select
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -32,7 +32,7 @@ interface Quiz {
     showAnswers: boolean;
     secureMode: boolean;
     questions: number;
-    attempts: number;
+    attempts?: any[];
     subject?: { name: string; code: string };
     section?: { name: string; classLevel: { name: string } };
     _count?: { attempts: number };
@@ -60,6 +60,7 @@ export default function StudentCBT() {
     const [result, setResult] = useState<AttemptResult | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [startTime, setStartTime] = useState(0);
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
     useEffect(() => {
         fetchQuizzes();
@@ -92,7 +93,7 @@ export default function StudentCBT() {
 
     const startQuiz = async (quiz: Quiz) => {
         try {
-            const { data } = await api.get(`/cbt/quizzes/${quiz.id}/questions`);
+            const { data } = await api.get(`/student/quizzes/${quiz.id}/questions`);
             const qs: Question[] = Array.isArray(data) ? data : (data.questions || []);
             if (qs.length === 0) {
                 notifications.show({ title: 'No Questions', message: 'This quiz has no questions yet.', color: 'orange' });
@@ -135,7 +136,7 @@ export default function StudentCBT() {
         setShowResult(true);
 
         // Submit to backend
-        api.post(`/cbt/quizzes/${activeQuiz.id}/submit`, {
+        api.post(`/student/quizzes/${activeQuiz.id}/submit`, {
             answers: answers.map((a, i) => ({ questionId: questions[i].id, answer: a })),
             timeTaken,
         }).catch(() => { });
@@ -299,11 +300,25 @@ export default function StudentCBT() {
     }
 
     // Quiz List
+    const subjects = Array.from(new Set(quizzes.map(q => q.subject?.name).filter(Boolean))) as string[];
+    const displayQuizzes = selectedSubject ? quizzes.filter(q => q.subject?.name === selectedSubject) : quizzes;
+
     return (
         <div>
             <PageHeader title="CBT Quizzes" subtitle="Take online quizzes and assessments assigned by your teachers" />
 
-            {quizzes.length === 0 ? (
+            <Group justify="flex-end" mb="md">
+                <Select
+                    placeholder="Filter by Subject"
+                    data={subjects}
+                    value={selectedSubject}
+                    onChange={setSelectedSubject}
+                    clearable
+                    w={{ base: '100%', sm: 300 }}
+                />
+            </Group>
+
+            {displayQuizzes.length === 0 ? (
                 <Card withBorder radius="md" p="xl" ta="center" bg="var(--app-surface)">
                     <ThemeIcon variant="light" color="gray" size={60} radius="xl" mx="auto" mb="md">
                         <IconBrain size={30} />
@@ -313,7 +328,7 @@ export default function StudentCBT() {
                 </Card>
             ) : (
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
-                    {quizzes.map((quiz) => (
+                    {displayQuizzes.map((quiz) => (
                         <Card key={quiz.id} withBorder radius="md" padding="lg" shadow="sm" bg="var(--app-surface)">
                             <Group justify="space-between" mb="sm">
                                 <ThemeIcon variant="light" color="violet" size="xl" radius="md">
@@ -333,14 +348,32 @@ export default function StudentCBT() {
                                     {quiz.duration} min
                                 </Badge>
                             </Group>
-                            <Button
-                                fullWidth
-                                leftSection={<IconPlayerPlay size={16} />}
-                                color="violet"
-                                onClick={() => startQuiz(quiz)}
-                            >
-                                Start Quiz
-                            </Button>
+                            {quiz.attempts && quiz.attempts.length > 0 ? (
+                                <Box mt="sm">
+                                    <Divider mb="sm" />
+                                    <Text size="sm" fw={600} c="dimmed">Previous Attempt</Text>
+                                    <Group justify="space-between" mt="xs">
+                                        <Text size="lg" c={quiz.attempts[0].score >= (quiz.questions || 1) / 2 ? 'green' : 'red'} fw={700}>
+                                            Score: {quiz.attempts[0].score}
+                                        </Text>
+                                        <Badge color={quiz.attempts[0].status === 'COMPLETED' ? 'blue' : 'gray'}>
+                                            {quiz.attempts[0].status}
+                                        </Badge>
+                                    </Group>
+                                    <Button fullWidth disabled mt="md" variant="light">
+                                        Completed
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <Button
+                                    fullWidth
+                                    leftSection={<IconPlayerPlay size={16} />}
+                                    color="violet"
+                                    onClick={() => startQuiz(quiz)}
+                                >
+                                    Start Quiz
+                                </Button>
+                            )}
                         </Card>
                     ))}
                 </SimpleGrid>

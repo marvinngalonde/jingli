@@ -32,6 +32,7 @@ import {
     IconPencil,
     IconChartBar,
     IconMessage,
+    IconFlask,
 } from '@tabler/icons-react';
 
 import logoFull from '../assets/logos/logo-trans.png';
@@ -86,6 +87,10 @@ export function DashboardLayout() {
     const isFinance = ['BURSAR', 'FINANCE'].includes(r.toUpperCase());
     const isLibrarian = r.toUpperCase() === 'LIBRARIAN';
     const isSecurity = r.toUpperCase() === 'SECURITY_GUARD';
+    const isNurse = r.toUpperCase() === 'SCHOOL_NURSE';
+    const isWarden = r.toUpperCase() === 'HOSTEL_WARDEN';
+    const isLabTech = r.toUpperCase() === 'LAB_TECHNICIAN';
+    const isSen = r.toUpperCase() === 'SEN_COORDINATOR';
     const isSeniorClerk = r.toUpperCase() === 'SENIOR_CLERK';
     const isHR = r.toUpperCase() === 'HR_MANAGER';
     const isStudent = r.toLowerCase() === 'student';
@@ -104,6 +109,10 @@ export function DashboardLayout() {
         if (lcCheck === 'finance') return isFinance;
         if (lcCheck === 'librarian') return isLibrarian;
         if (lcCheck === 'security') return isSecurity;
+        if (lcCheck === 'nurse') return isNurse;
+        if (lcCheck === 'hostel_warden') return isWarden;
+        if (lcCheck === 'lab_tech') return isLabTech;
+        if (lcCheck === 'sen') return isSen;
         if (lcCheck === 'hr') return isHR;
         return r.toLowerCase() === lcCheck;
     };
@@ -111,14 +120,19 @@ export function DashboardLayout() {
     const allLinkGroups = [
         {
             title: 'Overview',
-            roles: ['admin', 'teacher', 'reception', 'finance', 'librarian', 'security', 'hr'],
+            roles: ['admin', 'teacher', 'reception', 'finance', 'librarian', 'security', 'hr', 'nurse', 'hostel_warden', 'lab_tech', 'sen'],
             links: [
-                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'reception', 'finance', 'librarian', 'security', 'hr'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin', 'reception', 'finance', 'hr', 'lab_tech', 'sen'] },
                 { icon: IconLayoutDashboard, label: 'Dashboard', to: '/teacher/dashboard', roles: ['teacher'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard/library', roles: ['librarian'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard/security', roles: ['security'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard/clinic', roles: ['nurse'] },
+                { icon: IconLayoutDashboard, label: 'Dashboard', to: '/dashboard/hostel', roles: ['hostel_warden'] },
                 { icon: IconCalendar, label: 'Calendar', to: '/calendar', roles: ['admin', 'teacher', 'reception', 'finance'] },
                 { icon: IconSpeakerphone, label: 'Communication', to: '/communication', roles: ['admin', 'reception', 'finance'] },
                 { icon: IconMessage, label: 'Messages', to: '/teacher/communication', roles: ['teacher'] },
                 { icon: IconSchool, label: 'E-Learning Portal', to: '/portal/dashboard', roles: ['teacher'] },
+                { icon: IconSchool, label: 'E-Learning Portal', to: '/admin-portal/dashboard', roles: ['admin'] },
             ]
         },
         {
@@ -130,17 +144,17 @@ export function DashboardLayout() {
                 { icon: IconCalendarEvent, label: 'Timetable', to: '/teacher/timetable', roles: ['teacher'] },
                 { icon: IconClipboardCheck, label: 'Attendance', to: '/teacher/attendance', roles: ['teacher'] },
                 { icon: IconPencil, label: 'Marks Entry', to: '/teacher/marks', roles: ['teacher'] },
-                { icon: IconFileAnalytics, label: 'Exam Schedule', to: '/teacher/exams', roles: ['teacher'] },
             ]
         },
         {
             title: 'Academic',
-            roles: ['admin', 'teacher', 'student', 'parent', 'finance'],
+            roles: ['admin', 'teacher', 'student', 'parent', 'finance', 'lab_tech', 'sen'],
             links: [
                 { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'reception', 'finance'] },
                 { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'hr'] },
                 { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'student', 'parent'] },
-                { icon: IconFileAnalytics, label: 'Exams & Grading', to: '/exams', roles: ['admin', 'student', 'parent'] },
+                { icon: IconFlask, label: 'Lab Management', to: '/academics/lab', roles: ['admin', 'lab_tech'] },
+                { icon: IconUsers, label: 'SEN Management', to: '/academics/sen', roles: ['admin', 'sen'] },
                 { icon: IconClipboardCheck, label: 'Attendance', to: '/attendance', roles: ['admin'] },
                 { icon: IconCalendarEvent, label: 'Events', to: '/events', roles: ['admin', 'reception'] },
             ]
@@ -173,11 +187,11 @@ export function DashboardLayout() {
         },
         {
             title: 'Student Welfare',
-            roles: ['admin', 'teacher', 'reception'],
+            roles: ['admin', 'teacher', 'reception', 'nurse', 'hostel_warden'],
             links: [
-                { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception'] },
+                { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception', 'nurse'] },
                 { icon: IconShield, label: 'Discipline', to: '/discipline', roles: ['admin', 'teacher'] },
-                { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception'] },
+                { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception', 'hostel_warden'] },
             ]
         },
         {

@@ -24,6 +24,7 @@ const mainNavLinks = [
     { icon: IconUsers, label: "Children's Progress", to: '/parent-portal/performance', color: 'teal' },
     { icon: IconBook, label: 'Subjects & Materials', to: '/parent-portal/subjects', color: 'indigo' },
     { icon: IconClipboardList, label: 'Assignments', to: '/parent-portal/assignments', color: 'orange' },
+    { icon: IconCalendar, label: 'Exams Calendar', to: '/parent-portal/exams', color: 'pink' },
     { icon: IconBrandZoom, label: 'Live Classes', to: '/parent-portal/live-classes', color: 'blue' },
 ];
 

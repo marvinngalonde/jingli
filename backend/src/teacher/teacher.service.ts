@@ -7,152 +7,107 @@ export class TeacherService {
     constructor(private prisma: PrismaService) { }
 
     async getDashboardStats(user: any) {
-        // 1. Find the Staff record linked to this user
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) {
+        if (!teacher && !isAdmin) {
             throw new NotFoundException('Teacher profile not found for this user.');
         }
 
-        // Determine today's day of week matching the Enum
         const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
         const todayStr = days[new Date().getDay()] as DayOfWeek;
 
-        // 2. Count Classes Today
         const classesToday = await this.prisma.timetable.count({
-            where: {
-                teacherId: teacher.id,
-                day: todayStr,
-            },
+            where: isAdmin ? { day: todayStr } : { teacherId: teacher!.id, day: todayStr },
         });
 
-        // 3. Count Total Students taught (Unique students in sections this teacher is assigned to)
-        const allocations = await this.prisma.subjectAllocation.findMany({
-            where: { staffId: teacher.id },
-            select: { sectionId: true },
-        });
-        const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+        let totalStudents = 0;
+        if (isAdmin) {
+            totalStudents = await this.prisma.student.count();
+        } else {
+            const allocations = await this.prisma.subjectAllocation.findMany({
+                where: { staffId: teacher!.id },
+                select: { sectionId: true },
+            });
+            const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+            totalStudents = await this.prisma.student.count({
+                where: { sectionId: { in: sectionIds } },
+            });
+        }
 
-        const totalStudents = await this.prisma.student.count({
-            where: {
-                sectionId: { in: sectionIds },
-            },
-        });
-
-        // 4. Count Active Assignments
         const activeAssignments = await this.prisma.assignment.count({
-            where: {
-                teacherId: teacher.id,
-                dueDate: {
-                    gt: new Date(),
-                },
+            where: isAdmin ? { dueDate: { gt: new Date() } } : {
+                teacherId: teacher!.id,
+                dueDate: { gt: new Date() },
             },
         });
 
-        // 5. Count Ungraded Submissions (Submissions for their assignments without marks)
         const ungraded = await this.prisma.submission.count({
-            where: {
-                assignment: {
-                    teacherId: teacher.id,
-                },
+            where: isAdmin ? { marks: null } : {
+                assignment: { teacherId: teacher!.id },
                 marks: null,
             },
         });
 
-        return {
-            classesToday,
-            totalStudents,
-            activeAssignments,
-            ungraded,
-        };
+        return { classesToday, totalStudents, activeAssignments, ungraded };
     }
 
     async getTodaySchedule(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) return [];
+        if (!teacher && !isAdmin) return [];
 
         const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
         const todayStr = days[new Date().getDay()] as DayOfWeek;
 
         return this.prisma.timetable.findMany({
-            where: {
-                teacherId: teacher.id,
-                day: todayStr,
-            },
-            include: {
-                subject: true,
-                section: {
-                    include: {
-                        classLevel: true,
-                    }
-                }
-            },
-            orderBy: {
-                startTime: 'asc',
-            }
+            where: isAdmin ? { day: todayStr } : { teacherId: teacher!.id, day: todayStr },
+            include: { subject: true, section: { include: { classLevel: true } } },
+            orderBy: { startTime: 'asc' }
         });
     }
 
     async getTeacherClasses(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
-        // Get unique section allocations for this teacher
+        if (isAdmin) {
+            const allSections = await this.prisma.classSection.findMany({
+                include: { classLevel: true, _count: { select: { students: true } } }
+            });
+            return allSections.map(s => ({ section: s, isClassTeacher: false, subjects: [] }));
+        }
+
         const allocations = await this.prisma.subjectAllocation.findMany({
-            where: { staffId: teacher.id },
-            include: {
-                section: {
-                    include: {
-                        classLevel: true,
-                        // Count students in each section
-                        _count: {
-                            select: { students: true }
-                        }
-                    }
-                },
-                subject: true
-            }
+            where: { staffId: teacher!.id },
+            include: { section: { include: { classLevel: true, _count: { select: { students: true } } } }, subject: true }
         });
 
-        // Get sections where they are the explicit class teacher
         const classTeacherSections = await this.prisma.classSection.findMany({
-            where: { classTeacherId: teacher.id },
-            include: {
-                classLevel: true,
-                _count: { select: { students: true } }
-            }
+            where: { classTeacherId: teacher!.id },
+            include: { classLevel: true, _count: { select: { students: true } } }
         });
 
-        // Group by section to avoid duplicates if teacher teaches multiple subjects to same section
         const sectionMap = new Map();
 
-        // Include sections where they are class teacher
         classTeacherSections.forEach(section => {
-            sectionMap.set(section.id, {
-                section: section,
-                isClassTeacher: true,
-                subjects: []
-            });
+            sectionMap.set(section.id, { section, isClassTeacher: true, subjects: [] });
         });
 
         allocations.forEach(alloc => {
             const sectionId = alloc.sectionId;
             if (!sectionMap.has(sectionId)) {
-                sectionMap.set(sectionId, {
-                    section: alloc.section,
-                    isClassTeacher: false,
-                    subjects: []
-                });
+                sectionMap.set(sectionId, { section: alloc.section, isClassTeacher: false, subjects: [] });
             }
-            // Avoid pushing duplicate subjects if already added by another allocation
             const existingSubjects = sectionMap.get(sectionId).subjects;
             if (!existingSubjects.find((s: any) => s.id === alloc.subject.id)) {
                 existingSubjects.push(alloc.subject);
@@ -163,29 +118,25 @@ export class TeacherService {
     }
 
     async getClassStudents(user: any, sectionId: string, page = 1, limit = 20) {
-        // Verify teacher actually teaches this section
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
-        const allocation = await this.prisma.subjectAllocation.findFirst({
-            where: {
-                staffId: teacher.id,
-                sectionId: sectionId
+        if (!isAdmin) {
+            const allocation = await this.prisma.subjectAllocation.findFirst({
+                where: { staffId: teacher!.id, sectionId: sectionId }
+            });
+
+            const classTeacherSection = await this.prisma.classSection.findFirst({
+                where: { id: sectionId, classTeacherId: teacher!.id }
+            });
+
+            if (!allocation && !classTeacherSection) {
+                throw new NotFoundException('You do not have access to this class.');
             }
-        });
-
-        const classTeacherSection = await this.prisma.classSection.findFirst({
-            where: {
-                id: sectionId,
-                classTeacherId: teacher.id
-            }
-        });
-
-        if (!allocation && !classTeacherSection) {
-            throw new NotFoundException('You do not have access to this class.');
         }
 
         const skip = (page - 1) * limit;
@@ -196,12 +147,8 @@ export class TeacherService {
                 skip,
                 take: limit,
                 include: {
-                    user: {
-                        select: { email: true }
-                    },
-                    _count: {
-                        select: { attendance: { where: { status: 'ABSENT' } } }
-                    }
+                    user: { select: { email: true } },
+                    _count: { select: { attendance: { where: { status: 'ABSENT' } } } }
                 },
                 orderBy: [
                     { firstName: 'asc' },
@@ -221,50 +168,35 @@ export class TeacherService {
     }
 
     async getSectionMaterials(user: any, sectionId: string) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         return this.prisma.courseMaterial.findMany({
-            where: {
-                sectionId: sectionId,
-                teacherId: teacher.id
-            },
-            include: {
-                subject: {
-                    select: { name: true, code: true }
-                }
-            },
-            orderBy: {
-                uploadedAt: 'desc'
-            }
+            where: isAdmin ? { sectionId } : { sectionId, teacherId: teacher!.id },
+            include: { subject: { select: { name: true, code: true } } },
+            orderBy: { uploadedAt: 'desc' }
         });
     }
 
     async getAllMaterials(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         return this.prisma.courseMaterial.findMany({
-            where: {
-                teacherId: teacher.id
-            },
+            where: isAdmin ? {} : { teacherId: teacher!.id },
             include: {
-                subject: {
-                    select: { name: true, code: true }
-                },
-                section: {
-                    select: { name: true }
-                }
+                subject: { select: { name: true, code: true } },
+                section: { select: { name: true } }
             },
-            orderBy: {
-                uploadedAt: 'desc'
-            }
+            orderBy: { uploadedAt: 'desc' }
         });
     }
 
@@ -311,56 +243,32 @@ export class TeacherService {
     // --- ASSIGNMENTS ---
 
     async getSectionAssignments(user: any, sectionId: string) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         return this.prisma.assignment.findMany({
-            where: {
-                sectionId: sectionId,
-                teacherId: teacher.id
-            },
-            include: {
-                subject: {
-                    select: { name: true, code: true }
-                },
-                _count: {
-                    select: { submissions: true }
-                }
-            },
-            orderBy: {
-                dueDate: 'asc'
-            }
+            where: isAdmin ? { sectionId } : { sectionId, teacherId: teacher!.id },
+            include: { subject: { select: { name: true, code: true } }, _count: { select: { submissions: true } } },
+            orderBy: { dueDate: 'asc' }
         });
     }
 
     async getAllAssignments(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         return this.prisma.assignment.findMany({
-            where: {
-                teacherId: teacher.id
-            },
-            include: {
-                subject: {
-                    select: { name: true, code: true }
-                },
-                section: {
-                    select: { name: true }
-                },
-                _count: {
-                    select: { submissions: true }
-                }
-            },
-            orderBy: {
-                dueDate: 'desc'
-            }
+            where: isAdmin ? {} : { teacherId: teacher!.id },
+            include: { subject: { select: { name: true, code: true } }, section: { select: { name: true } }, _count: { select: { submissions: true } } },
+            orderBy: { dueDate: 'desc' }
         });
     }
 
@@ -406,59 +314,43 @@ export class TeacherService {
     // --- GRADING ---
 
     async getDashboardSubmissions(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         return this.prisma.submission.findMany({
-            where: {
-                assignment: {
-                    teacherId: teacher.id
-                }
-            },
+            where: isAdmin ? {} : { assignment: { teacherId: teacher!.id } },
             include: {
-                student: {
-                    select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } }
-                },
-                assignment: {
-                    include: {
-                        subject: { select: { name: true, code: true } },
-                        section: { select: { name: true } }
-                    }
-                }
+                student: { select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } } },
+                assignment: { include: { subject: { select: { name: true, code: true } }, section: { select: { name: true } } } }
             },
-            orderBy: {
-                submittedAt: 'asc'
-            }
+            orderBy: { submittedAt: 'asc' }
         });
     }
 
     async getAssignmentSubmissions(user: any, assignmentId: string) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
-        // Validate teacher owns assignment
-        const assignment = await this.prisma.assignment.findFirst({
-            where: { id: assignmentId, teacherId: teacher.id }
-        });
+        if (!isAdmin) {
+            const assignment = await this.prisma.assignment.findFirst({
+                where: { id: assignmentId, teacherId: teacher!.id }
+            });
 
-        if (!assignment) throw new NotFoundException('Assignment not found.');
+            if (!assignment) throw new NotFoundException('Assignment not found.');
+        }
 
         return this.prisma.submission.findMany({
             where: { assignmentId },
-            include: {
-                student: {
-                    select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } }
-                }
-            },
-            orderBy: {
-                submittedAt: 'desc'
-            }
+            include: { student: { select: { firstName: true, lastName: true, admissionNo: true, user: { select: { email: true } } } } },
+            orderBy: { submittedAt: 'desc' }
         });
     }
 
@@ -487,15 +379,16 @@ export class TeacherService {
         });
     }
     async getAnalytics(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
         // Get class sections taught
         const allocations = await this.prisma.subjectAllocation.findMany({
-            where: { staffId: teacher.id },
+            where: isAdmin ? undefined : { staffId: teacher!.id },
             include: {
                 section: { select: { id: true, name: true, classLevel: { select: { name: true } } } },
                 subject: { select: { id: true, name: true } }
@@ -505,12 +398,12 @@ export class TeacherService {
         const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
 
         const totalStudents = await this.prisma.student.count({
-            where: { sectionId: { in: sectionIds } }
+            where: isAdmin ? undefined : { sectionId: { in: sectionIds } }
         });
 
         // Get assignment stats
         const assignments = await this.prisma.assignment.findMany({
-            where: { teacherId: teacher.id },
+            where: isAdmin ? undefined : { teacherId: teacher!.id },
             include: {
                 subject: { select: { name: true } },
                 section: { select: { name: true, classLevel: { select: { name: true } } } },
@@ -540,15 +433,15 @@ export class TeacherService {
 
         // Calculate syllabus from materials uploaded per allocation
         const materialsCount = await this.prisma.courseMaterial.count({
-            where: { teacherId: teacher.id }
+            where: isAdmin ? undefined : { teacherId: teacher!.id }
         });
         const syllabusCompletion = allocations.length > 0
             ? Math.min(100, Math.round((materialsCount / (allocations.length * 10)) * 100))
-            : 0;
+            : (isAdmin && materialsCount > 0 ? 100 : 0);
 
         // At-risk students: students with avg score < 40% across graded submissions
         const studentsInSections = await this.prisma.student.findMany({
-            where: { sectionId: { in: sectionIds } },
+            where: isAdmin ? undefined : { sectionId: { in: sectionIds } },
             select: {
                 id: true, firstName: true, lastName: true,
                 section: { select: { name: true, classLevel: { select: { name: true } } } },
@@ -583,8 +476,8 @@ export class TeacherService {
         weekStart.setHours(0, 0, 0, 0);
 
         const recentSubmissions = await this.prisma.submission.findMany({
-            where: {
-                assignment: { teacherId: teacher.id },
+            where: isAdmin ? { submittedAt: { gte: weekStart } } : {
+                assignment: { teacherId: teacher!.id },
                 submittedAt: { gte: weekStart }
             },
             select: { submittedAt: true }
@@ -645,20 +538,24 @@ export class TeacherService {
     }
 
     async getLeaderboard(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
         });
 
-        if (!teacher) throw new NotFoundException('Teacher profile not found.');
+        if (!teacher && !isAdmin) throw new NotFoundException('Teacher profile not found.');
 
-        const allocations = await this.prisma.subjectAllocation.findMany({
-            where: { staffId: teacher.id },
-            select: { sectionId: true }
-        });
-        const sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+        let sectionIds: string[] = [];
+        if (!isAdmin) {
+            const allocations = await this.prisma.subjectAllocation.findMany({
+                where: { staffId: teacher!.id },
+                select: { sectionId: true }
+            });
+            sectionIds = [...new Set(allocations.map(a => a.sectionId))];
+        }
 
         const students = await this.prisma.student.findMany({
-            where: { sectionId: { in: sectionIds } },
+            where: isAdmin ? undefined : { sectionId: { in: sectionIds } },
             select: {
                 id: true,
                 firstName: true,
@@ -700,6 +597,19 @@ export class TeacherService {
     }
 
     async getExams(user: any) {
+        const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
+
+        if (isAdmin) {
+            return this.prisma.exam.findMany({
+                include: {
+                    subject: { select: { name: true, code: true } },
+                    classLevel: { select: { name: true, level: true } },
+                    term: { select: { name: true } },
+                },
+                orderBy: { date: 'asc' },
+            });
+        }
+
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },
             select: { schoolId: true }

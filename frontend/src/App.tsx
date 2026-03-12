@@ -13,7 +13,6 @@ import ClassDetail from './pages/admin/ClassDetail';
 import Subjects from './pages/admin/Subjects';
 import SubjectDetail from './pages/admin/SubjectDetail';
 import Timetable from './pages/admin/Timetable';
-import { Exams } from './pages/admin/Exams';
 import Marks from './pages/admin/Marks';
 import Library from './pages/admin/Library';
 import AttendancePage from './pages/admin/Attendance';
@@ -22,7 +21,11 @@ import CalendarPage from './pages/Calendar';
 // E-Learning Portal (Staff)
 import { TeacherLayout } from './layouts/TeacherLayout';
 import TeacherDashboard from './pages/teacher/admin/TeacherAdminDashboard';
+import { TeacherPortalDashboard } from './pages/teacher/portal/TeacherPortalDashboard';
 import { TeacherClasses } from './pages/teacher/portal/TeacherClasses';
+import AdminPortalLayout from './layouts/AdminPortalLayout';
+import { AdminPortalDashboard } from './pages/admin/portal/AdminPortalDashboard';
+import { Exams } from './pages/admin/Exams';
 import TeacherClassStudents from './pages/teacher/TeacherClassStudents';
 import { TeacherTimetable } from './pages/teacher/TeacherTimetable';
 import { TeacherCourseMaterials } from './pages/teacher/portal/TeacherCourseMaterials';
@@ -41,11 +44,6 @@ import TeacherMyStudents from './pages/teacher/admin/TeacherMyStudents';
 import TeacherAttendanceAdmin from './pages/teacher/admin/TeacherAttendance';
 import TeacherMarks from './pages/teacher/admin/TeacherMarks';
 import TeacherExamSchedule from './pages/teacher/admin/TeacherExamSchedule';
-
-// import Fees from './pages/finance/Fees';
-// import { FeeStructures } from './pages/Finance/FeeStructures';
-// import Expenses from './pages/finance/Expenses';
-// import Salaries from './pages/finance/Salaries';
 
 // Student Portal
 import StudentLayout from './layouts/StudentLayout';
@@ -67,6 +65,7 @@ import StudentLeaderboard from './pages/student/portal/StudentLeaderboard';
 import StudentProfile from './pages/student/admin/StudentProfile';
 import StudentPortalLayout from './layouts/StudentPortalLayout';
 import StudentPortalDashboard from './pages/student/portal/StudentPortalDashboard';
+import StudentExams from './pages/student/portal/StudentExams';
 
 // Parent Portal
 import ParentLayout from './layouts/ParentLayout';
@@ -79,6 +78,7 @@ import ParentFees from './pages/parent/admin/ParentFees';
 import ParentPortalSubjects from './pages/parent/portal/ParentPortalSubjects';
 import ParentPortalAssignments from './pages/parent/portal/ParentPortalAssignments';
 import ParentPortalLiveClasses from './pages/parent/portal/ParentPortalLiveClasses';
+import ParentExams from './pages/parent/portal/ParentExams';
 
 // Admin Pages
 import Users from './pages/admin/Users';
@@ -108,6 +108,13 @@ import SchoolManager from './pages/system-admin/SchoolManager';
 import GlobalUsers from './pages/system-admin/GlobalUsers';
 import PlatformSettings from './pages/system-admin/PlatformSettings';
 
+// Specialist Dashboards & Missing Modules
+import { SecurityDashboard } from './pages/admin/specialist/SecurityDashboard';
+import { LibrarianDashboard } from './pages/admin/specialist/LibrarianDashboard';
+import { NurseDashboard } from './pages/admin/specialist/NurseDashboard';
+import { HostelWardenDashboard } from './pages/admin/specialist/HostelWardenDashboard';
+import { LabManagement } from './pages/admin/academics/LabManagement';
+import { SenManagement } from './pages/admin/academics/SenManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useMantineColorScheme } from '@mantine/core';
@@ -142,12 +149,13 @@ function AppContent() {
           <Route path="/staff/:id" element={<StaffDetail />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/academics" element={<Academics />} />
+          <Route path="/academics/lab" element={<LabManagement />} />
+          <Route path="/academics/sen" element={<SenManagement />} />
           <Route path="/classes" element={<Classes />} />
           <Route path="/classes/:id" element={<ClassDetail />} />
           <Route path="/subjects" element={<Subjects />} />
           <Route path="/subjects/:id" element={<SubjectDetail />} />
           <Route path="/timetable" element={<Timetable />} />
-          <Route path="/exams" element={<Exams />} />
           <Route path="/marks" element={<Marks />} />
           <Route path="/library" element={<Library />} />
           <Route path="/calendar" element={<CalendarPage />} />
@@ -158,6 +166,13 @@ function AppContent() {
           <Route path="/health" element={<Health />} />
           <Route path="/discipline" element={<Discipline />} />
           <Route path="/hostel" element={<Hostel />} />
+
+          {/* Specialist Dashboards */}
+          <Route path="/dashboard/security" element={<SecurityDashboard />} />
+          <Route path="/dashboard/library" element={<LibrarianDashboard />} />
+          <Route path="/dashboard/clinic" element={<NurseDashboard />} />
+          <Route path="/dashboard/hostel" element={<HostelWardenDashboard />} />
+
 
 
           {/* Communication Route */}
@@ -183,17 +198,15 @@ function AppContent() {
           <Route path="/teacher/timetable" element={<TeacherTimetable />} />
           <Route path="/teacher/attendance" element={<TeacherAttendanceAdmin />} />
           <Route path="/teacher/marks" element={<TeacherMarks />} />
-          <Route path="/teacher/exams" element={<TeacherExamSchedule />} />
           <Route path="/teacher/communication" element={<Communication />} />
 
           {/* Placeholders for routes to be implemented */}
-          <Route path="*" element={<div>Page Not Found</div>} />
         </Route>
 
         {/* E-Learning Portal Routes (Teachers & Academics) */}
         <Route element={<ProtectedRoute allowedRoles={['TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SEN_COORDINATOR', 'ADMIN', 'SUPER_ADMIN', 'HOD']}><TeacherLayout /></ProtectedRoute>}>
           <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
-          <Route path="/portal/dashboard" element={<TeacherDashboard />} />
+          <Route path="/portal/dashboard" element={<TeacherPortalDashboard />} />
           <Route path="/portal/classes" element={<TeacherClasses />} />
           <Route path="/portal/timetable" element={<TeacherTimetable />} />
           <Route path="/portal/classes/:sectionId/students" element={<TeacherClassStudents />} />
@@ -210,6 +223,25 @@ function AppContent() {
           <Route path="/portal/inbox" element={<Communication />} />
           <Route path="/portal/library" element={<TeacherLibrary />} />
           <Route path="/portal/calendar" element={<CalendarPage />} />
+          <Route path="/portal/exams" element={<TeacherExamSchedule />} />
+        </Route>
+
+        {/* E-Learning Portal Routes (Admins) */}
+        <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'SCHOOL_HEAD', 'DEPUTY_HEAD']}><AdminPortalLayout /></ProtectedRoute>}>
+          <Route path="/admin-portal" element={<Navigate to="/admin-portal/dashboard" replace />} />
+          <Route path="/admin-portal/dashboard" element={<AdminPortalDashboard />} />
+          <Route path="/admin-portal/exams" element={<Exams />} />
+          <Route path="/admin-portal/classes" element={<TeacherClasses />} />
+          <Route path="/admin-portal/materials" element={<TeacherCourseMaterials />} />
+          <Route path="/admin-portal/assignments" element={<TeacherAssignments />} />
+          <Route path="/admin-portal/cbt" element={<TeacherCBT />} />
+          <Route path="/admin-portal/live-classes" element={<TeacherLiveClass />} />
+          <Route path="/admin-portal/discussions" element={<TeacherDiscussions />} />
+          <Route path="/admin-portal/analytics" element={<TeacherAnalytics />} />
+          <Route path="/admin-portal/leaderboard" element={<TeacherLeaderboard />} />
+          <Route path="/admin-portal/library" element={<TeacherLibrary />} />
+          <Route path="/admin-portal/calendar" element={<CalendarPage />} />
+          <Route path="/admin-portal/inbox" element={<Communication />} />
         </Route>
 
         {/* Student Admin Routes — academic & finance, NO e-learning */}
@@ -241,6 +273,7 @@ function AppContent() {
           <Route path="/student-portal/library" element={<TeacherLibrary />} />
           <Route path="/student-portal/calendar" element={<CalendarPage />} />
           <Route path="/student-portal/inbox" element={<Communication />} />
+          <Route path="/student-portal/exams" element={<StudentExams />} />
         </Route>
 
         {/* Parent Admin Routes — overview, fees, communication */}
@@ -265,6 +298,7 @@ function AppContent() {
           <Route path="/parent-portal/fees" element={<ParentFees />} />
           <Route path="/parent-portal/communication" element={<Communication />} />
           <Route path="/parent-portal/calendar" element={<CalendarPage />} />
+          <Route path="/parent-portal/exams" element={<ParentExams />} />
         </Route>
 
         {/* Receptionist Portal Routes */}
@@ -293,6 +327,8 @@ function AppContent() {
           <Route path="/system-admin/users" element={<GlobalUsers />} />
           <Route path="/system-admin/settings" element={<PlatformSettings />} />
         </Route>
+
+        <Route path="*" element={<div>Page Not Found</div>} />
       </Routes>
     </BrowserRouter >
   );

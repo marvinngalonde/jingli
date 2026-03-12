@@ -17,7 +17,7 @@ import { ExamTimetableGrid } from '../../components/timetable/ExamTimetableGrid'
 
 export function Exams() {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<string | null>('schedule');
+    const [activeTab, setActiveTab] = useState<string | null>('timetable');
 
     // --- Schedule State ---
     const [createModalOpened, setCreateModalOpened] = useState(false);
@@ -97,22 +97,28 @@ export function Exams() {
     return (
         <>
             <PageHeader
-                title="Exams & Grading"
+                title="School Exams Schedule"
                 subtitle="Manage exam schedules and student grades"
             />
 
             <Tabs value={activeTab} onChange={setActiveTab} radius="md" keepMounted={false}>
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="schedule" leftSection={<IconCalendar size={16} />}>
-                        Schedule Exams
-                    </Tabs.Tab>
-                    <Tabs.Tab value="gradebook" leftSection={<IconFileAnalytics size={16} />}>
-                        Gradebook
-                    </Tabs.Tab>
                     <Tabs.Tab value="timetable" leftSection={<IconClock size={16} />}>
-                        Timetable
+                        Timetable View
+                    </Tabs.Tab>
+                    <Tabs.Tab value="schedule" leftSection={<IconCalendar size={16} />}>
+                        List View
                     </Tabs.Tab>
                 </Tabs.List>
+
+                <Tabs.Panel value="timetable">
+                    <Group justify="flex-end" mb="md">
+                        <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateModalOpened(true)}>
+                            Add Exam Entry
+                        </Button>
+                    </Group>
+                    <ExamTimetableGrid exams={filteredExams as any[]} />
+                </Tabs.Panel>
 
                 <Tabs.Panel value="schedule">
                     <Group justify="flex-end" mb="md">
@@ -129,14 +135,6 @@ export function Exams() {
                         loading={loading || deleteMutation.isPending}
                         pagination={{ total: 1, page: 1, onChange: () => { } }}
                     />
-                </Tabs.Panel>
-
-                <Tabs.Panel value="gradebook">
-                    <Marks />
-                </Tabs.Panel>
-
-                <Tabs.Panel value="timetable">
-                    <ExamTimetableGrid exams={filteredExams as any[]} />
                 </Tabs.Panel>
             </Tabs>
 

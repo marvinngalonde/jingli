@@ -27,7 +27,7 @@ export const adminUsersService = {
         return response.data;
     },
 
-    updateUser: async (id: string, data: { username?: string; email?: string; role?: string; firstName?: string; lastName?: string; password?: string }) => {
+    updateUser: async (id: string, data: { username?: string; email?: string; role?: string; firstName?: string; lastName?: string; password?: string; studentIds?: string[] }) => {
         const response = await api.patch(`/users/${id}`, data);
         return response.data;
     },

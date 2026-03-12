@@ -15,6 +15,7 @@ interface UserFormProps {
 export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
     const isEdit = !!user;
     const [students, setStudents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -51,7 +52,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                 firstName: user?.staffProfile?.firstName || user?.studentProfile?.firstName || user?.guardianProfile?.firstName || '',
                 lastName: user?.staffProfile?.lastName || user?.studentProfile?.lastName || user?.guardianProfile?.lastName || '',
                 role: user?.role || 'TEACHER',
-                studentIds: [],
+                studentIds: user?.guardianProfile?.students?.map((s: any) => s.studentId) || [],
             });
 
             // Fetch students for parent linking
@@ -61,6 +62,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
 
     const handleSubmit = async (values: typeof form.values) => {
         try {
+            setLoading(true);
             if (isEdit) {
                 await adminUsersService.updateUser(user.id, {
                     username: values.username,
@@ -69,6 +71,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                     firstName: values.firstName,
                     lastName: values.lastName,
                     role: values.role as any,
+                    studentIds: values.role === 'PARENT' ? values.studentIds : undefined,
                 });
                 notifications.show({
                     title: 'Success',
@@ -102,6 +105,8 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                 message: error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} user`,
                 color: 'red',
             });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -205,7 +210,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                         {...form.getInputProps('role')}
                     />
 
-                    {form.values.role === 'PARENT' && !isEdit && (
+                    {form.values.role === 'PARENT' && (
                         <MultiSelect
                             label="Link to Students"
                             description="Select the children/students this parent will oversee"
@@ -220,7 +225,7 @@ export function UserForm({ opened, onClose, onSuccess, user }: UserFormProps) {
                         />
                     )}
 
-                    <Button type="submit" fullWidth mt="md">
+                    <Button type="submit" fullWidth mt="md" loading={loading}>
                         {isEdit ? "Update Account" : "Create Account"}
                     </Button>
                 </Stack>

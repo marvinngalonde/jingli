@@ -56,7 +56,14 @@ export function getDashboardPath(role: string): string {
     if (upper === 'PARENT') {
         return '/parent/dashboard';
     }
-    // All admin, specialist, and governance roles go to main dashboard
+
+    // Specialist Roles specific dashboards
+    if (upper === 'LIBRARIAN') return '/dashboard/library';
+    if (upper === 'SECURITY_GUARD') return '/dashboard/security';
+    if (upper === 'SCHOOL_NURSE') return '/dashboard/clinic';
+    if (upper === 'HOSTEL_WARDEN') return '/dashboard/hostel';
+
+    // All admin and remaining specialist roles go to main dashboard
     return '/dashboard';
 }
 

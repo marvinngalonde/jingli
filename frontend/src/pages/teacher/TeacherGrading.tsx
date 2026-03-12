@@ -1,4 +1,4 @@
-import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, Textarea, NumberInput, Tabs, Select, SimpleGrid, Paper, ThemeIcon, Drawer, ScrollArea } from '@mantine/core';
+import { Title, Text, Stack, Card, Button, Group, ActionIcon, LoadingOverlay, Table, Badge, Textarea, NumberInput, Tabs, Select, SimpleGrid, Paper, ThemeIcon, Drawer, ScrollArea, TypographyStylesProvider } from '@mantine/core';
 import { IconCheck, IconFileDescription, IconUser, IconChartBar, IconDownload, IconSearch, IconPrinter } from '@tabler/icons-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ interface Submission {
     submittedAt: string;
     fileUrl: string | null;
     marks: number | null;
+    content: string | null;
     feedback: string | null;
     student: {
         firstName: string;
@@ -440,6 +441,22 @@ function TeacherGrading() {
                             </Group>
                         </Paper>
 
+                        {selectedSub.content && (
+                            <Paper p="sm" radius="md" withBorder bg="var(--mantine-color-gray-0)">
+                                <Text size="sm" fw={600} mb={4}>Student's Text Response:</Text>
+                                <TypographyStylesProvider fz="sm" pl={0}>
+                                    <div dangerouslySetInnerHTML={{ __html: selectedSub.content }} />
+                                </TypographyStylesProvider>
+                            </Paper>
+                        )}
+
+                        {selectedSub.feedback && (
+                            <Paper p="sm" radius="md" withBorder bg="var(--mantine-color-blue-0)">
+                                <Text size="sm" fw={600} mb={4} c="blue">Your Grading Feedback:</Text>
+                                <Text size="sm" c="dimmed">{selectedSub.feedback}</Text>
+                            </Paper>
+                        )}
+
                         {selectedSub.fileUrl && (
                             <Paper p="sm" radius="md" withBorder>
                                 <Group justify="space-between">
@@ -461,11 +478,12 @@ function TeacherGrading() {
                         />
 
                         <Textarea
-                            label="Feedback / Comments"
+                            label="Teacher Comments (Overrides Student Response)"
                             placeholder="Great work on... / Could improve by..."
                             value={feedback}
                             onChange={e => setFeedback(e.currentTarget.value)}
                             minRows={4}
+                            description="Warning: Saving comments here will overwrite the student's text response in the database."
                         />
 
                         <Group justify="flex-end" mt="md">

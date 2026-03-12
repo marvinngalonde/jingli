@@ -26,6 +26,7 @@ const mainNavLinks = [
     { icon: IconFiles, label: 'Course Materials', to: '/student-portal/materials', color: 'indigo' },
     { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
     { icon: IconBrain, label: 'CBT Quizzes', to: '/student-portal/cbt', color: 'grape' },
+    { icon: IconCalendar, label: 'Exams', to: '/student-portal/exams', color: 'pink' },
     { icon: IconBrandZoom, label: 'Live Classes', to: '/student-portal/live-classes', color: 'cyan' },
 ];
 
@@ -44,6 +45,7 @@ const mobileNavLinks: NavItem[] = [
     { icon: IconLayoutDashboard, label: 'Dashboard', to: '/student-portal/dashboard', color: 'blue' },
     { icon: IconFiles, label: 'Materials', to: '/student-portal/materials', color: 'indigo' },
     { icon: IconClipboardList, label: 'Assignments', to: '/student-portal/assignments', color: 'orange' },
+    { icon: IconCalendar, label: 'Exams', to: '/student-portal/exams', color: 'pink' },
     { icon: IconBrain, label: 'CBT', to: '/student-portal/cbt', color: 'grape' },
     { icon: IconMessageCircle, label: 'Discuss', to: '/student-portal/discussions', color: 'violet' },
 ];

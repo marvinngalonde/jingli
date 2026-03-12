@@ -190,4 +190,84 @@ export class AttendanceService {
 
         return result;
     }
+
+    // --- STAFF ATTENDANCE ---
+    async staffCheckIn(staffId: string, schoolId: string, recordedBy: string, notes?: string) {
+        // Find if already checked in today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const existing = await this.prisma.staffAttendance.findFirst({
+            where: {
+                staffId,
+                schoolId,
+                date: today
+            }
+        });
+
+        if (existing) {
+            throw new Error('Staff member already checked in today');
+        }
+
+        return this.prisma.staffAttendance.create({
+            data: {
+                schoolId,
+                staffId,
+                date: today,
+                checkInTime: new Date(),
+                recordedBy,
+                notes
+            }
+        });
+    }
+
+    async staffCheckOut(staffId: string, schoolId: string) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const existing = await this.prisma.staffAttendance.findFirst({
+            where: {
+                staffId,
+                schoolId,
+                date: today
+            }
+        });
+
+        if (!existing) {
+            throw new Error('No check-in record found for today');
+        }
+
+        return this.prisma.staffAttendance.update({
+            where: { id: existing.id },
+            data: {
+                checkOutTime: new Date()
+            }
+        });
+    }
+
+    async getStaffAttendanceToday(schoolId: string) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return this.prisma.staffAttendance.findMany({
+            where: {
+                schoolId,
+                date: today
+            },
+            include: {
+                staff: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        employeeId: true,
+                        designation: true,
+                        department: true
+                    }
+                }
+            },
+            orderBy: {
+                checkInTime: 'desc'
+            }
+        });
+    }
 }

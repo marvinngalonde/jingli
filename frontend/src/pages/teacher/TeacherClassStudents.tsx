@@ -24,7 +24,7 @@ export function TeacherClassStudents() {
         queryKey: ['teacherClassStudents', sectionId],
         queryFn: async () => {
             const { data } = await api.get(`/teacher/classes/${sectionId}/students`);
-            return data;
+            return data.data ? data.data : data;
         },
         enabled: !!sectionId
     });

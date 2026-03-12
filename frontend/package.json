@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
@@ -21,9 +22,15 @@
     "@mantine/hooks": "^7.17.8",
     "@mantine/modals": "^7.17.8",
     "@mantine/notifications": "^7.17.8",
+    "@mantine/tiptap": "^7.17.8",
     "@supabase/supabase-js": "^2.44.0",
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-query": "^5.90.21",
+    "@tiptap/extension-link": "^3.20.1",
+    "@tiptap/extension-text-align": "^3.20.1",
+    "@tiptap/pm": "^3.20.1",
+    "@tiptap/react": "^3.20.1",
+    "@tiptap/starter-kit": "^3.20.1",
     "@types/papaparse": "^5.5.2",
     "axios": "^1.13.5",
     "date-fns": "^4.1.0",

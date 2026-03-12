@@ -35,7 +35,7 @@ import { notificationsService } from '../services/notificationsService';
 import { isAdminRole, isTeacherRole } from '../utils/roles';
 import { useEffect, useState, useCallback } from 'react';
 
-export function TeacherLayout() {
+function AdminPortalLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
     const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
     const [aiOpened, { open: openAi, close: closeAi }] = useDisclosure(false);
@@ -76,30 +76,29 @@ export function TeacherLayout() {
     };
 
     const mainNavLinks = [
-        { icon: IconLayoutDashboard, label: 'Dashboard', to: '/portal/dashboard', color: 'blue', roles: ['admin', 'teacher'] },
-        { icon: IconChalkboard, label: 'My Classes', to: '/portal/classes', color: 'indigo', roles: ['admin', 'teacher'] },
-        { icon: IconFiles, label: 'Content Library', to: '/portal/materials', color: 'teal', roles: ['admin', 'teacher'] },
-        { icon: IconClipboardList, label: 'Assignments & CALA', to: '/portal/assignments', color: 'orange', roles: ['admin', 'teacher'] },
-        { icon: IconPencil, label: 'CBT / Quizzes', to: '/portal/cbt', color: 'grape', roles: ['admin', 'teacher'] },
-        { icon: IconCalendar, label: 'Exams Calendar', to: '/portal/exams', color: 'indigo', roles: ['admin', 'teacher'] },
-        { icon: IconBrandZoom, label: 'Live Classes', to: '/portal/live-classes', color: 'cyan', roles: ['admin', 'teacher'] },
-        { icon: IconFileAnalytics, label: 'Grading', to: '/portal/grading', color: 'pink', roles: ['admin', 'teacher'] },
+        { icon: IconLayoutDashboard, label: 'Dashboard', to: '/admin-portal/dashboard', color: 'blue', roles: ['admin'] },
+        { icon: IconChalkboard, label: 'Classes & Material', to: '/admin-portal/classes', color: 'indigo', roles: ['admin'] },
+        { icon: IconFiles, label: 'Content Library', to: '/admin-portal/materials', color: 'teal', roles: ['admin'] },
+        { icon: IconClipboardList, label: 'Assignments', to: '/admin-portal/assignments', color: 'orange', roles: ['admin'] },
+        { icon: IconPencil, label: 'CBT / Quizzes', to: '/admin-portal/cbt', color: 'grape', roles: ['admin'] },
+        { icon: IconCalendar, label: 'Exams Calendar', to: '/admin-portal/exams', color: 'indigo', roles: ['admin'] },
+        { icon: IconBrandZoom, label: 'Live Classes', to: '/admin-portal/live-classes', color: 'cyan', roles: ['admin'] },
     ].filter(link => link.roles.some(r => hasRole(r)));
 
     const communityNavLinks = [
-        { icon: IconMessageCircle, label: 'Discussions', to: '/portal/discussions', color: 'violet', roles: ['admin', 'teacher'] },
-        { icon: IconChartBar, label: 'Analytics', to: '/portal/analytics', color: 'green', roles: ['admin', 'teacher'] },
-        { icon: IconTrophy, label: 'Leaderboard', to: '/portal/leaderboard', color: 'yellow', roles: ['admin', 'teacher'] },
+        { icon: IconMessageCircle, label: 'Discussions', to: '/admin-portal/discussions', color: 'violet', roles: ['admin'] },
+        { icon: IconChartBar, label: 'Analytics', to: '/admin-portal/analytics', color: 'green', roles: ['admin'] },
+        { icon: IconTrophy, label: 'Leaderboard', to: '/admin-portal/leaderboard', color: 'yellow', roles: ['admin'] },
     ].filter(link => link.roles.some(r => hasRole(r)));
 
     const utilityNavLinks = [
-        { icon: IconCalendar, label: 'Calendar', to: '/portal/calendar', color: 'blue', roles: ['admin', 'teacher'] },
-        { icon: IconMessage, label: 'Inbox', to: '/portal/inbox', color: 'gray', roles: ['admin', 'teacher'] },
-        { icon: IconBook, label: 'Library', to: '/portal/library', color: 'orange', roles: ['admin', 'teacher'] },
+        { icon: IconCalendar, label: 'Calendar', to: '/admin-portal/calendar', color: 'blue', roles: ['admin'] },
+        { icon: IconMessage, label: 'Inbox', to: '/admin-portal/inbox', color: 'gray', roles: ['admin'] },
+        { icon: IconBook, label: 'Library', to: '/admin-portal/library', color: 'orange', roles: ['admin'] },
     ].filter(link => link.roles.some(r => hasRole(r)));
 
     const renderNavLink = (link: any) => {
-        const isActive = location.pathname === link.to || (link.to !== '/portal/dashboard' && location.pathname.startsWith(link.to));
+        const isActive = location.pathname === link.to || (link.to !== '/admin-portal/dashboard' && location.pathname.startsWith(link.to));
 
         if (!desktopOpened) {
             return (
@@ -158,10 +157,10 @@ export function TeacherLayout() {
                 <Group h="100%" px="lg" justify="space-between">
                     <Group>
                         <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
-                        <Group gap="xs" visibleFrom="sm">
+                        <Group gap="xs" visibleFrom="sm" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin-portal/dashboard')}>
                             <IconSchool size={24} color="var(--mantine-color-brand-6)" />
                             <Text fw={700} size="lg" style={{ letterSpacing: '-0.02em' }}>
-                                <Text span c="brand" inherit>Jingli-Learning</Text> Portal
+                                <Text span c="brand" inherit>Admin</Text> Portal
                             </Text>
                         </Group>
                     </Group>
@@ -240,8 +239,8 @@ export function TeacherLayout() {
                             <Group>
                                 <Avatar src={isAdmin ? "/adminicon.png" : undefined} radius="md" color="brand" size={36}>{user?.email?.[0]?.toUpperCase()}</Avatar>
                                 <div>
-                                    <Text size="sm" fw={600} lh={1.2}>{user?.email?.split('@')[0]}</Text>
-                                    <Text size="xs" c="dimmed">{user?.role?.replace('_', ' ')}</Text>
+                                    <Text size="sm" fw={600} lh={1.2}>{user?.firstName || user?.profile?.firstName} {user?.lastName || user?.profile?.lastName}</Text>
+                                    <Text size="xs" c="dimmed" tt="capitalize">Administrator</Text>
                                 </div>
                             </Group>
                             <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDesktop} visibleFrom="sm" title="Collapse sidebar">
@@ -277,19 +276,15 @@ export function TeacherLayout() {
                 <AppShell.Section p="sm" style={{ borderTop: '1px solid var(--app-border-light)' }}>
                     {desktopOpened ? (
                         <NavLink
-                            label={<Text size="sm" fw={500}>Back to Admin</Text>}
-                            leftSection={
-                                <ThemeIcon variant="light" color="gray" size="md" radius="md">
-                                    <IconArrowLeft size={16} stroke={1.5} />
-                                </ThemeIcon>
-                            }
-                            onClick={() => navigate('/teacher/dashboard')}
+                            label={<Text size="sm" fw={500}>Back to Admin Dashboard</Text>}
+                            leftSection={<ThemeIcon variant="light" color="gray" size="md" radius="md"><IconArrowLeft size={16} stroke={1.5} /></ThemeIcon>}
+                            onClick={() => navigate('/dashboard')}
                             py={8}
                             style={{ borderRadius: 'var(--mantine-radius-md)' }}
                         />
                     ) : (
-                        <Tooltip label="Back to Admin" position="right">
-                            <ActionIcon variant="subtle" color="gray" size="xl" onClick={() => navigate('/teacher/dashboard')} mx="auto" style={{ display: 'flex' }}>
+                        <Tooltip label="Back to Admin Dashboard" position="right">
+                            <ActionIcon variant="subtle" color="gray" size="xl" onClick={() => navigate('/dashboard')} mx="auto" style={{ display: 'flex' }}>
                                 <IconArrowLeft size={20} stroke={1.5} />
                             </ActionIcon>
                         </Tooltip>
@@ -307,3 +302,5 @@ export function TeacherLayout() {
         </AppShell>
     );
 }
+
+export default AdminPortalLayout;

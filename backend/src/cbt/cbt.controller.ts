@@ -5,7 +5,7 @@ import { SupabaseGuard } from '../auth/supabase.guard';
 @Controller('teacher/quizzes')
 @UseGuards(SupabaseGuard)
 export class CbtController {
-  constructor(private readonly cbtService: CbtService) {}
+  constructor(private readonly cbtService: CbtService) { }
 
   @Get()
   getAllQuizzes(@Req() req: any) {
@@ -35,5 +35,15 @@ export class CbtController {
   @Post(':id/questions')
   addQuestion(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
     return this.cbtService.addQuestion(id, dto, req.user);
+  }
+
+  @Put(':id/questions/:questionId')
+  updateQuestion(@Param('id') id: string, @Param('questionId') questionId: string, @Body() dto: any, @Req() req: any) {
+    return this.cbtService.updateQuestion(id, questionId, dto, req.user);
+  }
+
+  @Delete(':id/questions/:questionId')
+  removeQuestion(@Param('id') id: string, @Param('questionId') questionId: string, @Req() req: any) {
+    return this.cbtService.removeQuestion(id, questionId, req.user);
   }
 }

@@ -263,6 +263,29 @@ export class ParentService {
         })));
     }
 
+    async getChildExams(user: any, studentId: string) {
+        const guardian = await this.prisma.guardian.findFirst({ where: { userId: user.id } });
+        if (!guardian) throw new NotFoundException('Guardian profile not found');
+        const linkage = await this.prisma.studentGuardian.findFirst({ where: { guardianId: guardian.id, studentId } });
+        if (!linkage) throw new NotFoundException('Student is not linked to this guardian');
+
+        const student = await this.prisma.student.findUnique({
+            where: { id: studentId },
+            include: { section: true }
+        });
+        if (!student || !student.sectionId) return [];
+
+        return this.prisma.exam.findMany({
+            where: { classLevelId: student.section!.classLevelId },
+            include: {
+                subject: { select: { name: true, code: true } },
+                classLevel: { select: { name: true, level: true } },
+                term: { select: { name: true } }
+            },
+            orderBy: { date: 'asc' }
+        });
+    }
+
     async getChildrenFinances(user: any) {
         const guardian = await this.prisma.guardian.findFirst({
             where: { userId: user.id }

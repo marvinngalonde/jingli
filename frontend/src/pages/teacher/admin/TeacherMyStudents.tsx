@@ -162,42 +162,6 @@ export default function TeacherMyStudents() {
                 subtitle="View students in your assigned classes"
             />
 
-            <Paper withBorder radius="md" p="md" mb="lg" bg="var(--app-surface)">
-                <Stack gap="md">
-                    <Group justify="space-between" align="flex-end">
-                        <Select
-                            label="Select Section"
-                            placeholder="Choose a section"
-                            data={sections}
-                            value={selectedSection}
-                            onChange={setSelectedSection}
-                            searchable
-                            flex={1}
-                            miw={isMobile ? '100%' : 300}
-                        />
-                        {!isMobile && (
-                            <Badge variant="light" color="teal" size="lg" mb={8}>
-                                <IconUsers size={14} style={{ marginRight: 4 }} />
-                                {filteredStudents.length} student(s)
-                            </Badge>
-                        )}
-                    </Group>
-                    <TextInput
-                        placeholder="Search students..."
-                        leftSection={<IconSearch size={16} />}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        w={isMobile ? '100%' : 300}
-                    />
-                    {isMobile && (
-                        <Badge variant="light" color="teal" size="sm" style={{ alignSelf: 'flex-start' }}>
-                            <IconUsers size={14} style={{ marginRight: 4 }} />
-                            {filteredStudents.length} student(s)
-                        </Badge>
-                    )}
-                </Stack>
-            </Paper>
-
             <DataTable
                 data={filteredStudents}
                 columns={columns}
@@ -205,6 +169,24 @@ export default function TeacherMyStudents() {
                 search={search}
                 onSearchChange={setSearch}
                 pagination={{ total: totalPages, page: page, onChange: setPage }}
+                filterSlot={
+                    <Group gap="sm">
+                        <Select
+                            placeholder="Choose a section"
+                            data={sections}
+                            value={selectedSection}
+                            onChange={setSelectedSection}
+                            searchable
+                            w={isMobile ? 140 : 220}
+                        />
+                        {!isMobile && (
+                            <Badge variant="light" color="teal" size="lg">
+                                <IconUsers size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                {filteredStudents.length} student(s)
+                            </Badge>
+                        )}
+                    </Group>
+                }
             />
         </div>
     );

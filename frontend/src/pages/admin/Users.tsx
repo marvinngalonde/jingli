@@ -193,8 +193,8 @@ export default function Users() {
     const filteredData = users.filter(item => {
         // Tab Filtering
         if (activeTab !== 'all' && item.role !== activeTab) {
-            // Special Case for 'Staff' tab which might group Receptionists, etc.
-            if (activeTab === 'STAFF_GROUP' && !['RECEPTION', 'FINANCE'].includes(item.role)) {
+            // Special Case for 'Staff' tab which might group other miscellaneous staff
+            if (activeTab === 'STAFF_GROUP' && ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN', 'RECEPTION', 'FINANCE'].includes(item.role)) {
                 return false;
             } else if (activeTab !== 'STAFF_GROUP' && item.role !== activeTab) {
                 return false;
@@ -240,10 +240,13 @@ export default function Users() {
 
             <Tabs value={activeTab} onChange={setActiveTab} radius="md" mb="md">
                 <Tabs.List>
-                    <Tabs.Tab value="all">All Users</Tabs.Tab>
-                    <Tabs.Tab value="ADMIN">Administrators</Tabs.Tab>
+                    <Tabs.Tab value="all">All</Tabs.Tab>
+                    <Tabs.Tab value="ADMIN">Admins</Tabs.Tab>
                     <Tabs.Tab value="TEACHER">Teachers</Tabs.Tab>
                     <Tabs.Tab value="STUDENT">Students</Tabs.Tab>
+                    <Tabs.Tab value="PARENT">Parents</Tabs.Tab>
+                    <Tabs.Tab value="RECEPTION">Reception</Tabs.Tab>
+                    <Tabs.Tab value="FINANCE">Finance</Tabs.Tab>
                     <Tabs.Tab value="STAFF_GROUP">Other Staff</Tabs.Tab>
                 </Tabs.List>
             </Tabs>

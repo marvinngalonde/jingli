@@ -1,4 +1,4 @@
-import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Modal, TextInput, Textarea, Center, Loader, ThemeIcon, Box, Divider } from '@mantine/core';
+import { Title, Text, Stack, Card, Group, ActionIcon, LoadingOverlay, Table, Badge, Button, Drawer, TextInput, FileInput, Center, Loader, ThemeIcon, Box, Divider, Paper } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowLeft, IconCheck, IconUpload } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -8,6 +8,11 @@ import { useDisclosure } from '@mantine/hooks';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
+import { storageService } from '../../../services/storageService';
+import { RichTextEditor, Link } from '@mantine/tiptap';
+import { useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
 
 interface Assignment {
     id: string;
@@ -28,7 +33,20 @@ export function StudentAssignments() {
 
     // Submission form
     const [fileUrl, setFileUrl] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [content, setContent] = useState('');
+
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Link,
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        ],
+        content,
+        onUpdate: ({ editor }) => {
+            setContent(editor.getHTML());
+        },
+    });
 
     const { data: assignments = [], isLoading: loading } = useQuery({
         queryKey: ['studentAssignments', subjectId],
@@ -43,8 +61,14 @@ export function StudentAssignments() {
 
     const submitMutation = useMutation({
         mutationFn: async (payload: { assignmentId: string; fileUrl?: string; content?: string }) => {
+            let uploadedUrl = payload.fileUrl;
+            if (file) {
+                const path = await storageService.uploadDocument('documents', file.name, file);
+                uploadedUrl = storageService.getPublicUrl('documents', path);
+            }
+
             const { data } = await api.post(`/student/assignments/${payload.assignmentId}/submit`, {
-                fileUrl: payload.fileUrl,
+                fileUrl: uploadedUrl,
                 content: payload.content,
             });
             return data;
@@ -69,13 +93,27 @@ export function StudentAssignments() {
 
     const handleOpenSubmit = (assignment: Assignment) => {
         setSelectedAssignment(assignment);
-        setFileUrl('');
-        setContent('');
+        const hasSubmitted = assignment.submissions && assignment.submissions.length > 0;
+
+        if (hasSubmitted) {
+            const sub = assignment.submissions[0];
+            setFileUrl(sub.fileUrl || '');
+            setContent(sub.content || '');
+            editor?.setEditable(false);
+            editor?.commands.setContent(sub.content || '');
+            setFile(null);
+        } else {
+            setFileUrl('');
+            setFile(null);
+            setContent('');
+            editor?.setEditable(true);
+            editor?.commands.setContent('');
+        }
         open();
     };
 
     const handleSubmit = async () => {
-        if (!selectedAssignment || (!fileUrl && !content)) return;
+        if (!selectedAssignment || (!fileUrl && !file && !content.replace(/<[^>]+>/g, '').trim())) return;
         submitMutation.mutate({
             assignmentId: selectedAssignment.id,
             fileUrl: fileUrl || undefined,
@@ -144,7 +182,7 @@ export function StudentAssignments() {
                                             Turn In
                                         </Button>
                                     ) : (
-                                        <Button fullWidth size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />} disabled>
+                                        <Button fullWidth size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />} onClick={() => handleOpenSubmit(a)}>
                                             Submitted {isGraded ? `(${a.submissions[0].marks}/${a.maxMarks})` : ''}
                                         </Button>
                                     )}
@@ -196,8 +234,8 @@ export function StudentAssignments() {
                                                         Turn In
                                                     </Button>
                                                 ) : (
-                                                    <Button size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />}>
-                                                        Done
+                                                    <Button size="xs" variant="subtle" color="gray" leftSection={<IconCheck size={14} />} onClick={() => handleOpenSubmit(a)}>
+                                                        View Submission
                                                     </Button>
                                                 )}
                                             </Table.Td>
@@ -210,31 +248,101 @@ export function StudentAssignments() {
                 )
             )}
 
-            <Modal opened={opened} onClose={close} title={`Turn in: ${selectedAssignment?.title}`} centered size="lg">
+            <Drawer opened={opened} onClose={close} title={(selectedAssignment?.submissions?.length ?? 0) > 0 ? `Submission: ${selectedAssignment?.title}` : `Turn in: ${selectedAssignment?.title}`} position="right" size="lg" padding="md">
                 <Stack>
                     <Text size="sm" c="dimmed">{selectedAssignment?.description}</Text>
 
+                    {(selectedAssignment?.submissions?.length ?? 0) > 0 && selectedAssignment?.submissions?.[0]?.feedback && (
+                        <Paper p="sm" radius="md" withBorder bg="var(--mantine-color-blue-0)">
+                            <Text size="sm" fw={600} mb={4} c="blue">Teacher Feedback:</Text>
+                            <Text size="sm" c="dimmed">{selectedAssignment.submissions[0].feedback}</Text>
+                        </Paper>
+                    )}
+
+                    {!((selectedAssignment?.submissions?.length ?? 0) > 0) && (
+                        <FileInput
+                            label="Upload File"
+                            placeholder="Select file from computer"
+                            value={file}
+                            onChange={setFile}
+                            leftSection={<IconUpload size={14} />}
+                            description="Upload your local assignment file here."
+                            clearable
+                            required={!fileUrl}
+                        />
+                    )}
+
                     <TextInput
-                        label="File URL"
-                        placeholder="Link to Google Doc, Dropbox, etc."
+                        label={(selectedAssignment?.submissions?.length ?? 0) > 0 ? "Attached File URL" : "External URL (Optional)"}
+                        placeholder="https://link-to-your-file.pdf"
                         value={fileUrl}
                         onChange={(e) => setFileUrl(e.target.value)}
-                        description="For MVP, paste a direct link to your file."
+                        description={(selectedAssignment?.submissions?.length ?? 0) > 0 ? "" : "Or optionally paste a direct web link."}
+                        disabled={!!file || (selectedAssignment?.submissions?.length ?? 0) > 0}
+                        mt="xs"
+                        style={{ display: (selectedAssignment?.submissions?.length ?? 0) > 0 && !fileUrl ? 'none' : 'block' }}
                     />
-                    <Text ta="center" size="sm" c="dimmed" fw={500}>OR</Text>
-                    <Textarea
-                        label="Text Response"
-                        placeholder="Type your answer here..."
-                        minRows={5}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                    />
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={close}>Cancel</Button>
-                        <Button onClick={handleSubmit} loading={submitMutation.isPending} disabled={!fileUrl && !content}>Submit Assignment</Button>
+
+                    {(selectedAssignment?.submissions?.length ?? 0) > 0 ? (
+                        content ? (
+                            <div>
+                                <Text size="sm" fw={500} mb={4}>Your Text Response</Text>
+                                <RichTextEditor editor={editor}>
+                                    <RichTextEditor.Content />
+                                </RichTextEditor>
+                            </div>
+                        ) : null
+                    ) : (
+                        <>
+                            <Text ta="center" size="sm" c="dimmed" fw={500} mt="md">OR ADD A TEXT RESPONSE</Text>
+
+                            <div>
+                                <Text size="sm" fw={500} mb={4}>Text Response</Text>
+                                <RichTextEditor editor={editor}>
+                                    <RichTextEditor.Toolbar sticky stickyOffset={60}>
+                                        <RichTextEditor.ControlsGroup>
+                                            <RichTextEditor.Bold />
+                                            <RichTextEditor.Italic />
+                                            <RichTextEditor.Strikethrough />
+                                            <RichTextEditor.ClearFormatting />
+                                        </RichTextEditor.ControlsGroup>
+                                        <RichTextEditor.ControlsGroup>
+                                            <RichTextEditor.H1 />
+                                            <RichTextEditor.H2 />
+                                            <RichTextEditor.H3 />
+                                        </RichTextEditor.ControlsGroup>
+                                        <RichTextEditor.ControlsGroup>
+                                            <RichTextEditor.Blockquote />
+                                            <RichTextEditor.Hr />
+                                            <RichTextEditor.BulletList />
+                                            <RichTextEditor.OrderedList />
+                                        </RichTextEditor.ControlsGroup>
+                                        <RichTextEditor.ControlsGroup>
+                                            <RichTextEditor.Link />
+                                            <RichTextEditor.Unlink />
+                                        </RichTextEditor.ControlsGroup>
+                                        <RichTextEditor.ControlsGroup>
+                                            <RichTextEditor.AlignLeft />
+                                            <RichTextEditor.AlignCenter />
+                                            <RichTextEditor.AlignRight />
+                                        </RichTextEditor.ControlsGroup>
+                                    </RichTextEditor.Toolbar>
+                                    <RichTextEditor.Content />
+                                </RichTextEditor>
+                            </div>
+                        </>
+                    )}
+
+                    <Group justify="flex-end" mt="xl">
+                        <Button variant="default" onClick={close}>{(selectedAssignment?.submissions?.length ?? 0) > 0 ? 'Close' : 'Cancel'}</Button>
+                        {!((selectedAssignment?.submissions?.length ?? 0) > 0) && (
+                            <Button onClick={handleSubmit} loading={submitMutation.isPending} disabled={!fileUrl && !file && !content.replace(/<[^>]+>/g, '').trim()}>
+                                Submit Assignment
+                            </Button>
+                        )}
                     </Group>
                 </Stack>
-            </Modal>
+            </Drawer>
         </Stack>
     );
 }

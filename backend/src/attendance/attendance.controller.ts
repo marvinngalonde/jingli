@@ -68,4 +68,27 @@ export class AttendanceController {
     remove(@Req() req: any, @Param('id') id: string) {
         return this.attendanceService.remove(id, req.user.schoolId);
     }
+
+    // --- STAFF ATTENDANCE OUT IN THE GATE ---
+
+    @Post('staff/check-in')
+    @ApiOperation({ summary: 'Check in a staff member at the gate' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.RECEPTION, UserRole.HR_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    staffCheckIn(@Req() req: any, @Body('staffId') staffId: string, @Body('notes') notes?: string) {
+        return this.attendanceService.staffCheckIn(staffId, req.user.schoolId, req.user.id, notes);
+    }
+
+    @Post('staff/check-out')
+    @ApiOperation({ summary: 'Check out a staff member at the gate' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.RECEPTION, UserRole.HR_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    staffCheckOut(@Req() req: any, @Body('staffId') staffId: string) {
+        return this.attendanceService.staffCheckOut(staffId, req.user.schoolId);
+    }
+
+    @Get('staff/today')
+    @ApiOperation({ summary: 'Get all staff attendance for today' })
+    @Roles(UserRole.SECURITY_GUARD, UserRole.RECEPTION, UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    getStaffAttendanceToday(@Req() req: any) {
+        return this.attendanceService.getStaffAttendanceToday(req.user.schoolId);
+    }
 }

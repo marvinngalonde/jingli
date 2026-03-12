@@ -36,6 +36,7 @@ interface Quiz {
     _count?: { questions: number, attempts: number };
     subject?: { name: string, code: string };
     section?: { name: string, classLevel: { name: string } };
+    attempts?: any[];
 }
 
 export default function TeacherCBT() {
@@ -53,6 +54,7 @@ export default function TeacherCBT() {
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState<string | null>('all');
     const [selectedSectionId, setSelectedSectionId] = useState<string>('');
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
     // --- TanStack Queries ---
     const { data: rawClasses = [], isLoading: classesLoading } = useQuery({
@@ -149,10 +151,13 @@ export default function TeacherCBT() {
                 points: values.points,
             };
 
-            // In a real implementation this would call:
-            // return api.post(`/teacher/quizzes/${activeQuiz.id}/questions`, q);
-            // We simulate it here by returning the payload for local state update
-            return q;
+            if (editingQuestion) {
+                const { data } = await api.put(`/teacher/quizzes/${activeQuiz.id}/questions/${editingQuestion.id}`, q);
+                return data;
+            } else {
+                const { data } = await api.post(`/teacher/quizzes/${activeQuiz.id}/questions`, q);
+                return data;
+            }
         },
         onSuccess: (newQ) => {
             if (!activeQuiz) return;
@@ -186,7 +191,7 @@ export default function TeacherCBT() {
 
     const removeQuestionMutation = useMutation({
         mutationFn: async (qId: string) => {
-            // return api.delete(`/teacher/quizzes/${activeQuiz?.id}/questions/${qId}`);
+            await api.delete(`/teacher/quizzes/${activeQuiz?.id}/questions/${qId}`);
             return qId;
         },
         onSuccess: (qId) => {
@@ -224,7 +229,7 @@ export default function TeacherCBT() {
 
     const publishQuizMutation = useMutation({
         mutationFn: async () => {
-            // In reality: await api.put(`/teacher/quizzes/${activeQuiz?.id}`, { isPublished: true })
+            await api.put(`/teacher/quizzes/${activeQuiz?.id}`, { isPublished: true });
             return true;
         },
         onSuccess: () => {
@@ -307,8 +312,11 @@ export default function TeacherCBT() {
     const filtered = quizzes.filter(q => {
         if (tab === 'DRAFT' && q.isPublished) return false;
         if (tab === 'PUBLISHED' && !q.isPublished) return false;
+        if (selectedSubject && q.subject?.name !== selectedSubject) return false;
         return q.title.toLowerCase().includes(search.toLowerCase());
     });
+
+    const displaySubjects = Array.from(new Set(quizzes.map(q => q.subject?.name).filter(Boolean))) as string[];
 
     const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -517,54 +525,103 @@ export default function TeacherCBT() {
                 </SimpleGrid>
 
                 <Paper p="lg" radius="md" shadow="sm" withBorder>
-                    <Group justify="space-between" mb="md">
-                        <Text fw={600}>Questions</Text>
-                        <Button leftSection={<IconPlus size={16} />} onClick={() => { setEditingQuestion(null); questionForm.reset(); setQuestionModal(true); }}>Add Question</Button>
-                    </Group>
+                    <Tabs defaultValue="questions">
+                        <Tabs.List mb="md">
+                            <Tabs.Tab value="questions" leftSection={<IconQuestionMark size={14} />}>Questions</Tabs.Tab>
+                            <Tabs.Tab value="submissions" leftSection={<IconFileAnalytics size={14} />}>
+                                Submissions <Badge size="xs" circle ml={4}>{activeQuiz.attempts?.length || 0}</Badge>
+                            </Tabs.Tab>
+                        </Tabs.List>
 
-                    {questions.length === 0 ? (
-                        <Stack align="center" py="xl" gap="xs">
-                            <IconQuestionMark size={40} color="var(--mantine-color-gray-4)" />
-                            <Text c="dimmed">No questions yet. Click "Add Question" to get started.</Text>
-                        </Stack>
-                    ) : (
-                        <Stack gap="sm">
-                            {questions.map((q, i) => (
-                                <Paper key={q.id || i} p="md" withBorder radius="md">
-                                    <Stack gap="sm">
-                                        <Group justify="space-between" align="flex-start" wrap="nowrap">
-                                            <div style={{ flex: 1 }}>
-                                                <Group mb="xs">
-                                                    <Badge size="sm" variant="outline">Q{i + 1}</Badge>
-                                                    <Badge size="sm" color="blue" variant="light">{q.points} pts</Badge>
+                        <Tabs.Panel value="questions">
+                            <Group justify="space-between" mb="md">
+                                <Text fw={600}>Questions</Text>
+                                <Button leftSection={<IconPlus size={16} />} onClick={() => { setEditingQuestion(null); questionForm.reset(); setQuestionModal(true); }}>Add Question</Button>
+                            </Group>
+
+                            {questions.length === 0 ? (
+                                <Stack align="center" py="xl" gap="xs">
+                                    <IconQuestionMark size={40} color="var(--mantine-color-gray-4)" />
+                                    <Text c="dimmed">No questions yet. Click "Add Question" to get started.</Text>
+                                </Stack>
+                            ) : (
+                                <Stack gap="sm">
+                                    {questions.map((q, i) => (
+                                        <Paper key={q.id || i} p="md" withBorder radius="md">
+                                            <Stack gap="sm">
+                                                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                                    <div style={{ flex: 1 }}>
+                                                        <Group mb="xs">
+                                                            <Badge size="sm" variant="outline">Q{i + 1}</Badge>
+                                                            <Badge size="sm" color="blue" variant="light">{q.points} pts</Badge>
+                                                        </Group>
+                                                        <Text fw={500}>{q.text}</Text>
+                                                    </div>
+                                                    <Menu position="bottom-end" withinPortal>
+                                                        <Menu.Target>
+                                                            <ActionIcon variant="subtle" color="gray">
+                                                                <IconDotsVertical size={16} />
+                                                            </ActionIcon>
+                                                        </Menu.Target>
+                                                        <Menu.Dropdown>
+                                                            <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => editQuestion(q)}>Edit</Menu.Item>
+                                                            <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => removeQuestion(q.id || '')}>Remove</Menu.Item>
+                                                        </Menu.Dropdown>
+                                                    </Menu>
                                                 </Group>
-                                                <Text fw={500}>{q.text}</Text>
-                                            </div>
-                                            <Menu position="bottom-end" withinPortal>
-                                                <Menu.Target>
-                                                    <ActionIcon variant="subtle" color="gray">
-                                                        <IconDotsVertical size={16} />
-                                                    </ActionIcon>
-                                                </Menu.Target>
-                                                <Menu.Dropdown>
-                                                    <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => editQuestion(q)}>Edit</Menu.Item>
-                                                    <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => removeQuestion(q.id || '')}>Remove</Menu.Item>
-                                                </Menu.Dropdown>
-                                            </Menu>
-                                        </Group>
-                                        <SimpleGrid cols={isMobile ? 1 : 2} spacing="xs">
-                                            {q.options.map((opt, oi) => (
-                                                <Group key={oi} gap="xs">
-                                                    {oi === q.correctAnswer ? <IconCircleCheck size={14} color="green" /> : <Text size="xs" c="dimmed">{String.fromCharCode(65 + oi)}.</Text>}
-                                                    <Text size="sm" fw={oi === q.correctAnswer ? 700 : 400} c={oi === q.correctAnswer ? 'green' : undefined}>{opt}</Text>
-                                                </Group>
+                                                <SimpleGrid cols={isMobile ? 1 : 2} spacing="xs">
+                                                    {q.options.map((opt, oi) => (
+                                                        <Group key={oi} gap="xs">
+                                                            {oi === q.correctAnswer ? <IconCircleCheck size={14} color="green" /> : <Text size="xs" c="dimmed">{String.fromCharCode(65 + oi)}.</Text>}
+                                                            <Text size="sm" fw={oi === q.correctAnswer ? 700 : 400} c={oi === q.correctAnswer ? 'green' : undefined}>{opt}</Text>
+                                                        </Group>
+                                                    ))}
+                                                </SimpleGrid>
+                                            </Stack>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Tabs.Panel>
+
+                        <Tabs.Panel value="submissions">
+                            {(!activeQuiz.attempts || activeQuiz.attempts.length === 0) ? (
+                                <Stack align="center" py="xl" gap="xs">
+                                    <IconFileAnalytics size={40} color="var(--mantine-color-gray-4)" />
+                                    <Text c="dimmed">No submissions yet.</Text>
+                                </Stack>
+                            ) : (
+                                <ScrollArea>
+                                    <Table striped highlightOnHover>
+                                        <Table.Thead>
+                                            <Table.Tr>
+                                                <Table.Th>Student</Table.Th>
+                                                <Table.Th>Admission No</Table.Th>
+                                                <Table.Th>Score</Table.Th>
+                                                <Table.Th>Status</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {activeQuiz.attempts.map((attempt: any) => (
+                                                <Table.Tr key={attempt.id}>
+                                                    <Table.Td fw={500}>{attempt.student?.firstName} {attempt.student?.lastName}</Table.Td>
+                                                    <Table.Td>{attempt.student?.admissionNo}</Table.Td>
+                                                    <Table.Td fw={700} c={attempt.score >= totalPoints / 2 ? 'green' : 'red'}>
+                                                        {attempt.score} / {totalPoints}
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Badge color={attempt.status === 'COMPLETED' ? 'blue' : 'gray'}>
+                                                            {attempt.status}
+                                                        </Badge>
+                                                    </Table.Td>
+                                                </Table.Tr>
                                             ))}
-                                        </SimpleGrid>
-                                    </Stack>
-                                </Paper>
-                            ))}
-                        </Stack>
-                    )}
+                                        </Table.Tbody>
+                                    </Table>
+                                </ScrollArea>
+                            )}
+                        </Tabs.Panel>
+                    </Tabs>
                 </Paper>
 
                 <Modal opened={questionModal} onClose={() => { setQuestionModal(false); setEditingQuestion(null); }} title={editingQuestion ? 'Edit Question' : 'Add Question'} size="lg">
@@ -635,7 +692,17 @@ export default function TeacherCBT() {
                     </Tabs.List>
                 </Tabs>
 
-                <TextInput placeholder="Search quizzes..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} mb="md" style={{ maxWidth: 300 }} />
+                <Group mb="md" gap="md">
+                    <TextInput placeholder="Search quizzes..." leftSection={<IconSearch size={16} />} value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, maxWidth: 300 }} />
+                    <Select
+                        placeholder="Filter by Subject"
+                        data={displaySubjects}
+                        value={selectedSubject}
+                        onChange={setSelectedSubject}
+                        clearable
+                        style={{ flex: 1, maxWidth: 200 }}
+                    />
+                </Group>
 
                 {filtered.length === 0 ? (
                     <Stack align="center" py="xl" gap="xs">

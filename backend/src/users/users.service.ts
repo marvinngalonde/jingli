@@ -82,7 +82,7 @@ export class UsersService {
                 include: {
                     staffProfile: { select: { firstName: true, lastName: true, employeeId: true } },
                     studentProfile: { select: { firstName: true, lastName: true, admissionNo: true } },
-                    guardianProfile: { select: { firstName: true, lastName: true } },
+                    guardianProfile: { select: { firstName: true, lastName: true, students: { select: { studentId: true } } } },
                 },
                 orderBy: { createdAt: 'desc' }
             }),
@@ -246,10 +246,10 @@ export class UsersService {
         }
     }
 
-    async update(userId: string, data: { username?: string; email?: string; role?: string; firstName?: string; lastName?: string; password?: string }) {
+    async update(userId: string, data: { username?: string; email?: string; role?: string; firstName?: string; lastName?: string; password?: string; studentIds?: string[] }) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
-            include: { staffProfile: true, studentProfile: true }
+            include: { staffProfile: true, studentProfile: true, guardianProfile: true }
         });
 
         if (!user) throw new BadRequestException('User not found');
@@ -301,6 +301,36 @@ export class UsersService {
                         lastName: data.lastName,
                     }
                 });
+            } else if (user.guardianProfile) {
+                if (data.firstName || data.lastName) {
+                    await tx.guardian.update({
+                        where: { id: user.guardianProfile.id },
+                        data: {
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                        }
+                    });
+                }
+
+                if (data.studentIds !== undefined) {
+                    // Delete existing links
+                    await tx.studentGuardian.deleteMany({
+                        where: { guardianId: user.guardianProfile.id }
+                    });
+
+                    // Create new links
+                    if (data.studentIds.length > 0) {
+                        for (const studentId of data.studentIds) {
+                            await tx.studentGuardian.create({
+                                data: {
+                                    studentId: studentId,
+                                    guardianId: user.guardianProfile.id,
+                                    isPrimary: true,
+                                }
+                            });
+                        }
+                    }
+                }
             }
 
             return updatedUser;

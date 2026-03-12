@@ -52,8 +52,23 @@ export class StudentController {
         return this.studentService.getQuizzes(req.user);
     }
 
+    @Get('quizzes/:id/questions')
+    getQuizQuestions(@Param('id') id: string, @Req() req: any) {
+        return this.studentService.getQuizQuestions(id, req.user);
+    }
+
+    @Post('quizzes/:id/submit')
+    submitQuiz(@Param('id') id: string, @Body() data: any, @Req() req: any) {
+        return this.studentService.submitQuiz(id, data, req.user);
+    }
+
     @Get('live-classes')
     getLiveClasses(@Req() req: any) {
         return this.studentService.getLiveClasses(req.user);
+    }
+
+    @Get('exams')
+    getExams(@Req() req: any) {
+        return this.studentService.getExams(req.user);
     }
 }

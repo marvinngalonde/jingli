@@ -20,6 +20,7 @@ model School {
   assetCategories   AssetCategory[]
   assets            Asset[]
   attendance        Attendance[]
+  staffAttendance   StaffAttendance[]
   bedAllocations    BedAllocation[]
   bookCirculations  BookCirculation[]
   calaRecords       CalaRecord[]
@@ -79,7 +80,8 @@ model User {
   createdAt          DateTime        @default(now()) @map("created_at")
   lastLogin          DateTime?       @map("last_login")
   aiChatSessions     AiChatSession[]
-  recordedAttendance Attendance[]    @relation("AttendanceRecorder")
+  recordedAttendance     Attendance[]    @relation("AttendanceRecorder")
+  recordedStaffAttendance StaffAttendance[] @relation("StaffAttendanceRecorder")
   approvedExpenses   Expense[]       @relation("ExpenseApprover")
   issuedPasses       GatePass[]      @relation("PassIssuer")
   guardianProfile    Guardian?
@@ -285,6 +287,7 @@ model Staff {
   calaRecords        CalaRecord[]
   courseMaterials    CourseMaterial[]
   disciplineRecords  DisciplineRecord[]
+  attendance         StaffAttendance[]
   gradedExams        ExamResult[]
   liveClasses        LiveClass[]
   quizzes            Quiz[]
@@ -340,6 +343,7 @@ model Submission {
   studentId    String     @map("student_id")
   submittedAt  DateTime   @default(now()) @map("submitted_at")
   fileUrl      String?    @map("file_url")
+  content      String?    @db.Text
   marks        Int?
   feedback     String?
   assignment   Assignment @relation(fields: [assignmentId], references: [id])
@@ -382,6 +386,25 @@ model Attendance {
   @@unique([studentId, date])
   @@index([sectionId, date])
   @@map("attendance")
+}
+
+model StaffAttendance {
+  id           String    @id @default(uuid())
+  schoolId     String    @map("school_id")
+  staffId      String    @map("staff_id")
+  date         DateTime  @db.Date
+  checkInTime  DateTime? @map("check_in_time")
+  checkOutTime DateTime? @map("check_out_time")
+  status       String    @default("PRESENT")
+  notes        String?
+  recordedBy   String?   @map("recorded_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  recorder     User?     @relation("StaffAttendanceRecorder", fields: [recordedBy], references: [id])
+  school       School    @relation(fields: [schoolId], references: [id])
+  staff        Staff     @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date])
+  @@map("staff_attendance")
 }
 
 model FeeHead {

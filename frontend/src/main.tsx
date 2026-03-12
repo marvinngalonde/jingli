@@ -8,6 +8,7 @@ import { theme, cssVariablesResolver } from './styles/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
+import '@mantine/tiptap/styles.css';
 import './index.css'
 import App from './App.tsx'
 const queryClient = new QueryClient({

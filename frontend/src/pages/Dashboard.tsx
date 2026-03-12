@@ -17,6 +17,7 @@ import {
     IconBus,
     IconBuildingBank,
     IconHome,
+    IconShieldCheck,
 } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RecentNotices } from '../components/communication/RecentNotices';
@@ -51,17 +52,21 @@ function AdminDashboard() {
     const { data: moduleStats, isLoading: moduleStatsLoading } = useQuery({
         queryKey: ['dashboard-module-stats'],
         queryFn: async () => {
-            const [expenseRes, transportRes, healthRes, hostelRes] = await Promise.allSettled([
+            const [expenseRes, transportRes, healthRes, hostelRes, lateRes, staffRes] = await Promise.allSettled([
                 api.get('/expenses/stats'),
                 api.get('/transport/stats'),
                 api.get('/health/stats'),
                 api.get('/hostel/stats'),
+                api.get('/gate/students/late/today'),
+                api.get('/attendance/staff/today'),
             ]);
             return {
                 expenses: expenseRes.status === 'fulfilled' ? expenseRes.value.data : null,
                 transport: transportRes.status === 'fulfilled' ? transportRes.value.data : null,
                 health: healthRes.status === 'fulfilled' ? healthRes.value.data : null,
                 hostel: hostelRes.status === 'fulfilled' ? hostelRes.value.data : null,
+                lateStudents: lateRes.status === 'fulfilled' ? lateRes.value.data.length : 0,
+                staffOnPremise: staffRes.status === 'fulfilled' ? staffRes.value.data.filter((r: any) => !r.checkOutTime).length : 0,
             };
         },
         staleTime: 5 * 60 * 1000,
@@ -156,6 +161,17 @@ function AdminDashboard() {
                         icon={IconHome}
                         color="cyan"
                         iconBg="cyan.1"
+                    />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                    <StatsCard
+                        title="Gate Activity"
+                        value={loading ? '...' : String(moduleStats?.staffOnPremise || 0)}
+                        subtext={`${moduleStats?.lateStudents || 0} late students`}
+                        subtextColor="red"
+                        icon={IconShieldCheck}
+                        color="violet"
+                        iconBg="violet.1"
                     />
                 </Grid.Col>
             </Grid>
