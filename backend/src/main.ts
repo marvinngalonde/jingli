@@ -10,6 +10,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'https://jingli.verdcloud.co.zw',
+      'https://innovativeaca.verdcloud.co.zw',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],

@@ -35,7 +35,7 @@ export function SecurityDashboard() {
             const { data } = await api.get('/visitors', {
                 params: { date: new Date().toISOString() } // simplified
             });
-            return data;
+            return data.data || [];
         }
     });
 
