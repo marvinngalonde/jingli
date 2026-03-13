@@ -60,41 +60,41 @@ model School {
   vehicles          Vehicle[]
   visitors          Visitor[]
 
-  status            SchoolStatus       @default(ACTIVE)
-  aiEnabled         Boolean            @default(false) @map("ai_enabled")
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
+  status    SchoolStatus @default(ACTIVE)
+  aiEnabled Boolean      @default(false) @map("ai_enabled")
+  updatedAt DateTime     @default(now()) @updatedAt @map("updated_at")
 
   @@map("schools")
 }
 
 model User {
-  id                 String          @id @default(uuid())
-  schoolId           String?         @map("school_id")
-  supabaseUid        String?         @unique @map("supabase_uid")
-  username           String          @map("username")
-  email              String?
-  passwordHash       String          @map("password_hash")
-  role               UserRole
-  status             UserStatus      @default(ACTIVE)
-  avatarUrl          String?         @map("avatar_url")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  lastLogin          DateTime?       @map("last_login")
-  aiChatSessions     AiChatSession[]
-  recordedAttendance     Attendance[]    @relation("AttendanceRecorder")
+  id                      String            @id @default(uuid())
+  schoolId                String?           @map("school_id")
+  supabaseUid             String?           @unique @map("supabase_uid")
+  username                String            @map("username")
+  email                   String?
+  passwordHash            String            @map("password_hash")
+  role                    UserRole
+  status                  UserStatus        @default(ACTIVE)
+  avatarUrl               String?           @map("avatar_url")
+  createdAt               DateTime          @default(now()) @map("created_at")
+  lastLogin               DateTime?         @map("last_login")
+  aiChatSessions          AiChatSession[]
+  recordedAttendance      Attendance[]      @relation("AttendanceRecorder")
   recordedStaffAttendance StaffAttendance[] @relation("StaffAttendanceRecorder")
-  approvedExpenses   Expense[]       @relation("ExpenseApprover")
-  issuedPasses       GatePass[]      @relation("PassIssuer")
-  guardianProfile    Guardian?
-  recordedLate       LateArrival[]   @relation("LateRecorder")
-  receivedMessages   Message[]       @relation("Receiver")
-  sentMessages       Message[]       @relation("Sender")
-  postedNotices      Notice[]
-  notifications      Notification[]
-  processedSalaries  SalaryPayment[] @relation("SalaryProcessor")
-  staffProfile       Staff?
-  studentProfile     Student?
-  collectedPayments  Transaction[]   @relation("PaymentCollector")
-  school             School?         @relation(fields: [schoolId], references: [id])
+  approvedExpenses        Expense[]         @relation("ExpenseApprover")
+  issuedPasses            GatePass[]        @relation("PassIssuer")
+  guardianProfile         Guardian?
+  recordedLate            LateArrival[]     @relation("LateRecorder")
+  receivedMessages        Message[]         @relation("Receiver")
+  sentMessages            Message[]         @relation("Sender")
+  postedNotices           Notice[]
+  notifications           Notification[]
+  processedSalaries       SalaryPayment[]   @relation("SalaryProcessor")
+  staffProfile            Staff?
+  studentProfile          Student?
+  collectedPayments       Transaction[]     @relation("PaymentCollector")
+  school                  School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
@@ -116,7 +116,7 @@ model RolePermission {
   id           String     @id @default(uuid())
   role         UserRole
   permissionId String     @map("permission_id")
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([role, permissionId])
   @@map("role_permissions")
@@ -132,7 +132,7 @@ model Guardian {
   address      String?
   relationship String
   occupation   String?
-  user         User              @relation(fields: [userId], references: [id])
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   students     StudentGuardian[]
 
   @@map("guardians")
@@ -145,7 +145,7 @@ model AcademicYear {
   startDate     DateTime       @map("start_date")
   endDate       DateTime       @map("end_date")
   current       Boolean        @default(false)
-  school        School         @relation(fields: [schoolId], references: [id])
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   examTerms     ExamTerm[]
   feeStructures FeeStructure[]
 
@@ -157,7 +157,7 @@ model ClassLevel {
   schoolId      String         @map("school_id")
   name          String
   level         Int
-  school        School         @relation(fields: [schoolId], references: [id])
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   exams         Exam[]
   feeStructures FeeStructure[]
   sections      ClassSection[]
@@ -178,9 +178,9 @@ model ClassSection {
   courseMaterials    CourseMaterial[]
   LiveClass          LiveClass[]
   Quiz               Quiz[]
-  classLevel         ClassLevel          @relation(fields: [classLevelId], references: [id])
-  classTeacher       Staff?              @relation(fields: [classTeacherId], references: [id])
-  school             School              @relation(fields: [schoolId], references: [id])
+  classLevel         ClassLevel          @relation(fields: [classLevelId], references: [id], onDelete: Cascade)
+  classTeacher       Staff?              @relation(fields: [classTeacherId], references: [id], onDelete: Cascade)
+  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   students           Student[]
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
@@ -202,8 +202,8 @@ model Subject {
   liveClasses     LiveClass[]
   quizzes         Quiz[]
   allocations     SubjectAllocation[]
-  school          School              @relation(fields: [schoolId], references: [id])
-  teacher         Staff?              @relation(fields: [teacherId], references: [id])
+  school          School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher         Staff?              @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   timetables      Timetable[]
   classLevels     ClassLevel[]        @relation("ClassLevelToSubject")
 
@@ -216,9 +216,9 @@ model SubjectAllocation {
   staffId   String       @map("staff_id")
   subjectId String       @map("subject_id")
   sectionId String       @map("section_id")
-  section   ClassSection @relation(fields: [sectionId], references: [id])
-  staff     Staff        @relation(fields: [staffId], references: [id])
-  subject   Subject      @relation(fields: [subjectId], references: [id])
+  section   ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  staff     Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@map("subject_allocations")
 }
@@ -251,9 +251,9 @@ model Student {
   quizAttempts      QuizAttempt[]
   guardians         StudentGuardian[]
   transportRoutes   StudentRoute[]
-  school            School             @relation(fields: [schoolId], references: [id])
-  section           ClassSection       @relation(fields: [sectionId], references: [id])
-  user              User               @relation(fields: [userId], references: [id])
+  school            School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section           ClassSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   submissions       Submission[]
 
   @@unique([schoolId, admissionNo])
@@ -264,8 +264,8 @@ model StudentGuardian {
   studentId  String   @map("student_id")
   guardianId String   @map("guardian_id")
   isPrimary  Boolean  @default(false) @map("is_primary")
-  guardian   Guardian @relation(fields: [guardianId], references: [id])
-  student    Student  @relation(fields: [studentId], references: [id])
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([studentId, guardianId])
   @@map("student_guardians")
@@ -293,8 +293,8 @@ model Staff {
   quizzes            Quiz[]
   salaryPayments     SalaryPayment[]
   classTeacherOf     ClassSection[]
-  school             School              @relation(fields: [schoolId], references: [id])
-  user               User                @relation(fields: [userId], references: [id])
+  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjectAllocations SubjectAllocation[]
   subjects           Subject[]
   timetables         Timetable[]
@@ -312,9 +312,9 @@ model Timetable {
   startTime DateTime     @map("start_time")
   endTime   DateTime     @map("end_time")
   roomNo    String?      @map("room_no")
-  section   ClassSection @relation(fields: [sectionId], references: [id])
-  subject   Subject      @relation(fields: [subjectId], references: [id])
-  teacher   Staff        @relation(fields: [teacherId], references: [id])
+  section   ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher   Staff        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("timetables")
 }
@@ -329,9 +329,9 @@ model Assignment {
   dueDate     DateTime     @map("due_date")
   maxMarks    Int          @map("max_marks")
   type        String
-  section     ClassSection @relation(fields: [sectionId], references: [id])
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  teacher     Staff        @relation(fields: [teacherId], references: [id])
+  section     ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     Staff        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   submissions Submission[]
 
   @@map("assignments")
@@ -346,8 +346,8 @@ model Submission {
   content      String?    @db.Text
   marks        Int?
   feedback     String?
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
-  student      Student    @relation(fields: [studentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("submissions")
 }
@@ -362,9 +362,9 @@ model CourseMaterial {
   teacherId   String       @map("teacher_id")
   subjectId   String       @map("subject_id")
   sectionId   String       @map("section_id")
-  section     ClassSection @relation(fields: [sectionId], references: [id])
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  teacher     Staff        @relation(fields: [teacherId], references: [id])
+  section     ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     Staff        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("course_materials")
 }
@@ -378,10 +378,10 @@ model Attendance {
   status     AttendanceStatus
   remarks    String?
   recordedBy String           @map("recorded_by")
-  recorder   User             @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
-  school     School           @relation(fields: [schoolId], references: [id])
-  section    ClassSection     @relation(fields: [sectionId], references: [id])
-  student    Student          @relation(fields: [studentId], references: [id])
+  recorder   User             @relation("AttendanceRecorder", fields: [recordedBy], references: [id], onDelete: Cascade)
+  school     School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section    ClassSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, date])
   @@index([sectionId, date])
@@ -399,9 +399,9 @@ model StaffAttendance {
   notes        String?
   recordedBy   String?   @map("recorded_by")
   createdAt    DateTime  @default(now()) @map("created_at")
-  recorder     User?     @relation("StaffAttendanceRecorder", fields: [recordedBy], references: [id])
-  school       School    @relation(fields: [schoolId], references: [id])
-  staff        Staff     @relation(fields: [staffId], references: [id])
+  recorder     User?     @relation("StaffAttendanceRecorder", fields: [recordedBy], references: [id], onDelete: Cascade)
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff        Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, date])
   @@map("staff_attendance")
@@ -412,7 +412,7 @@ model FeeHead {
   schoolId   String             @map("school_id")
   name       String
   type       String
-  school     School             @relation(fields: [schoolId], references: [id])
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   items      FeeStructureItem[]
   structures FeeStructure[]
 
@@ -430,10 +430,10 @@ model FeeStructure {
   frequency      FeeFrequency
   currency       String             @default("USD")
   items          FeeStructureItem[]
-  academicYear   AcademicYear       @relation(fields: [academicYearId], references: [id])
-  classLevel     ClassLevel         @relation(fields: [classLevelId], references: [id])
-  feeHead        FeeHead?           @relation(fields: [feeHeadId], references: [id])
-  school         School             @relation(fields: [schoolId], references: [id])
+  academicYear   AcademicYear       @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classLevel     ClassLevel         @relation(fields: [classLevelId], references: [id], onDelete: Cascade)
+  feeHead        FeeHead?           @relation(fields: [feeHeadId], references: [id], onDelete: Cascade)
+  school         School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   invoices       Invoice[]
 
   @@map("fee_structures")
@@ -444,8 +444,8 @@ model FeeStructureItem {
   feeStructureId String       @map("fee_structure_id")
   feeHeadId      String       @map("fee_head_id")
   amount         Decimal
-  head           FeeHead      @relation(fields: [feeHeadId], references: [id])
-  structure      FeeStructure @relation(fields: [feeStructureId], references: [id])
+  head           FeeHead      @relation(fields: [feeHeadId], references: [id], onDelete: Cascade)
+  structure      FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
 
   @@map("fee_structure_items")
 }
@@ -460,9 +460,9 @@ model Invoice {
   status         InvoiceStatus @default(PENDING)
   issueDate      DateTime      @default(now()) @map("issue_date")
   currency       String        @default("USD")
-  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id])
-  school         School        @relation(fields: [schoolId], references: [id])
-  student        Student       @relation(fields: [studentId], references: [id])
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   transactions   Transaction[]
 
   @@map("invoices")
@@ -478,9 +478,9 @@ model Transaction {
   referenceNo String?       @map("reference_no")
   collectedBy String        @map("collected_by")
   currency    String        @default("USD")
-  collector   User          @relation("PaymentCollector", fields: [collectedBy], references: [id])
-  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
-  school      School        @relation(fields: [schoolId], references: [id])
+  collector   User          @relation("PaymentCollector", fields: [collectedBy], references: [id], onDelete: Cascade)
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  school      School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
 }
@@ -497,7 +497,7 @@ model Visitor {
   idProof      String?       @map("id_proof")
   vehicleNo    String?       @map("vehicle_no")
   status       VisitorStatus @default(IN)
-  school       School        @relation(fields: [schoolId], references: [id])
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("visitors")
 }
@@ -513,7 +513,7 @@ model Book {
   status       BookStatus        @default(AVAILABLE)
   createdAt    DateTime          @default(now()) @map("created_at")
   circulations BookCirculation[]
-  school       School            @relation(fields: [schoolId], references: [id])
+  school       School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("library_books")
 }
@@ -528,9 +528,9 @@ model BookCirculation {
   returnDate DateTime?         @map("return_date")
   status     CirculationStatus @default(ISSUED)
   remarks    String?
-  book       Book              @relation(fields: [bookId], references: [id])
-  school     School            @relation(fields: [schoolId], references: [id])
-  student    Student           @relation(fields: [studentId], references: [id])
+  book       Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  school     School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student    Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("book_circulations")
 }
@@ -543,9 +543,9 @@ model GatePass {
   issuedAt     DateTime @default(now()) @map("issued_at")
   issuedBy     String   @map("issued_by")
   guardianName String   @map("guardian_name")
-  issuer       User     @relation("PassIssuer", fields: [issuedBy], references: [id])
-  school       School   @relation(fields: [schoolId], references: [id])
-  student      Student  @relation(fields: [studentId], references: [id])
+  issuer       User     @relation("PassIssuer", fields: [issuedBy], references: [id], onDelete: Cascade)
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("gate_passes")
 }
@@ -558,9 +558,9 @@ model LateArrival {
   reason      String
   reportedBy  String   @map("reported_by")
   recordedBy  String   @map("recorded_by")
-  recorder    User     @relation("LateRecorder", fields: [recordedBy], references: [id])
-  school      School   @relation(fields: [schoolId], references: [id])
-  student     Student  @relation(fields: [studentId], references: [id])
+  recorder    User     @relation("LateRecorder", fields: [recordedBy], references: [id], onDelete: Cascade)
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("late_arrivals")
 }
@@ -576,7 +576,7 @@ model Inquiry {
   status        String
   notes         String?
   assignedTo    String? @map("assigned_to")
-  school        School  @relation(fields: [schoolId], references: [id])
+  school        School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("inquiries")
 }
@@ -590,8 +590,8 @@ model Notice {
   targetAudience String    @map("target_audience")
   postedAt       DateTime  @default(now()) @map("posted_at")
   expiresAt      DateTime? @map("expires_at")
-  poster         User      @relation(fields: [postedBy], references: [id])
-  school         School    @relation(fields: [schoolId], references: [id])
+  poster         User      @relation(fields: [postedBy], references: [id], onDelete: Cascade)
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("notices")
 }
@@ -603,8 +603,8 @@ model Message {
   content    String
   sentAt     DateTime  @default(now()) @map("sent_at")
   readAt     DateTime? @map("read_at")
-  receiver   User      @relation("Receiver", fields: [receiverId], references: [id])
-  sender     User      @relation("Sender", fields: [senderId], references: [id])
+  receiver   User      @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User      @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
@@ -617,7 +617,7 @@ model Notification {
   type       String   @default("INFO")
   readStatus Boolean  @default(false) @map("read_status")
   createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -630,8 +630,8 @@ model ExamTerm {
   endDate        DateTime     @map("end_date")
   academicYearId String       @map("academic_year_id")
   calaRecords    CalaRecord[]
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
-  school         School       @relation(fields: [schoolId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  school         School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   exams          Exam[]
 
   @@map("exam_terms")
@@ -649,10 +649,10 @@ model Exam {
   duration     Int
   maxMarks     Float        @map("max_marks")
   results      ExamResult[]
-  classLevel   ClassLevel   @relation(fields: [classLevelId], references: [id])
-  school       School       @relation(fields: [schoolId], references: [id])
-  subject      Subject      @relation(fields: [subjectId], references: [id])
-  term         ExamTerm     @relation(fields: [termId], references: [id])
+  classLevel   ClassLevel   @relation(fields: [classLevelId], references: [id], onDelete: Cascade)
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term         ExamTerm     @relation(fields: [termId], references: [id], onDelete: Cascade)
 
   @@map("exams")
 }
@@ -664,9 +664,9 @@ model ExamResult {
   marksObtained Float   @map("marks_obtained")
   remarks       String?
   gradedBy      String  @map("graded_by")
-  exam          Exam    @relation(fields: [examId], references: [id])
-  grader        Staff   @relation(fields: [gradedBy], references: [id])
-  student       Student @relation(fields: [studentId], references: [id])
+  exam          Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  grader        Staff   @relation(fields: [gradedBy], references: [id], onDelete: Cascade)
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId])
   @@map("exam_results")
@@ -679,7 +679,7 @@ model AiChatSession {
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
   messages  AiChatMessage[]
-  user      User            @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_chat_sessions")
 }
@@ -705,7 +705,7 @@ model ReportLog {
   fileUrl     String?  @map("file_url")
   parameters  Json?
   createdAt   DateTime @default(now()) @map("created_at")
-  school      School   @relation(fields: [schoolId], references: [id])
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("report_logs")
 }
@@ -721,7 +721,7 @@ model Event {
   type        String   @default("GENERAL")
   allDay      Boolean  @default(false) @map("all_day")
   createdAt   DateTime @default(now()) @map("created_at")
-  school      School   @relation(fields: [schoolId], references: [id])
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("events")
 }
@@ -739,8 +739,8 @@ model Expense {
   receiptUrl  String?       @map("receipt_url")
   notes       String?
   createdAt   DateTime      @default(now()) @map("created_at")
-  approver    User?         @relation("ExpenseApprover", fields: [approvedBy], references: [id])
-  school      School        @relation(fields: [schoolId], references: [id])
+  approver    User?         @relation("ExpenseApprover", fields: [approvedBy], references: [id], onDelete: Cascade)
+  school      School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
 }
@@ -763,9 +763,9 @@ model SalaryPayment {
   allowances  Decimal        @default(0)
   baseSalary  Decimal        @default(0) @map("base_salary")
   deductions  Decimal        @default(0)
-  processor   User?          @relation("SalaryProcessor", fields: [processedBy], references: [id])
-  school      School         @relation(fields: [schoolId], references: [id])
-  staff       Staff          @relation(fields: [staffId], references: [id])
+  processor   User?          @relation("SalaryProcessor", fields: [processedBy], references: [id], onDelete: Cascade)
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff       Staff          @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, month, year])
   @@map("salary_payments")
@@ -780,7 +780,7 @@ model ExchangeRate {
   effectiveDate DateTime @map("effective_date") @db.Date
   source        String?
   createdAt     DateTime @default(now()) @map("created_at")
-  school        School   @relation(fields: [schoolId], references: [id])
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("exchange_rates")
 }
@@ -798,7 +798,7 @@ model Vehicle {
   nextServiceDate DateTime? @map("next_service_date")
   createdAt       DateTime  @default(now()) @map("created_at")
   routes          Route[]
-  school          School    @relation(fields: [schoolId], references: [id])
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, regNumber])
   @@map("vehicles")
@@ -816,8 +816,8 @@ model Route {
   stops       Json?
   status      RouteStatus    @default(ACTIVE)
   createdAt   DateTime       @default(now()) @map("created_at")
-  school      School         @relation(fields: [schoolId], references: [id])
-  vehicle     Vehicle?       @relation(fields: [vehicleId], references: [id])
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   students    StudentRoute[]
 
   @@map("routes")
@@ -831,9 +831,9 @@ model StudentRoute {
   pickupPoint String?        @map("pickup_point")
   direction   RouteDirection @default(BOTH)
   createdAt   DateTime       @default(now()) @map("created_at")
-  route       Route          @relation(fields: [routeId], references: [id])
-  school      School         @relation(fields: [schoolId], references: [id])
-  student     Student        @relation(fields: [studentId], references: [id])
+  route       Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, routeId])
   @@map("student_routes")
@@ -844,7 +844,7 @@ model AssetCategory {
   schoolId    String  @map("school_id")
   name        String
   description String?
-  school      School  @relation(fields: [schoolId], references: [id])
+  school      School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   assets      Asset[]
 
   @@unique([schoolId, name])
@@ -864,8 +864,8 @@ model Asset {
   quantity      Int            @default(1)
   notes         String?
   createdAt     DateTime       @default(now()) @map("created_at")
-  category      AssetCategory  @relation(fields: [categoryId], references: [id])
-  school        School         @relation(fields: [schoolId], references: [id])
+  category      AssetCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("assets")
 }
@@ -883,11 +883,11 @@ model CalaRecord {
   assessedBy     String   @map("assessed_by")
   date           DateTime @db.Date
   createdAt      DateTime @default(now()) @map("created_at")
-  teacher        Staff    @relation(fields: [assessedBy], references: [id])
-  school         School   @relation(fields: [schoolId], references: [id])
-  student        Student  @relation(fields: [studentId], references: [id])
-  subject        Subject  @relation(fields: [subjectId], references: [id])
-  term           ExamTerm @relation(fields: [termId], references: [id])
+  teacher        Staff    @relation(fields: [assessedBy], references: [id], onDelete: Cascade)
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term           ExamTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
 
   @@map("cala_records")
 }
@@ -898,7 +898,7 @@ model GradeScale {
   name     String
   system   GradeSystem  @default(CUSTOM)
   ranges   GradeRange[]
-  school   School       @relation(fields: [schoolId], references: [id])
+  school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
   @@map("grade_scales")
@@ -932,7 +932,7 @@ model MedicalProfile {
   doctorPhone        String?  @map("doctor_phone")
   notes              String?
   updatedAt          DateTime @updatedAt @map("updated_at")
-  student            Student  @relation(fields: [studentId], references: [id])
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("medical_profiles")
 }
@@ -949,8 +949,8 @@ model ClinicVisit {
   attendedBy     String   @map("attended_by")
   parentNotified Boolean  @default(false) @map("parent_notified")
   notes          String?
-  school         School   @relation(fields: [schoolId], references: [id])
-  student        Student  @relation(fields: [studentId], references: [id])
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("clinic_visits")
 }
@@ -968,9 +968,9 @@ model DisciplineRecord {
   actionTaken    String?        @map("action_taken")
   date           DateTime       @default(now())
   createdAt      DateTime       @default(now()) @map("created_at")
-  issuer         Staff          @relation(fields: [issuedBy], references: [id])
-  school         School         @relation(fields: [schoolId], references: [id])
-  student        Student        @relation(fields: [studentId], references: [id])
+  issuer         Staff          @relation(fields: [issuedBy], references: [id], onDelete: Cascade)
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("discipline_records")
 }
@@ -982,7 +982,7 @@ model Hostel {
   gender   HostelGender @default(MIXED)
   capacity Int          @default(100)
   warden   String?
-  school   School       @relation(fields: [schoolId], references: [id])
+  school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   rooms    Room[]
 
   @@unique([schoolId, name])
@@ -997,8 +997,8 @@ model Room {
   floor    Int?            @default(0)
   capacity Int             @default(4)
   beds     BedAllocation[]
-  hostel   Hostel          @relation(fields: [hostelId], references: [id])
-  school   School          @relation(fields: [schoolId], references: [id])
+  hostel   Hostel          @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  school   School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([hostelId, number])
   @@map("rooms")
@@ -1013,9 +1013,9 @@ model BedAllocation {
   term        String?
   status      BedStatus @default(OCCUPIED)
   allocatedAt DateTime  @default(now()) @map("allocated_at")
-  room        Room      @relation(fields: [roomId], references: [id])
-  school      School    @relation(fields: [schoolId], references: [id])
-  student     Student   @relation(fields: [studentId], references: [id])
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("bed_allocations")
 }
@@ -1032,8 +1032,8 @@ model Exeat {
   guardianName String?     @map("guardian_name")
   status       ExeatStatus @default(PENDING)
   createdAt    DateTime    @default(now()) @map("created_at")
-  school       School      @relation(fields: [schoolId], references: [id])
-  student      Student     @relation(fields: [studentId], references: [id])
+  school       School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("exeats")
 }
@@ -1048,7 +1048,7 @@ model AlertTemplate {
   active          Boolean      @default(true)
   createdAt       DateTime     @default(now()) @map("created_at")
   logs            AlertLog[]
-  school          School       @relation(fields: [schoolId], references: [id])
+  school          School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("alert_templates")
 }
@@ -1066,8 +1066,8 @@ model AlertLog {
   cost           Decimal?
   errorMessage   String?        @map("error_message")
   createdAt      DateTime       @default(now()) @map("created_at")
-  school         School         @relation(fields: [schoolId], references: [id])
-  template       AlertTemplate? @relation(fields: [templateId], references: [id])
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  template       AlertTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@map("alert_logs")
 }
@@ -1092,10 +1092,10 @@ model Quiz {
   showAnswers Boolean        @default(true) @map("show_answers")
   attempts    QuizAttempt[]
   questions   QuizQuestion[]
-  school      School         @relation(fields: [schoolId], references: [id])
-  section     ClassSection   @relation(fields: [sectionId], references: [id])
-  subject     Subject        @relation(fields: [subjectId], references: [id])
-  teacher     Staff          @relation(fields: [teacherId], references: [id])
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section     ClassSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     Staff          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("quizzes")
 }
@@ -1124,8 +1124,8 @@ model QuizAttempt {
   score     Float?
   status    AttemptStatus @default(IN_PROGRESS)
   answers   Json?
-  quiz      Quiz          @relation(fields: [quizId], references: [id])
-  student   Student       @relation(fields: [studentId], references: [id])
+  quiz      Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student   Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("quiz_attempts")
 }
@@ -1146,10 +1146,10 @@ model LiveClass {
   duration     Int
   status       String       @default("SCHEDULED")
   createdAt    DateTime     @default(now()) @map("created_at")
-  school       School       @relation(fields: [schoolId], references: [id])
-  section      ClassSection @relation(fields: [sectionId], references: [id])
-  subject      Subject      @relation(fields: [subjectId], references: [id])
-  teacher      Staff        @relation(fields: [teacherId], references: [id])
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  section      ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher      Staff        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("live_classes")
 }
@@ -1168,7 +1168,7 @@ model DiscussionThread {
   locked     Boolean           @default(false)
   createdAt  DateTime          @default(now()) @map("created_at")
   replies    DiscussionReply[]
-  school     School            @relation(fields: [schoolId], references: [id])
+  school     School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("discussion_threads")
 }

@@ -33,6 +33,7 @@ import {
     IconChartBar,
     IconMessage,
     IconFlask,
+    IconShieldCheck,
 } from '@tabler/icons-react';
 
 import logoFull from '../assets/logos/logo-trans.png';
@@ -152,7 +153,7 @@ export function DashboardLayout() {
             links: [
                 { icon: IconUsers, label: 'Students', to: '/students', roles: ['admin', 'reception', 'finance'] },
                 { icon: IconUsers, label: 'Staff', to: '/staff', roles: ['admin', 'hr'] },
-                { icon: IconBook, label: 'Academics', to: '/academics', roles: ['admin', 'student', 'parent'] },
+                { icon: IconBook, label: 'Academics', to: '/academics', exact: true, roles: ['admin', 'student', 'parent'] },
                 { icon: IconFlask, label: 'Lab Management', to: '/academics/lab', roles: ['admin', 'lab_tech'] },
                 { icon: IconUsers, label: 'SEN Management', to: '/academics/sen', roles: ['admin', 'sen'] },
                 { icon: IconClipboardCheck, label: 'Attendance', to: '/attendance', roles: ['admin'] },
@@ -164,6 +165,7 @@ export function DashboardLayout() {
             roles: ['admin', 'reception', 'student', 'librarian', 'security'],
             links: [
                 { icon: IconUsers, label: 'Visitors', to: '/visitors', roles: ['admin', 'reception', 'security'] },
+                { icon: IconShieldCheck, label: 'Gate Operations', to: '/dashboard/security', roles: ['admin'] },
                 { icon: IconBook, label: 'Library', to: '/library', roles: ['admin', 'student', 'librarian'] },
             ]
         },
@@ -211,8 +213,9 @@ export function DashboardLayout() {
     })).filter(group => group.links.length > 0 && group.roles.some(r => hasRole(r)));
 
     const renderNavLink = (link: any) => {
-        const isActive = location.pathname === link.to ||
-            (link.to !== '/dashboard' && location.pathname.startsWith(link.to));
+        const isActive = link.exact
+            ? location.pathname === link.to
+            : location.pathname === link.to || (link.to !== '/dashboard' && location.pathname.startsWith(link.to));
 
         if (!desktopOpened) {
             return (

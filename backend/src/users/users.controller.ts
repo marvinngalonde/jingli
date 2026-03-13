@@ -72,6 +72,13 @@ export class UsersController {
         return this.usersService.findMe(req.user.id);
     }
 
+    @Patch('me/username')
+    @ApiOperation({ summary: 'Update your own username' })
+    async updateMyUsername(@Request() req: any, @Body() body: { username: string }) {
+        if (!body.username) throw new ForbiddenException('Username is required');
+        return this.usersService.updateUsername(req.user.id, body.username);
+    }
+
     @Get('stats')
     @ApiOperation({ summary: 'Get user statistics' })
     async getStats(@Request() req: any) {

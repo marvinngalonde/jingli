@@ -1,7 +1,11 @@
-import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Tooltip, Box, ThemeIcon, Badge } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, Text, ScrollArea, Avatar, Menu, UnstyledButton, ActionIcon, Tooltip, Box, ThemeIcon, Badge, Modal, PasswordInput, Button, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { authService } from '../services/authService';
+import { api } from '../services/api';
+import { notifications } from '@mantine/notifications';
 import {
     IconDashboard,
     IconBuildingBank,
@@ -11,7 +15,9 @@ import {
     IconChevronDown,
     IconLayoutSidebarLeftCollapse,
     IconLayoutSidebarLeftExpand,
-    IconWorld
+    IconWorld,
+    IconKey,
+    IconUserEdit
 } from '@tabler/icons-react';
 
 import logoFull from '../assets/logos/logo-trans.png';
@@ -19,9 +25,18 @@ import logoFull from '../assets/logos/logo-trans.png';
 export function SystemAdminLayout() {
     const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
     const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
+    const [passwordModalOpened, setPasswordModalOpened] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loadingPassword, setLoadingPassword] = useState(false);
+
+    const [usernameModalOpened, setUsernameModalOpened] = useState(false);
+    const [newUsername, setNewUsername] = useState('');
+    const [loadingUsername, setLoadingUsername] = useState(false);
+
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, logout } = useAuth();
+    const { user, logout, fetchProfile } = useAuth();
 
     const links = [
         { icon: IconDashboard, label: 'Global Dashboard', to: '/system-admin' },
@@ -29,6 +44,48 @@ export function SystemAdminLayout() {
         { icon: IconUsersGroup, label: 'Global Users', to: '/system-admin/users' },
         { icon: IconSettings, label: 'Platform Settings', to: '/system-admin/settings' },
     ];
+
+    const handlePasswordChange = async () => {
+        if (newPassword.length < 6) {
+            notifications.show({ title: 'Error', message: 'Password must be at least 6 characters long.', color: 'red' });
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            notifications.show({ title: 'Error', message: 'Passwords do not match.', color: 'red' });
+            return;
+        }
+        setLoadingPassword(true);
+        try {
+            await authService.updatePassword(newPassword);
+            notifications.show({ title: 'Success', message: 'Password updated successfully.', color: 'green' });
+            setPasswordModalOpened(false);
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (e: any) {
+            notifications.show({ title: 'Error', message: e.message || 'Failed to update password.', color: 'red' });
+        } finally {
+            setLoadingPassword(false);
+        }
+    };
+
+    const handleUsernameChange = async () => {
+        if (newUsername.length < 3) {
+            notifications.show({ title: 'Error', message: 'Username must be at least 3 characters.', color: 'red' });
+            return;
+        }
+        setLoadingUsername(true);
+        try {
+            await api.patch('/users/me/username', { username: newUsername });
+            notifications.show({ title: 'Success', message: 'Username updated successfully.', color: 'green' });
+            setUsernameModalOpened(false);
+            setNewUsername('');
+            fetchProfile();
+        } catch (e: any) {
+            notifications.show({ title: 'Error', message: e.response?.data?.message || 'Failed to update username.', color: 'red' });
+        } finally {
+            setLoadingUsername(false);
+        }
+    };
 
     const renderNavLink = (link: any) => {
         const isActive = location.pathname === link.to || (link.to !== '/system-admin' && location.pathname.startsWith(link.to));
@@ -125,8 +182,23 @@ export function SystemAdminLayout() {
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
-                                <Menu.Label>{user?.email}</Menu.Label>
+                                <Menu.Label>{user?.username || user?.email}</Menu.Label>
                                 <Menu.Item leftSection={<IconSettings size={14} />}>Global Settings</Menu.Item>
+                                <Menu.Item 
+                                    leftSection={<IconUserEdit size={14} />} 
+                                    onClick={() => {
+                                        setNewUsername(user?.username || '');
+                                        setUsernameModalOpened(true);
+                                    }}
+                                >
+                                    Change Username
+                                </Menu.Item>
+                                <Menu.Item 
+                                    leftSection={<IconKey size={14} />} 
+                                    onClick={() => setPasswordModalOpened(true)}
+                                >
+                                    Change Password
+                                </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item
                                     color="red"
@@ -196,6 +268,69 @@ export function SystemAdminLayout() {
                     <Outlet />
                 </Box>
             </AppShell.Main>
+
+            {/* Password Change Modal */}
+            <Modal
+                opened={passwordModalOpened}
+                onClose={() => {
+                    setPasswordModalOpened(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                }}
+                title={<Text fw={700}>Update Password</Text>}
+                centered
+                size="sm"
+            >
+                <PasswordInput
+                    label="New Password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.currentTarget.value)}
+                    required
+                    mb="md"
+                />
+                <PasswordInput
+                    label="Confirm New Password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.currentTarget.value)}
+                    required
+                    mb="xl"
+                />
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setPasswordModalOpened(false)}>Cancel</Button>
+                    <Button color="indigo" loading={loadingPassword} onClick={handlePasswordChange}>
+                        Update Password
+                    </Button>
+                </Group>
+            </Modal>
+
+            {/* Username Change Modal */}
+            <Modal
+                opened={usernameModalOpened}
+                onClose={() => {
+                    setUsernameModalOpened(false);
+                    setNewUsername('');
+                }}
+                title={<Text fw={700}>Update Username</Text>}
+                centered
+                size="sm"
+            >
+                <TextInput
+                    label="New Username"
+                    placeholder="Enter new username"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.currentTarget.value)}
+                    required
+                    mb="xl"
+                />
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setUsernameModalOpened(false)}>Cancel</Button>
+                    <Button color="indigo" loading={loadingUsername} onClick={handleUsernameChange}>
+                        Save Username
+                    </Button>
+                </Group>
+            </Modal>
         </AppShell>
     );
 }

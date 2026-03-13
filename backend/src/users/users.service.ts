@@ -19,6 +19,7 @@ export class UsersService {
                 role: true,
                 schoolId: true,
                 supabaseUid: true,
+                username: true,
                 school: {
                     select: {
                         name: true,
@@ -64,7 +65,23 @@ export class UsersService {
         return {
             ...user,
             profile,
+            username: user.username,
         };
+    }
+
+    async updateUsername(userId: string, username: string) {
+        // Check for duplicates
+        const existing = await this.prisma.user.findFirst({
+            where: { username, id: { not: userId } }
+        });
+        if (existing) {
+            throw new BadRequestException('Username is already taken');
+        }
+
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { username }
+        });
     }
 
     async findAll(schoolId: string, page = 1, limit = 20, includeInactive = false) {

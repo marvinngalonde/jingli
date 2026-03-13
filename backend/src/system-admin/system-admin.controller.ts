@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Query, Param } from '@nestjs/common';
 import { SystemAdminService } from './system-admin.service';
 import { SupabaseGuard } from '../auth/supabase.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -70,5 +70,19 @@ export class SystemAdminController {
     @Post('bootstrap')
     bootstrapAdmin(@Body('email') email: string) {
         return this.systemAdminService.bootstrapAdmin(email);
+    }
+
+    @Delete('schools/:id')
+    @UseGuards(SupabaseGuard, RolesGuard)
+    @Roles(UserRole.SYSTEM_ADMIN)
+    deleteSchool(@Param('id') id: string) {
+        return this.systemAdminService.deleteSchool(id);
+    }
+
+    @Delete('users/:id')
+    @UseGuards(SupabaseGuard, RolesGuard)
+    @Roles(UserRole.SYSTEM_ADMIN)
+    deleteUser(@Param('id') id: string) {
+        return this.systemAdminService.deleteUser(id);
     }
 }

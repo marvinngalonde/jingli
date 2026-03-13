@@ -12,6 +12,7 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
+import { IconTrash } from '@tabler/icons-react';
 
 const STATUS_COLOR: Record<string, string> = {
     ACTIVE: 'green',
@@ -23,6 +24,7 @@ export default function SchoolManager() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; school: any; newStatus: string } | null>(null);
+    const [deleteModal, setDeleteModal] = useState<{ open: boolean; school: any } | null>(null);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -71,6 +73,25 @@ export default function SchoolManager() {
         onError: () => {
             notifications.show({ title: 'Error', message: 'Failed to update AI access.', color: 'red' });
         },
+    });
+
+    const deleteSchoolMutation = useMutation({
+        mutationFn: async (id: string) => {
+            return api.delete(`/system-admin/schools/${id}`);
+        },
+        onSuccess: () => {
+            notifications.show({
+                title: 'School Deleted',
+                message: 'School and all associated data have been permanently deleted.',
+                color: 'red',
+            });
+            queryClient.invalidateQueries({ queryKey: ['system-admin-schools'] });
+            queryClient.invalidateQueries({ queryKey: ['system-admin-stats'] });
+            setDeleteModal(null);
+        },
+        onError: () => {
+             notifications.show({ title: 'Error', message: 'Failed to delete school.', color: 'red' });
+        }
     });
 
     const schools = data?.data ?? [];
@@ -156,6 +177,14 @@ export default function SchoolManager() {
                                 Reactivate School
                             </Menu.Item>
                         )}
+                        <Menu.Divider />
+                        <Menu.Item
+                            color="red"
+                            leftSection={<IconTrash size={14} />}
+                            onClick={() => setDeleteModal({ open: true, school })}
+                        >
+                            Delete School
+                        </Menu.Item>
                     </Menu.Dropdown>
                 </Menu>
             </Table.Td>
@@ -278,6 +307,38 @@ export default function SchoolManager() {
                         }}
                     >
                         Confirm {confirmModal?.newStatus === 'SUSPENDED' ? 'Suspension' : 'Reactivation'}
+                    </Button>
+                </Group>
+            </Modal>
+
+            {/* Delete Modal */}
+            <Modal
+                opened={!!deleteModal?.open}
+                onClose={() => setDeleteModal(null)}
+                title={<Text fw={800} c="red">Permanently Delete School</Text>}
+                centered
+                size="sm"
+            >
+                <Text size="sm" mb="md" fw={500}>
+                    Are you absolutely sure you want to delete <strong>{deleteModal?.school?.name}</strong>?
+                </Text>
+                
+                <Text size="xs" c="red" mb="xl">
+                    <strong>WARNING:</strong> This is a highly destructive action. It will instantly cascade and permanently delete all students, teachers, finances, attendance records, and history associated with this school. This cannot be undone.
+                </Text>
+                
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setDeleteModal(null)}>Cancel</Button>
+                    <Button
+                        color="red"
+                        loading={deleteSchoolMutation.isPending}
+                        onClick={() => {
+                            if (deleteModal?.school) {
+                                deleteSchoolMutation.mutate(deleteModal.school.id);
+                            }
+                        }}
+                    >
+                        Yes, Delete School
                     </Button>
                 </Group>
             </Modal>

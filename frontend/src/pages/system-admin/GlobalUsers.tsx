@@ -1,12 +1,13 @@
 import {
     Box, Group, Title, Text, Table, Badge, TextInput, Card, Skeleton,
-    Stack, Center, Pagination, Avatar, Tooltip, Select
+    Stack, Center, Pagination, Avatar, Tooltip, Select, Menu, ActionIcon, Modal, Button
 } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
-import { IconSearch, IconUsers, IconBuildingBank } from '@tabler/icons-react';
+import { IconSearch, IconUsers, IconBuildingBank, IconDotsVertical, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import dayjs from 'dayjs';
+import { notifications } from '@mantine/notifications';
 
 const ROLE_COLOR: Record<string, string> = {
     SYSTEM_ADMIN: 'violet',
@@ -28,6 +29,8 @@ const STATUS_COLOR: Record<string, string> = {
 export default function GlobalUsers() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [deleteModal, setDeleteModal] = useState<{ open: boolean; user: any } | null>(null);
+    const queryClient = useQueryClient();
 
     const { data, isLoading } = useQuery({
         queryKey: ['system-admin-users', page, search],
@@ -38,6 +41,25 @@ export default function GlobalUsers() {
             return res.data;
         },
         placeholderData: (prev: any) => prev,
+    });
+
+    const deleteUserMutation = useMutation({
+        mutationFn: async (id: string) => {
+            return api.delete(`/system-admin/users/${id}`);
+        },
+        onSuccess: () => {
+            notifications.show({
+                title: 'User Deleted',
+                message: 'User has been permanently deleted from the platform and Supabase.',
+                color: 'red',
+            });
+            queryClient.invalidateQueries({ queryKey: ['system-admin-users'] });
+            queryClient.invalidateQueries({ queryKey: ['system-admin-stats'] });
+            setDeleteModal(null);
+        },
+        onError: () => {
+             notifications.show({ title: 'Error', message: 'Failed to delete user.', color: 'red' });
+        }
     });
 
     const users = (data as any)?.data ?? [];
@@ -89,6 +111,24 @@ export default function GlobalUsers() {
                     {user.lastLogin ? dayjs(user.lastLogin).format('DD MMM, HH:mm') : 'Never'}
                 </Text>
             </Table.Td>
+            <Table.Td>
+                <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray">
+                            <IconDotsVertical size={16} />
+                        </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                        <Menu.Item
+                            color="red"
+                            leftSection={<IconTrash size={14} />}
+                            onClick={() => setDeleteModal({ open: true, user })}
+                        >
+                            Delete User
+                        </Menu.Item>
+                    </Menu.Dropdown>
+                </Menu>
+            </Table.Td>
         </Table.Tr>
     ));
 
@@ -126,20 +166,21 @@ export default function GlobalUsers() {
                             <Table.Th>Status</Table.Th>
                             <Table.Th>Joined</Table.Th>
                             <Table.Th>Last Login</Table.Th>
+                            <Table.Th>Actions</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
                         {isLoading ? (
                             Array.from({ length: 8 }).map((_, i) => (
                                 <Table.Tr key={i}>
-                                    {Array.from({ length: 6 }).map((_, j) => (
+                                    {Array.from({ length: 7 }).map((_, j) => (
                                         <Table.Td key={j}><Skeleton height={18} radius="sm" /></Table.Td>
                                     ))}
                                 </Table.Tr>
                             ))
                         ) : rows.length > 0 ? rows : (
                             <Table.Tr>
-                                <Table.Td colSpan={6}>
+                                <Table.Td colSpan={7}>
                                     <Center py="xl">
                                         <Stack align="center" gap="xs">
                                             <IconUsers size={36} color="lightgray" />
@@ -160,6 +201,38 @@ export default function GlobalUsers() {
                     </Box>
                 )}
             </Card>
+
+            {/* Delete Modal */}
+            <Modal
+                opened={!!deleteModal?.open}
+                onClose={() => setDeleteModal(null)}
+                title={<Text fw={800} c="red">Permanently Delete User</Text>}
+                centered
+                size="sm"
+            >
+                <Text size="sm" mb="md" fw={500}>
+                    Are you absolutely sure you want to delete <strong>{deleteModal?.user?.username}</strong>?
+                </Text>
+                
+                <Text size="xs" c="red" mb="xl">
+                    <strong>WARNING:</strong> This will completely wipe all data associated with this user, including their files, assignments, logs, and Supabase auth identity. This cannot be undone.
+                </Text>
+                
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setDeleteModal(null)}>Cancel</Button>
+                    <Button
+                        color="red"
+                        loading={deleteUserMutation.isPending}
+                        onClick={() => {
+                            if (deleteModal?.user) {
+                                deleteUserMutation.mutate(deleteModal.user.id);
+                            }
+                        }}
+                    >
+                        Yes, Delete User
+                    </Button>
+                </Group>
+            </Modal>
         </Box>
     );
 }

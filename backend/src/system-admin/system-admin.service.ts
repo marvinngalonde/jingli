@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class SystemAdminService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly supabase: SupabaseService
+    ) { }
 
     async getStats() {
         const now = new Date();
@@ -135,5 +139,29 @@ export class SystemAdminService {
             where: { id: user.id },
             data: { role: UserRole.SYSTEM_ADMIN, schoolId: null } as any
         });
+    }
+
+    async deleteSchool(id: string) {
+        const school = await this.prisma.school.findUnique({ where: { id } });
+        if (!school) throw new NotFoundException('School not found');
+        await this.prisma.school.delete({ where: { id } });
+        return { success: true, message: 'School and all associated data deleted successfully.' };
+    }
+
+    async deleteUser(id: string) {
+        const user = await this.prisma.user.findUnique({ where: { id } });
+        if (!user) throw new NotFoundException('User not found');
+
+        if (user.supabaseUid) {
+            try {
+                const supabaseClient = this.supabase.getClient();
+                await supabaseClient.auth.admin.deleteUser(user.supabaseUid);
+            } catch (error) {
+                console.error(`Failed to delete user from Supabase Auth: ${error.message}`);
+            }
+        }
+
+        await this.prisma.user.delete({ where: { id } });
+        return { success: true, message: 'User and all associated data deleted successfully.' };
     }
 }
