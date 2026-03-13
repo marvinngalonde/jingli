@@ -19,7 +19,7 @@ export function StudentLateEntryModal({ opened, onClose }: StudentLateEntryModal
         queryKey: ['students'],
         queryFn: async () => {
             const { data } = await api.get('/students');
-            return data;
+            return data.data || [];
         }
     });
 

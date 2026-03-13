@@ -20,7 +20,7 @@ export function StaffAttendanceModal({ opened, onClose }: StaffAttendanceModalPr
         queryKey: ['staff'],
         queryFn: async () => {
             const { data } = await api.get('/staff');
-            return data;
+            return data.data || [];
         }
     });
 
