@@ -59,6 +59,9 @@ model School {
   users             User[]
   vehicles          Vehicle[]
   visitors          Visitor[]
+  labChemicals      LabChemical[]
+  labBookings       LabBooking[]
+  senProfiles       SenProfile[]
 
   status    SchoolStatus @default(ACTIVE)
   aiEnabled Boolean      @default(false) @map("ai_enabled")
@@ -184,6 +187,7 @@ model ClassSection {
   students           Student[]
   subjectAllocations SubjectAllocation[]
   timetables         Timetable[]
+  labBookings        LabBooking[]
 
   @@map("sections")
 }
@@ -206,6 +210,7 @@ model Subject {
   teacher         Staff?              @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   timetables      Timetable[]
   classLevels     ClassLevel[]        @relation("ClassLevelToSubject")
+  labBookings     LabBooking[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -255,6 +260,7 @@ model Student {
   section           ClassSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   submissions       Submission[]
+  senProfile        SenProfile?
 
   @@unique([schoolId, admissionNo])
   @@map("students")
@@ -298,6 +304,7 @@ model Staff {
   subjectAllocations SubjectAllocation[]
   subjects           Subject[]
   timetables         Timetable[]
+  labBookings        LabBooking[]
 
   @@unique([schoolId, employeeId])
   @@map("staff")
@@ -1184,6 +1191,75 @@ model DiscussionReply {
   thread     DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("discussion_replies")
+}
+
+model LabChemical {
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  name        String
+  formula     String?
+  volume      Float
+  unit        String   @default("L")
+  hazardLevel String   @default("Low")
+  expiryDate  DateTime? @map("expiry_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("lab_chemicals")
+}
+
+model LabBooking {
+  id          String       @id @default(uuid())
+  schoolId    String       @map("school_id")
+  teacherId   String       @map("teacher_id")
+  sectionId   String       @map("section_id")
+  subjectId   String       @map("subject_id")
+  date        DateTime     @db.Date
+  startTime   DateTime     @map("start_time")
+  endTime     DateTime     @map("end_time")
+  experiment  String?
+  status      String       @default("PENDING")
+  notes       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher     Staff        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  section     ClassSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@map("lab_bookings")
+}
+
+model SenProfile {
+  id             String     @id @default(uuid())
+  schoolId       String     @map("school_id")
+  studentId      String     @unique @map("student_id")
+  disabilityType String     @map("disability_type")
+  severity       String     @default("MODERATE")
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school         School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  ieps           IEP[]
+
+  @@map("sen_profiles")
+}
+
+model IEP {
+  id           String     @id @default(uuid())
+  senProfileId String     @map("sen_profile_id")
+  title        String
+  startDate    DateTime   @map("start_date")
+  endDate      DateTime   @map("end_date")
+  goals        Json?
+  accommodations Json?
+  status       String     @default("ACTIVE")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  senProfile   SenProfile @relation(fields: [senProfileId], references: [id], onDelete: Cascade)
+
+  @@map("ieps")
 }
 
 enum UserRole {

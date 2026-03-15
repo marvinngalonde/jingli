@@ -24,19 +24,33 @@ export class LogisticsService {
         });
     }
 
-    async findAllGatePasses(schoolId: string) {
-        return this.prisma.gatePass.findMany({
-            where: { schoolId },
-            include: {
-                student: {
-                    select: { firstName: true, lastName: true, admissionNo: true }
+    async findAllGatePasses(schoolId: string, page: number = 1, limit: number = 7) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.gatePass.findMany({
+                where: { schoolId },
+                include: {
+                    student: {
+                        select: { firstName: true, lastName: true, admissionNo: true }
+                    },
+                    issuer: {
+                        select: { email: true }
+                    }
                 },
-                issuer: {
-                    select: { email: true }
-                }
-            },
-            orderBy: { issuedAt: 'desc' }
-        });
+                orderBy: { issuedAt: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.gatePass.count({ where: { schoolId } })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
     }
 
     // --- Late Arrivals ---
@@ -57,18 +71,32 @@ export class LogisticsService {
         });
     }
 
-    async findAllLateArrivals(schoolId: string) {
-        return this.prisma.lateArrival.findMany({
-            where: { schoolId },
-            include: {
-                student: {
-                    select: { firstName: true, lastName: true, admissionNo: true }
+    async findAllLateArrivals(schoolId: string, page: number = 1, limit: number = 7) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.lateArrival.findMany({
+                where: { schoolId },
+                include: {
+                    student: {
+                        select: { firstName: true, lastName: true, admissionNo: true }
+                    },
+                    recorder: {
+                        select: { email: true }
+                    }
                 },
-                recorder: {
-                    select: { email: true }
-                }
-            },
-            orderBy: { arrivalTime: 'desc' }
-        });
+                orderBy: { arrivalTime: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.lateArrival.count({ where: { schoolId } })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
     }
 }

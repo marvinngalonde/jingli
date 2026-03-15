@@ -117,7 +117,7 @@ export class TeacherService {
         return Array.from(sectionMap.values());
     }
 
-    async getClassStudents(user: any, sectionId: string, page = 1, limit = 20) {
+    async getClassStudents(user: any, sectionId: string, page = 1, limit = 7) {
         const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
         const teacher = await this.prisma.staff.findFirst({
             where: { userId: user.id },

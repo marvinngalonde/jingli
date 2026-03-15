@@ -52,6 +52,8 @@ import { LiveClassesModule } from './live-classes/live-classes.module';
 import { InquiriesModule } from './inquiries/inquiries.module';
 import { SystemAdminModule } from './system-admin/system-admin.module';
 import { GateModule } from './gate/gate.module';
+import { LabModule } from './lab/lab.module';
+import { SenModule } from './sen/sen.module';
 
 @Module({
   imports: [
@@ -106,6 +108,8 @@ import { GateModule } from './gate/gate.module';
     InquiriesModule,
     SystemAdminModule,
     GateModule,
+    LabModule,
+    SenModule,
   ],
   controllers: [AppController],
   providers: [AppService],

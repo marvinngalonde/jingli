@@ -96,6 +96,41 @@ export class SystemAdminService {
         return { data: schools, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
     }
 
+    async getSchoolById(id: string) {
+        const school = await this.prisma.school.findUnique({
+            where: { id },
+            include: {
+                _count: {
+                    select: { students: true, staff: true, users: true, sections: true, subjects: true }
+                }
+            }
+        });
+        if (!school) throw new NotFoundException('School not found');
+        return school;
+    }
+
+    async updateSchool(id: string, data: any) {
+        const school = await this.prisma.school.findUnique({ where: { id } });
+        if (!school) throw new NotFoundException('School not found');
+
+        // Extract safe editable fields
+        const { name, subdomain, contactEmail, contactPhone, address, config, themeColor, logoUrl } = data;
+
+        return this.prisma.school.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name }),
+                ...(subdomain !== undefined && { subdomain }),
+                ...(contactEmail !== undefined && { contactEmail }),
+                ...(contactPhone !== undefined && { contactPhone }),
+                ...(address !== undefined && { address }),
+                ...(config !== undefined && { config }),
+                ...(themeColor !== undefined && { themeColor }),
+                ...(logoUrl !== undefined && { logoUrl }),
+            }
+        });
+    }
+
     async toggleSchoolStatus(id: string, status: 'ACTIVE' | 'SUSPENDED') {
         const school = await this.prisma.school.findUnique({ where: { id } });
         if (!school) throw new NotFoundException('School not found');

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Param, UseGuards, Req } from '@nestjs/common';
 import { GateService } from './gate.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SupabaseGuard } from '../auth/supabase.guard';
@@ -25,6 +25,38 @@ export class GateController {
     @Roles(UserRole.SECURITY_GUARD, UserRole.RECEPTION, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD)
     getLateEntriesToday(@Req() req: any) {
         return this.gateService.getLateEntriesToday(req.user.schoolId);
+    }
+
+    @Get('students/late/all')
+    @ApiOperation({ summary: 'Get all historical late student entries' })
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD)
+    getAllLateEntries(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.gateService.getAllLateEntries(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
+    }
+
+    @Get('students/:studentId/late')
+    @ApiOperation({ summary: 'Get late entry history for a specific student' })
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SCHOOL_HEAD, UserRole.DEPUTY_HEAD, UserRole.PARENT, UserRole.STUDENT)
+    getStudentLateHistory(
+        @Req() req: any,
+        @Param('studentId') studentId: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.gateService.getStudentLateHistory(
+            studentId,
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
     }
 }
 

@@ -26,13 +26,15 @@ import {
     IconClock,
     IconDoorExit,
     IconPrinter,
-    IconDownload
+    IconDownload,
+    IconHistory
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StudentForm } from '../../components/students/StudentForm';
 import { studentService } from '../../services/studentService';
 import { logisticsService } from '../../services/logisticsService';
+import { GateLogTable } from '../../components/gate/GateLogTable';
 import { exportToCsv, exportToPdf } from '../../utils/exportUtils';
 import type { GatePass, LateArrival } from '../../services/logisticsService';
 import type { Student } from '../../types/students';
@@ -59,6 +61,10 @@ export default function Students() {
     const [passOpened, { open: openPass, close: closePass }] = useDisclosure(false);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+    const [page, setPage] = useState(1);
+    const [historyPage, setHistoryPage] = useState(1);
+    const [latePage, setLatePage] = useState(1);
+    const [passPage, setPassPage] = useState(1);
     const queryClient = useQueryClient();
 
     const lateForm = useForm({
@@ -72,21 +78,29 @@ export default function Students() {
     });
 
     const { data: studentsData, isLoading: studentsLoading } = useQuery({
-        queryKey: ['students'],
-        queryFn: () => studentService.getAll()
+        queryKey: ['students', page],
+        queryFn: () => studentService.getAll({ page, limit: 7 })
     });
     const students = studentsData?.data || [];
 
-    const { data: lateArrivals = [], isLoading: lateLoading } = useQuery({
-        queryKey: ['lateArrivals'],
-        queryFn: () => logisticsService.getLateArrivals()
+    const { data: lateResponse, isLoading: lateLoading } = useQuery({
+        queryKey: ['lateArrivals', latePage],
+        queryFn: () => logisticsService.getLateArrivals({ page: latePage, limit: 7 })
     });
+    const lateArrivals = lateResponse?.data || [];
 
-    const { data: gatePasses = [], isLoading: passesLoading } = useQuery({
-        queryKey: ['gatePasses'],
-        queryFn: () => logisticsService.getGatePasses()
+    const { data: passResponse, isLoading: passesLoading } = useQuery({
+        queryKey: ['gatePasses', passPage],
+        queryFn: () => logisticsService.getGatePasses({ page: passPage, limit: 7 })
     });
-    const loading = studentsLoading || lateLoading || passesLoading;
+    const gatePasses = passResponse?.data || [];
+
+    const { data: historyResponse, isLoading: historyLoading } = useQuery({
+        queryKey: ['fullGateHistory', historyPage],
+        queryFn: () => logisticsService.getAllStudentLateEntries({ page: historyPage, limit: 7 })
+    });
+    const fullGateHistory = historyResponse?.data || [];
+    const loading = studentsLoading || lateLoading || passesLoading || historyLoading;
 
 
     // Filter logic for Student List
@@ -333,6 +347,7 @@ export default function Students() {
                         <Tabs.Tab value="list" leftSection={<IconUsers size={16} />}>Student Directory</Tabs.Tab>
                         <Tabs.Tab value="late" leftSection={<IconClock size={16} />}>Late Arrivals</Tabs.Tab>
                         <Tabs.Tab value="gatepass" leftSection={<IconDoorExit size={16} />}>Gate Passes</Tabs.Tab>
+                        <Tabs.Tab value="history" leftSection={<IconHistory size={16} />}>Gate History</Tabs.Tab>
                     </Tabs.List>
 
                     <Tabs.Panel value="list">
@@ -341,6 +356,11 @@ export default function Students() {
                             columns={studentColumns}
                             search={search}
                             onSearchChange={setSearch}
+                            pagination={{
+                                total: studentsData?.totalPages || 1,
+                                page,
+                                onChange: setPage
+                            }}
                             filterSlot={
                                 <Select
                                     placeholder="Status"
@@ -379,6 +399,11 @@ export default function Students() {
                                 { accessor: 'reason', header: 'Reason' },
                                 { accessor: 'reportedBy', header: 'By' },
                             ]}
+                            pagination={{
+                                total: lateResponse?.totalPages || 1,
+                                page: latePage,
+                                onChange: setLatePage
+                            }}
                         />
                     </Tabs.Panel>
 
@@ -415,6 +440,24 @@ export default function Students() {
                                     )
                                 }
                             ]}
+                            pagination={{
+                                total: passResponse?.totalPages || 1,
+                                page: passPage,
+                                onChange: setPassPage
+                            }}
+                        />
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="history">
+                        <GateLogTable
+                            data={fullGateHistory}
+                            loading={historyLoading}
+                            type="student"
+                            pagination={{
+                                total: historyResponse?.totalPages || 1,
+                                page: historyPage,
+                                onChange: setHistoryPage
+                            }}
                         />
                     </Tabs.Panel>
                 </Tabs>

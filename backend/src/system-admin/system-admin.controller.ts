@@ -31,6 +31,13 @@ export class SystemAdminController {
         );
     }
 
+    @Get('schools/:id')
+    @UseGuards(SupabaseGuard, RolesGuard)
+    @Roles(UserRole.SYSTEM_ADMIN)
+    getSchoolById(@Param('id') id: string) {
+        return this.systemAdminService.getSchoolById(id);
+    }
+
     @Patch('schools/:id/status')
     @UseGuards(SupabaseGuard, RolesGuard)
     @Roles(UserRole.SYSTEM_ADMIN)
@@ -39,6 +46,16 @@ export class SystemAdminController {
         @Body('status') status: 'ACTIVE' | 'SUSPENDED',
     ) {
         return this.systemAdminService.toggleSchoolStatus(id, status);
+    }
+
+    @Patch('schools/:id')
+    @UseGuards(SupabaseGuard, RolesGuard)
+    @Roles(UserRole.SYSTEM_ADMIN)
+    updateSchool(
+        @Param('id') id: string,
+        @Body() body: any,
+    ) {
+        return this.systemAdminService.updateSchool(id, body);
     }
 
     @Patch('schools/:id/ai')

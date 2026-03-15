@@ -62,6 +62,12 @@ export class UsersService {
             });
         }
 
+        // Update last login (fire and forget)
+        this.prisma.user.update({
+            where: { id: userId },
+            data: { lastLogin: new Date() }
+        }).catch(err => console.error('Failed to update last login:', err));
+
         return {
             ...user,
             profile,
@@ -84,7 +90,7 @@ export class UsersService {
         });
     }
 
-    async findAll(schoolId: string, page = 1, limit = 20, includeInactive = false) {
+    async findAll(schoolId: string, page = 1, limit = 7, includeInactive = false) {
         const skip = (page - 1) * limit;
         const where: any = {
             schoolId,

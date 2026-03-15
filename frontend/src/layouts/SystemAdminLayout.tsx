@@ -17,7 +17,11 @@ import {
     IconLayoutSidebarLeftExpand,
     IconWorld,
     IconKey,
-    IconUserEdit
+    IconUserEdit,
+    IconReceipt,
+    IconShieldCheck,
+    IconActivity,
+    IconChartLine
 } from '@tabler/icons-react';
 
 import logoFull from '../assets/logos/logo-trans.png';
@@ -38,11 +42,38 @@ export function SystemAdminLayout() {
     const location = useLocation();
     const { user, logout, fetchProfile } = useAuth();
 
-    const links = [
-        { icon: IconDashboard, label: 'Global Dashboard', to: '/system-admin' },
-        { icon: IconBuildingBank, label: 'Manage Schools', to: '/system-admin/schools' },
-        { icon: IconUsersGroup, label: 'Global Users', to: '/system-admin/users' },
-        { icon: IconSettings, label: 'Platform Settings', to: '/system-admin/settings' },
+    const navGroups = [
+        {
+            title: 'Analytics',
+            icon: IconChartLine,
+            links: [
+                { icon: IconDashboard, label: 'Global Dashboard', to: '/system-admin' }
+            ]
+        },
+        {
+            title: 'Tenants',
+            icon: IconBuildingBank,
+            links: [
+                { icon: IconBuildingBank, label: 'Manage Schools', to: '/system-admin/schools' },
+                { icon: IconUsersGroup, label: 'Global Users', to: '/system-admin/users' }
+            ]
+        },
+        {
+            title: 'Financials',
+            icon: IconReceipt,
+            links: [
+                { icon: IconReceipt, label: 'Billing & Subscriptions', to: '/system-admin/billing' }
+            ]
+        },
+        {
+            title: 'System',
+            icon: IconSettings,
+            links: [
+                { icon: IconShieldCheck, label: 'Audit Logs', to: '/system-admin/audit-logs' },
+                { icon: IconActivity, label: 'System Health', to: '/system-admin/health' },
+                { icon: IconSettings, label: 'Platform Settings', to: '/system-admin/settings' }
+            ]
+        }
     ];
 
     const handlePasswordChange = async () => {
@@ -118,18 +149,18 @@ export function SystemAdminLayout() {
                         variant={isActive ? 'filled' : 'transparent'}
                         color={isActive ? 'indigo.7' : 'transparent'}
                         c={isActive ? 'white' : 'gray.4'}
-                        size="md"
+                        size="sm"
                         radius="md"
                     >
-                        <link.icon size={18} stroke={1.5} />
+                        <link.icon size={16} stroke={1.5} />
                     </ThemeIcon>
                 }
                 active={isActive}
                 onClick={() => navigate(link.to)}
                 variant="filled"
                 color="indigo.9"
-                py={10}
-                my={4}
+                py={8}
+                my={2}
                 style={{
                     borderRadius: 'var(--mantine-radius-md)',
                     textDecoration: 'none',
@@ -137,6 +168,25 @@ export function SystemAdminLayout() {
                 }}
                 className="sysadmin-navlink"
             />
+        );
+    };
+
+    const renderNavGroup = (group: any, index: number) => {
+        if (!desktopOpened) {
+            return (
+                <Box key={index} mb="md">
+                    {group.links.map(renderNavLink)}
+                </Box>
+            );
+        }
+        
+        return (
+            <Box key={index} mb="lg">
+                <Text size="xs" fw={700} c="indigo.3" tt="uppercase" px="sm" mb={8} style={{ letterSpacing: 0.5 }}>
+                    {group.title}
+                </Text>
+                {group.links.map((link: any) => renderNavLink(link))}
+            </Box>
         );
     };
 
@@ -241,15 +291,9 @@ export function SystemAdminLayout() {
                     )}
                 </AppShell.Section>
 
-                {/* Nav Links */}
                 <AppShell.Section grow component={ScrollArea} mt="sm" scrollbarSize={6}>
                     <Box p="sm">
-                        {desktopOpened && (
-                            <Text size="xs" fw={700} c="indigo.3" tt="uppercase" px="sm" mb={8} style={{ letterSpacing: 0.5 }}>
-                                Platform Actions
-                            </Text>
-                        )}
-                        {links.map(renderNavLink)}
+                        {navGroups.map((group, idx) => renderNavGroup(group, idx))}
                     </Box>
                 </AppShell.Section>
 

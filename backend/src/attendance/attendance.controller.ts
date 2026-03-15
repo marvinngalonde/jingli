@@ -91,4 +91,36 @@ export class AttendanceController {
     getStaffAttendanceToday(@Req() req: any) {
         return this.attendanceService.getStaffAttendanceToday(req.user.schoolId);
     }
+
+    @Get('staff/logs')
+    @ApiOperation({ summary: 'Get all staff attendance logs' })
+    @Roles(UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    getAllStaffAttendanceLogs(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.attendanceService.getAllStaffAttendanceLogs(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
+    }
+
+    @Get('staff/:staffId/logs')
+    @ApiOperation({ summary: 'Get attendance history for a specific staff member' })
+    @Roles(UserRole.HR_MANAGER, UserRole.SCHOOL_HEAD, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    getStaffAttendanceHistory(
+        @Req() req: any,
+        @Param('staffId') staffId: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.attendanceService.getStaffAttendanceHistory(
+            staffId,
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
+    }
 }

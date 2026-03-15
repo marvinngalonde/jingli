@@ -128,6 +128,10 @@ export function Login() {
                             Login to Dashboard
                         </Button>
 
+                        <Text ta="center" mt="md" size="xs" c="dimmed">
+                            By logging in, you agree to our <Anchor href="/terms" target="_blank" size="xs">Terms of Service</Anchor> and <Anchor href="/privacy" target="_blank" size="xs">Privacy Policy</Anchor>.
+                        </Text>
+
                         <Text ta="center" mt="xl" size="sm">
                             Need an account?{' '}
                             <Anchor component="button" type="button" fw={700} c="brand" onClick={() => notifications.show({ title: 'Contact Admin', message: 'Please contact your school administrator to get an account.', color: 'blue' })}>

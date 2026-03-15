@@ -192,6 +192,7 @@ export function DashboardLayout() {
             roles: ['admin', 'teacher', 'reception', 'nurse', 'hostel_warden'],
             links: [
                 { icon: IconHeartbeat, label: 'Health', to: '/health', roles: ['admin', 'reception', 'nurse'] },
+                { icon: IconUsers, label: 'Parents / Guardians', to: '/parents', roles: ['admin', 'reception'] },
                 { icon: IconShield, label: 'Discipline', to: '/discipline', roles: ['admin', 'teacher'] },
                 { icon: IconHome2, label: 'Hostel', to: '/hostel', roles: ['admin', 'reception', 'hostel_warden'] },
             ]

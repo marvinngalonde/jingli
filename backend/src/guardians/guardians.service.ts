@@ -63,7 +63,7 @@ export class GuardiansService {
         });
     }
 
-    async findAll(schoolId: string, page = 1, limit = 20) {
+    async findAll(schoolId: string, page = 1, limit = 7) {
         const skip = (page - 1) * limit;
         const where = { schoolId };
 

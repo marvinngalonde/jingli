@@ -255,9 +255,21 @@ export default function SchoolManager() {
                             <Table.Tr>
                                 <Table.Td colSpan={7}>
                                     <Center py="xl">
-                                        <Stack align="center" gap="xs">
-                                            <IconBuildingBank size={36} color="lightgray" />
-                                            <Text c="dimmed">No schools found{search ? ' matching your search' : ''}.</Text>
+                                        <Stack align="center" gap="sm" py="3rem">
+                                            <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                                                <IconBuildingBank size={32} stroke={1.5} />
+                                            </ThemeIcon>
+                                            <Title order={4} c="dark.7" mt="sm">No schools configured</Title>
+                                            <Text c="dimmed" size="sm" maw={300} ta="center">
+                                                {search 
+                                                    ? "We couldn't find any schools matching your search query. Try adjusting your filters." 
+                                                    : "Your platform currently has no active tenant schools. Start by provisioning a new school to grow your network."}
+                                            </Text>
+                                            {!search && (
+                                                <Button mt="md" color="indigo" variant="light" leftSection={<IconPlus size={16} />}>
+                                                    Provision First School
+                                                </Button>
+                                            )}
                                         </Stack>
                                     </Center>
                                 </Table.Td>

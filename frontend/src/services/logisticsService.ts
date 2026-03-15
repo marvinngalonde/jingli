@@ -34,6 +34,14 @@ export interface LateArrival {
     };
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
 export interface CreateGatePassDto {
     studentId: string;
     reason: string;
@@ -48,8 +56,8 @@ export interface CreateLateArrivalDto {
 
 export const logisticsService = {
     // --- Gate Passes ---
-    getGatePasses: async (): Promise<GatePass[]> => {
-        const response = await api.get('/logistics/gate-pass');
+    getGatePasses: async (params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<GatePass>> => {
+        const response = await api.get('/logistics/gate-pass', { params });
         return response.data;
     },
 
@@ -59,13 +67,24 @@ export const logisticsService = {
     },
 
     // --- Late Arrivals ---
-    getLateArrivals: async (): Promise<LateArrival[]> => {
-        const response = await api.get('/logistics/late-arrival');
+    getLateArrivals: async (params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<LateArrival>> => {
+        const response = await api.get('/logistics/late-arrival', { params });
         return response.data;
     },
 
     logLateArrival: async (dto: CreateLateArrivalDto): Promise<LateArrival> => {
         const response = await api.post('/logistics/late-arrival', dto);
+        return response.data;
+    },
+
+    // --- Student Gate History (New Endpoints) ---
+    getAllStudentLateEntries: async (params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<LateArrival>> => {
+        const response = await api.get('/gate/students/late/all', { params });
+        return response.data;
+    },
+
+    getStudentLateHistory: async (studentId: string, params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<LateArrival>> => {
+        const response = await api.get(`/gate/students/${studentId}/late`, { params });
         return response.data;
     }
 };

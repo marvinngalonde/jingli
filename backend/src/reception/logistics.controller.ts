@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LogisticsService } from './logistics.service';
 import { CreateGatePassDto, CreateLateArrivalDto } from './dto/logistics.dto';
@@ -19,8 +19,16 @@ export class LogisticsController {
 
     @Get('gate-pass')
     @ApiOperation({ summary: 'List all gate passes' })
-    async getPasses(@Req() req: any) {
-        return this.logisticsService.findAllGatePasses(req.user.schoolId);
+    async getPasses(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.logisticsService.findAllGatePasses(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
     }
 
     @Post('late-arrival')
@@ -31,7 +39,15 @@ export class LogisticsController {
 
     @Get('late-arrival')
     @ApiOperation({ summary: 'List all late arrivals' })
-    async getLateArrivals(@Req() req: any) {
-        return this.logisticsService.findAllLateArrivals(req.user.schoolId);
+    async getLateArrivals(
+        @Req() req: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.logisticsService.findAllLateArrivals(
+            req.user.schoolId,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 7
+        );
     }
 }

@@ -23,7 +23,7 @@ export class VisitorsService {
         });
     }
 
-    async findAll(schoolId: string, status?: VisitorStatus, page = 1, limit = 20) {
+    async findAll(schoolId: string, status?: VisitorStatus, page = 1, limit = 7) {
         const where: any = { schoolId };
         if (status) {
             where.status = status;

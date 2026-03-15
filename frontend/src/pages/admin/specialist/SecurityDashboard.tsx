@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Container, Grid, Paper, Text, Stack, Card, Group, Button, Badge, ThemeIcon, Table, ActionIcon, ScrollArea } from '@mantine/core';
-import { IconShieldCheck, IconUsers, IconUserExclamation, IconCar, IconPlus } from '@tabler/icons-react';
+import { IconShieldCheck, IconUsers, IconUserExclamation, IconCar, IconPlus, IconDeviceTablet } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { StaffAttendanceModal } from '../../../components/gate/StaffAttendanceModal';
 import { StudentLateEntryModal } from '../../../components/gate/StudentLateEntryModal';
 
+import { useNavigate } from 'react-router-dom';
+
 export function SecurityDashboard() {
+    const navigate = useNavigate();
     const [staffModalOpen, setStaffModalOpen] = useState(false);
     const [studentLateModalOpen, setStudentLateModalOpen] = useState(false);
 
@@ -78,6 +81,13 @@ export function SecurityDashboard() {
                         onClick={() => setStaffModalOpen(true)}
                     >
                         Staff In / Out
+                    </Button>
+                    <Button
+                        leftSection={<IconDeviceTablet size={16} />}
+                        variant="light"
+                        onClick={() => navigate('/dashboard/gate-kiosk')}
+                    >
+                        Launch Kiosk Mode
                     </Button>
                 </Group>
             </Group>

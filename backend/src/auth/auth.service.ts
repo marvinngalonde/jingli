@@ -14,14 +14,14 @@ export class AuthService {
                     { email: username },
                 ]
             },
-            select: { email: true }
+            select: { email: true, lastLogin: true }
         });
 
         if (!user || !user.email) {
             throw new BadRequestException('User not found');
         }
 
-        return { email: user.email };
+        return { email: user.email, isFirstLogin: user.lastLogin === null };
     }
 
     async syncUser(user: any, metadata: any) {

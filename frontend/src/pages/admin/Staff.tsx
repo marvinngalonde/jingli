@@ -9,14 +9,17 @@ import {
     Box,
     Badge,
     Select,
+    Tabs,
     rem
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconFilter, IconDownload } from '@tabler/icons-react';
+import { IconPlus, IconFilter, IconDownload, IconUsers, IconDoorEnter } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { StaffForm } from '../../components/staff/StaffForm';
 import { staffService } from '../../services/staffService';
+import { attendanceService } from '../../services/attendanceService';
+import { GateLogTable } from '../../components/gate/GateLogTable';
 import { exportToCsv, exportToPdf } from '../../utils/exportUtils';
 import type { Staff } from '../../types/staff'; // Assuming type exists
 import { PageHeader } from '../../components/common/PageHeader';
@@ -31,12 +34,22 @@ export default function StaffPage() {
     const [deptFilter, setDeptFilter] = useState<string | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
     const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+    const [activeTab, setActiveTab] = useState<string | null>('list');
     const queryClient = useQueryClient();
+
+    const [logsPage, setLogsPage] = useState(1);
 
     const { data: staffList, isLoading } = useQuery({
         queryKey: ['staff', page],
-        queryFn: () => staffService.getAll({ page, limit: 20 }),
+        queryFn: () => staffService.getAll({ page, limit: 7 }),
     });
+
+    const { data: gateLogsResponse, isLoading: logsLoading } = useQuery({
+        queryKey: ['staffGateLogs', logsPage],
+        queryFn: () => attendanceService.getStaffGateLogs({ page: logsPage, limit: 7 }),
+    });
+
+    const gateLogs = gateLogsResponse?.data || [];
 
     useEffect(() => {
         let result = staffList?.data || [];
@@ -182,29 +195,55 @@ export default function StaffPage() {
                 }
             />
 
-            <DataTable
-                data={filteredData}
-                columns={columns}
-                loading={isLoading || createMutation.isPending || updateMutation.isPending}
-                search={search}
-                onSearchChange={setSearch}
-                pagination={{
-                    total: staffList?.totalPages || 1,
-                    page: page,
-                    onChange: setPage
-                }}
-                filterSlot={
-                    <Select
-                        placeholder="Department"
-                        data={['Administration', 'Science', 'Mathematics', 'English', 'Arts', 'Sports', 'IT']}
-                        value={deptFilter}
-                        onChange={setDeptFilter}
-                        clearable
-                        leftSection={<IconFilter style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
-                        w={150}
+            <Tabs value={activeTab} onChange={setActiveTab} radius="md" mt="md">
+                <Tabs.List mb="md">
+                    <Tabs.Tab value="list" leftSection={<IconUsers size={16} />}>
+                        Directory
+                    </Tabs.Tab>
+                    <Tabs.Tab value="logs" leftSection={<IconDoorEnter size={16} />}>
+                        Gate Entry Logs
+                    </Tabs.Tab>
+                </Tabs.List>
+
+                <Tabs.Panel value="list">
+                    <DataTable
+                        data={filteredData}
+                        columns={columns}
+                        loading={isLoading || createMutation.isPending || updateMutation.isPending}
+                        search={search}
+                        onSearchChange={setSearch}
+                        pagination={{
+                            total: staffList?.totalPages || 1,
+                            page: page,
+                            onChange: setPage
+                        }}
+                        filterSlot={
+                            <Select
+                                placeholder="Department"
+                                data={['Administration', 'Science', 'Mathematics', 'English', 'Arts', 'Sports', 'IT']}
+                                value={deptFilter}
+                                onChange={setDeptFilter}
+                                clearable
+                                leftSection={<IconFilter style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+                                w={150}
+                            />
+                        }
                     />
-                }
-            />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="logs">
+                    <GateLogTable
+                        data={gateLogs}
+                        loading={logsLoading}
+                        type="staff"
+                        pagination={{
+                            total: gateLogsResponse?.totalPages || 1,
+                            page: logsPage,
+                            onChange: setLogsPage
+                        }}
+                    />
+                </Tabs.Panel>
+            </Tabs>
 
             <Drawer opened={opened} onClose={closeDrawer} title={selectedStaff ? "Edit Staff" : "Add New Staff"} position="right" size="md">
                 <Box p={0}>

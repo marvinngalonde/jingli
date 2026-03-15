@@ -68,7 +68,7 @@ export class SalariesService {
         return { count, message: `Created ${count} payroll entries for ${month}/${year}` };
     }
 
-    async findAll(schoolId: string, month?: number, year?: number, page = 1, limit = 20) {
+    async findAll(schoolId: string, month?: number, year?: number, page = 1, limit = 7) {
         const where: any = { schoolId };
         if (month) where.month = month;
         if (year) where.year = year;

@@ -1,6 +1,6 @@
 import {
     Box, Group, Title, Text, Table, Badge, TextInput, Card, Skeleton,
-    Stack, Center, Pagination, Avatar, Tooltip, Select, Menu, ActionIcon, Modal, Button
+    Stack, Center, Pagination, Avatar, Tooltip, Select, Menu, ActionIcon, Modal, Button, ThemeIcon
 } from '@mantine/core';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
@@ -182,9 +182,16 @@ export default function GlobalUsers() {
                             <Table.Tr>
                                 <Table.Td colSpan={7}>
                                     <Center py="xl">
-                                        <Stack align="center" gap="xs">
-                                            <IconUsers size={36} color="lightgray" />
-                                            <Text c="dimmed">No users found.</Text>
+                                        <Stack align="center" gap="sm" py="3rem">
+                                            <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                                                <IconUsers size={32} stroke={1.5} />
+                                            </ThemeIcon>
+                                            <Title order={4} c="dark.7" mt="sm">No users found</Title>
+                                            <Text c="dimmed" size="sm" maw={300} ta="center">
+                                                {search 
+                                                    ? "We couldn't find any users matching your search query. Try adjusting your search term." 
+                                                    : "There are currently no users actively registered across any of your tenant schools."}
+                                            </Text>
                                         </Stack>
                                     </Center>
                                 </Table.Td>

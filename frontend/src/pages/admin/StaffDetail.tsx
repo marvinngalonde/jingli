@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
     Container,
     Grid,
@@ -27,11 +28,14 @@ import {
     IconBuilding,
     IconArrowLeft,
     IconBriefcase,
-    IconSchool
+    IconSchool,
+    IconDoorEnter
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { staffService } from '../../services/staffService';
+import { attendanceService } from '../../services/attendanceService';
+import { GateLogTable } from '../../components/gate/GateLogTable';
 import type { Staff } from '../../types/staff';
 import { format } from 'date-fns';
 import { StaffForm } from '../../components/staff/StaffForm';
@@ -43,6 +47,7 @@ export default function StaffDetail() {
     const [staff, setStaff] = useState<Staff | null>(null);
     const [loading, setLoading] = useState(true);
     const [opened, { open, close }] = useDisclosure(false);
+    const [logsPage, setLogsPage] = useState(1);
 
     useEffect(() => {
         if (id) loadStaff(id);
@@ -61,6 +66,13 @@ export default function StaffDetail() {
             setLoading(false);
         }
     };
+
+    const { data: logsResponse, isLoading: logsLoading } = useQuery({
+        queryKey: ['staffGateLogs', id, logsPage],
+        queryFn: () => attendanceService.getStaffGateHistory(id!, { page: logsPage, limit: 7 }),
+        enabled: !!id
+    });
+    const gateLogs = logsResponse?.data || [];
 
     const handleUpdate = async (values: any) => {
         if (!staff) return;
@@ -157,6 +169,7 @@ export default function StaffDetail() {
                                 <Tabs.Tab value="overview" leftSection={<IconBuilding size={14} />}>Overview</Tabs.Tab>
                                 <Tabs.Tab value="classes" leftSection={<IconSchool size={14} />}>Classes & Subjects</Tabs.Tab>
                                 <Tabs.Tab value="schedule" leftSection={<IconCalendar size={14} />}>Schedule</Tabs.Tab>
+                                <Tabs.Tab value="gate" leftSection={<IconDoorEnter size={14} />}>Gate Logs</Tabs.Tab>
                             </Tabs.List>
 
                             <Tabs.Panel value="overview" pt="xl">
@@ -177,6 +190,19 @@ export default function StaffDetail() {
                                 <Title order={5} mb="md">Weekly Timetable</Title>
                                 <Text c="dimmed">Weekly schedule grid will appear here.</Text>
                                 {/* Future: Timetable Grid */}
+                            </Tabs.Panel>
+
+                            <Tabs.Panel value="gate" pt="xl">
+                                <GateLogTable
+                                    data={gateLogs}
+                                    loading={logsLoading}
+                                    type="staff"
+                                    pagination={{
+                                        total: logsResponse?.totalPages || 1,
+                                        page: logsPage,
+                                        onChange: setLogsPage
+                                    }}
+                                />
                             </Tabs.Panel>
                         </Tabs>
                     </Paper>

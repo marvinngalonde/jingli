@@ -21,7 +21,7 @@ export class ExpensesService {
         });
     }
 
-    async findAll(schoolId: string, category?: string, status?: string, page = 1, limit = 20) {
+    async findAll(schoolId: string, category?: string, status?: string, page = 1, limit = 7) {
         const where: any = { schoolId };
         if (category) where.category = category;
         if (status) where.status = status;

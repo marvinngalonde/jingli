@@ -27,7 +27,7 @@ export class LibraryController {
     @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.LIBRARIAN, UserRole.SUPER_ADMIN, UserRole.SUBJECT_TEACHER, UserRole.CLASS_TEACHER, UserRole.STUDENT)
     findAllBooks(@Req() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
-        return this.libraryService.findAllBooks(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
+        return this.libraryService.findAllBooks(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 7);
     }
 
     @Patch('books/:id')
@@ -64,6 +64,6 @@ export class LibraryController {
     @ApiQuery({ name: 'limit', required: false })
     @Roles(UserRole.LIBRARIAN, UserRole.SUPER_ADMIN)
     findAllCirculation(@Req() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
-        return this.libraryService.findAllCirculation(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20);
+        return this.libraryService.findAllCirculation(req.user.schoolId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 7);
     }
 }

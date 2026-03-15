@@ -270,4 +270,70 @@ export class AttendanceService {
             }
         });
     }
+
+    async getStaffAttendanceHistory(staffId: string, schoolId: string, page: number = 1, limit: number = 7) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.staffAttendance.findMany({
+                where: { staffId, schoolId },
+                include: {
+                    staff: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            employeeId: true
+                        }
+                    }
+                },
+                orderBy: { checkInTime: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.staffAttendance.count({
+                where: { staffId, schoolId }
+            })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
+    }
+
+    async getAllStaffAttendanceLogs(schoolId: string, page: number = 1, limit: number = 20) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.staffAttendance.findMany({
+                where: { schoolId },
+                include: {
+                    staff: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            employeeId: true,
+                            designation: true,
+                            department: true
+                        }
+                    }
+                },
+                orderBy: { checkInTime: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.staffAttendance.count({
+                where: { schoolId }
+            })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
+    }
 }

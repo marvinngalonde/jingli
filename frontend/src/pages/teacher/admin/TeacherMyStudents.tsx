@@ -71,7 +71,7 @@ export default function TeacherMyStudents() {
         try {
             setStudentsLoading(true);
             const res = await api.get(`/teacher/classes/${sectionId}/students`, {
-                params: { page: pageNum, limit: 20 }
+                params: { page: pageNum, limit: 7 }
             });
             // The teacher endpoint isn't using paginated structure yet, wait.
             // Oh, teacher endpoint is `/teacher/classes/:sectionId/students` not `/students`.

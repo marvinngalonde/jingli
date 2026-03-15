@@ -55,5 +55,16 @@ export const attendanceService = {
     update: async (id: string, status: AttendanceStatus, remarks?: string) => {
         const response = await api.patch(`/attendance/${id}`, { status, remarks });
         return response.data;
+    },
+
+    // --- Staff Gate Logs ---
+    getStaffGateLogs: async (params: { page?: number; limit?: number } = {}): Promise<any> => {
+        const response = await api.get('/attendance/staff/logs', { params });
+        return response.data;
+    },
+
+    getStaffGateHistory: async (staffId: string, params: { page?: number; limit?: number } = {}): Promise<any> => {
+        const response = await api.get(`/attendance/staff/${staffId}/logs`, { params });
+        return response.data;
     }
 };

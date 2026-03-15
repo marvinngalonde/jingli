@@ -222,7 +222,7 @@ export class AiService {
                             parameters: {
                                 type: "OBJECT",
                                 properties: {
-                                    entityType: { type: "STRING", enum: ["STUDENT", "STAFF", "VISITOR"], description: "The type of entity to import." },
+                                    entityType: { type: "STRING", enum: ["STUDENT", "STAFF", "VISITOR", "GUARDIAN"], description: "The type of entity to import." },
                                     records: {
                                         type: "ARRAY",
                                         items: {
@@ -239,6 +239,8 @@ export class AiService {
                                                 name: { type: "STRING" },
                                                 purpose: { type: "STRING" },
                                                 idProof: { type: "STRING" },
+                                                relationship: { type: "STRING", description: "Relationship to student (e.g. Mother, Father, Uncle)" },
+                                                occupation: { type: "STRING" },
                                                 sectionQuery: { type: "STRING", description: "Human readable class/section name like 'Form 1 Blue' or the exact section ID." }
                                             }
                                         }
@@ -317,12 +319,16 @@ export class AiService {
                                         * Update marks (updateStudentMark) for Exam Results, CALA, or Assignments.
                                         * Predictive insights (predictStudentRisk) to find at-risk students.
                                         * Behavioral analysis (summarizeStudentBehavior).
+                                    - Family Management:
+                                        * List guardians (getGuardians).
+                                        * Extensive guardian details (getGuardianDetails).
+                                        * Update guardian profiles (updateGuardian).
                                     - Automation:
                                         * Quiz Generation (generateQuiz).
                                         * Bulk Enrollment (bulkEnrollStudents).
                                         * Notice Drafting (draftOfficialNotice).
                                         * Learning resource guidance (suggestLearningResources).
-                                        * Data Import (importData) for extracting parsed lists of Students, Staff, and Visitors from provided context.
+                                        * Data Import (importData) for extracting parsed lists of Students, Staff, Visitors, and Guardians from provided context.
                                         * Add Subjects (addSubjects) to the curriculum from a list or description.
                                         * Add Classes (addClasses) to build the academic structure with class levels and their sections.
                                     - Analysis: Financial health (analyzeFinancialHealth), Executive summaries (generateExecutiveSummary).
@@ -564,6 +570,33 @@ export class AiService {
                     } else if (call.name === "addClasses") {
                         const args = call.args as any;
                         const result = await this.handleAddClasses(context.schoolId!, args.classes);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "getGuardians") {
+                        const args = call.args as any;
+                        const result = await this.handleGetGuardians(context.schoolId!, args.page || 1, args.limit || 7);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "getGuardianDetails") {
+                        const args = call.args as any;
+                        const result = await this.handleGetGuardianDetails(args.guardianId);
+                        toolResults.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: { content: result }
+                            }
+                        });
+                    } else if (call.name === "updateGuardian") {
+                        const args = call.args as any;
+                        const result = await this.handleUpdateGuardian(args.guardianId, args);
                         toolResults.push({
                             functionResponse: {
                                 name: call.name,
@@ -1092,6 +1125,57 @@ export class AiService {
                     });
                     results.push(visitor.name);
                 }
+            } else if (entityType === "GUARDIAN") {
+                for (const r of records) {
+                    const username = `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}`;
+                    const email = r.email || `${username}@parent.com`;
+
+                    const supabaseClient = this.supabase.getClient();
+                    const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
+                        email: email,
+                        password: 'Temporary123!',
+                        email_confirm: true,
+                        user_metadata: {
+                            role: 'PARENT',
+                            username: username,
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            schoolId: schoolId,
+                        }
+                    });
+
+                    if (authError && !authError.message.includes('already registered')) {
+                        console.error('Supabase Parent Creation Error:', authError);
+                        continue;
+                    }
+
+                    const supabaseUid = authUser?.user?.id;
+
+                    const user = await this.prisma.user.create({
+                        data: {
+                            schoolId,
+                            username,
+                            email,
+                            passwordHash: 'SUPABASE_MANAGED',
+                            role: 'PARENT',
+                            supabaseUid,
+                            status: 'ACTIVE'
+                        }
+                    });
+                    const guardian = await this.prisma.guardian.create({
+                        data: {
+                            schoolId,
+                            userId: user.id,
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                            phone: r.phone || '',
+                            relationship: r.relationship || 'Guardian',
+                            address: r.address || '',
+                            occupation: r.occupation || ''
+                        }
+                    });
+                    results.push(`${guardian.firstName} ${guardian.lastName}`);
+                }
             }
 
             return `Successfully imported ${results.length} ${entityType.toLowerCase()}(s): ${results.join(', ')}`;
@@ -1445,6 +1529,94 @@ export class AiService {
         }
     }
 
+    private async handleGetGuardians(schoolId: string, page: number, limit: number) {
+        try {
+            const skip = (page - 1) * limit;
+            const guardians = await this.prisma.guardian.findMany({
+                where: { schoolId },
+                include: {
+                    user: true,
+                    students: {
+                        include: { student: true }
+                    }
+                },
+                skip,
+                take: limit,
+                orderBy: { lastName: 'asc' }
+            });
+
+            if (guardians.length === 0) return "No guardians found.";
+
+            return guardians.map(g => ({
+                id: g.id,
+                name: `${g.firstName} ${g.lastName}`,
+                relationship: g.relationship,
+                email: g.user.email,
+                phone: g.phone,
+                students: g.students.map(s => `${s.student.firstName} ${s.student.lastName} (${s.student.admissionNo})`)
+            }));
+        } catch (error) {
+            console.error(error);
+            return "Error fetching guardians.";
+        }
+    }
+
+    private async handleGetGuardianDetails(guardianId: string) {
+        try {
+            const guardian = await this.prisma.guardian.findUnique({
+                where: { id: guardianId },
+                include: {
+                    user: true,
+                    students: {
+                        include: { student: { include: { section: { include: { classLevel: true } } } } }
+                    }
+                }
+            });
+
+            if (!guardian) return "Guardian not found.";
+
+            return {
+                id: guardian.id,
+                name: `${guardian.firstName} ${guardian.lastName}`,
+                email: guardian.user.email,
+                phone: guardian.phone,
+                relationship: guardian.relationship,
+                address: guardian.address,
+                occupation: guardian.occupation,
+                students: guardian.students.map(s => ({
+                    id: s.student.id,
+                    name: `${s.student.firstName} ${s.student.lastName}`,
+                    admissionNo: s.student.admissionNo,
+                    class: `${s.student.section.classLevel.name} ${s.student.section.name}`
+                }))
+            };
+        } catch (error) {
+            console.error(error);
+            return "Error fetching guardian details.";
+        }
+    }
+
+    private async handleUpdateGuardian(guardianId: string, data: any) {
+        try {
+            const { firstName, lastName, phone, occupation, address } = data;
+            const guardian = await this.prisma.guardian.update({
+                where: { id: guardianId },
+                data: {
+                    firstName,
+                    lastName,
+                    phone,
+                    occupation,
+                    address
+                }
+            });
+
+            return `Partially updated profile for guardian: ${guardian.firstName} ${guardian.lastName}.`;
+        } catch (error) {
+            console.error(error);
+            return "Error updating guardian profile.";
+        }
+    }
+
     async getHistory(userId: string) {
         return this.prisma.aiChatSession.findMany({
             where: { userId },
@@ -1534,6 +1706,9 @@ export class AiService {
             case 'getStudentsInSection':
             case 'getTeacherSchedule':
             case 'generateQuiz':
+            case 'getGuardians':
+            case 'getGuardianDetails':
+            case 'updateGuardian':
                 return academicRoles.includes(role);
 
             case 'analyzeFinancialHealth':

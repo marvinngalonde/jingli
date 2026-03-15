@@ -102,7 +102,7 @@ export class StudentsService {
         });
     }
 
-    async findAll(schoolId: string, page = 1, limit = 20, sectionId?: string, teacherId?: string) {
+    async findAll(schoolId: string, page = 1, limit = 7, sectionId?: string, teacherId?: string) {
         const where: any = {
             schoolId,
             user: { status: 'ACTIVE' }

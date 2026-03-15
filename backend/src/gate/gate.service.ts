@@ -48,5 +48,65 @@ export class GateService {
             orderBy: { arrivalTime: 'desc' }
         });
     }
+
+    async getAllLateEntries(schoolId: string, page: number = 1, limit: number = 7) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.lateArrival.findMany({
+                where: { schoolId },
+                include: {
+                    student: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            admissionNo: true,
+                            section: {
+                                include: {
+                                    classLevel: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { arrivalTime: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.lateArrival.count({
+                where: { schoolId }
+            })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
+    }
+
+    async getStudentLateHistory(studentId: string, schoolId: string, page: number = 1, limit: number = 20) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.lateArrival.findMany({
+                where: { studentId, schoolId },
+                orderBy: { arrivalTime: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.lateArrival.count({
+                where: { studentId, schoolId }
+            })
+        ]);
+
+        return {
+            data,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        };
+    }
 }
 

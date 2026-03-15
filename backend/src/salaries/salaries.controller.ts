@@ -47,7 +47,7 @@ export class SalariesController {
             month ? parseInt(month) : undefined,
             year ? parseInt(year) : undefined,
             page ? parseInt(page) : 1,
-            limit ? parseInt(limit) : 20,
+            limit ? parseInt(limit) : 7,
         );
     }
 

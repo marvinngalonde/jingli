@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Title,
     Text,
@@ -27,11 +28,14 @@ import {
     IconArrowLeft,
     IconFileAnalytics,
     IconCurrencyDollar,
-    IconCheckupList
+    IconCheckupList,
+    IconDoorEnter
 } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { studentService } from '../../services/studentService';
+import { logisticsService } from '../../services/logisticsService';
+import { GateLogTable } from '../../components/gate/GateLogTable';
 import type { Student } from '../../types/students';
 
 // Common Components
@@ -55,6 +59,7 @@ export default function StudentDetail() {
     const [opened, { open, close }] = useDisclosure(false);
     const [student, setStudent] = useState<Student | null>(null);
     const [loading, setLoading] = useState(true);
+    const [logsPage, setLogsPage] = useState(1);
 
     useEffect(() => {
         if (id) {
@@ -75,6 +80,13 @@ export default function StudentDetail() {
             setLoading(false);
         }
     };
+
+    const { data: logsResponse, isLoading: logsLoading } = useQuery({
+        queryKey: ['studentGateLogs', id, logsPage],
+        queryFn: () => logisticsService.getStudentLateHistory(id!, { page: logsPage, limit: 7 }),
+        enabled: !!id
+    });
+    const gateLogs = logsResponse?.data || [];
 
     const handleUpdate = async (values: any) => {
         if (!student) return;
@@ -261,6 +273,9 @@ export default function StudentDetail() {
                             <Tabs.Tab value="eca" leftSection={<IconSchool size={16} />}>
                                 Activities
                             </Tabs.Tab>
+                            <Tabs.Tab value="gate" leftSection={<IconDoorEnter size={16} />}>
+                                Gate Logs
+                            </Tabs.Tab>
                         </Tabs.List>
 
                         <Tabs.Panel value="overview">
@@ -296,6 +311,18 @@ export default function StudentDetail() {
                         </Tabs.Panel>
                         <Tabs.Panel value="eca">
                             <ECARecord />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="gate">
+                            <GateLogTable
+                                data={gateLogs}
+                                loading={logsLoading}
+                                type="student"
+                                pagination={{
+                                    total: logsResponse?.totalPages || 1,
+                                    page: logsPage,
+                                    onChange: setLogsPage
+                                }}
+                            />
                         </Tabs.Panel>
                     </Tabs>
                 </Grid.Col>

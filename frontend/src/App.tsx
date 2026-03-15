@@ -13,10 +13,13 @@ import ClassDetail from './pages/admin/ClassDetail';
 import Subjects from './pages/admin/Subjects';
 import SubjectDetail from './pages/admin/SubjectDetail';
 import Timetable from './pages/admin/Timetable';
+const Library = lazy(() => import('./pages/admin/Library'));
 import Marks from './pages/admin/Marks';
-import Library from './pages/admin/Library';
 import AttendancePage from './pages/admin/Attendance';
 import CalendarPage from './pages/Calendar';
+
+const Parents = lazy(() => import('./pages/admin/Parents'));
+const LibraryLazy = lazy(() => import('./pages/admin/Library'));
 
 // E-Learning Portal (Staff)
 import { TeacherLayout } from './layouts/TeacherLayout';
@@ -105,8 +108,12 @@ import FeeCollection from './pages/reception/FeeCollection';
 import { SystemAdminLayout } from './layouts/SystemAdminLayout';
 import GlobalDashboard from './pages/system-admin/GlobalDashboard';
 import SchoolManager from './pages/system-admin/SchoolManager';
+import SystemAdminSchoolProfile from './pages/system-admin/SystemAdminSchoolProfile';
 import GlobalUsers from './pages/system-admin/GlobalUsers';
 import PlatformSettings from './pages/system-admin/PlatformSettings';
+import BillingOverview from './pages/system-admin/BillingOverview';
+import AuditLogs from './pages/system-admin/AuditLogs';
+import SystemHealth from './pages/system-admin/SystemHealth';
 
 // Specialist Dashboards & Missing Modules
 import { SecurityDashboard } from './pages/admin/specialist/SecurityDashboard';
@@ -115,10 +122,13 @@ import { NurseDashboard } from './pages/admin/specialist/NurseDashboard';
 import { HostelWardenDashboard } from './pages/admin/specialist/HostelWardenDashboard';
 import { LabManagement } from './pages/admin/academics/LabManagement';
 import { SenManagement } from './pages/admin/academics/SenManagement';
+import { GateKiosk } from './pages/admin/specialist/GateKiosk';
+import { PrivacyPolicy } from './pages/legal/PrivacyPolicy';
+import { TermsOfService } from './pages/legal/TermsOfService';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useMantineColorScheme } from '@mantine/core';
-import { useEffect } from 'react';
+import { useEffect, lazy } from 'react';
 
 function AppContent() {
   const { user } = useAuth();
@@ -137,6 +147,10 @@ function AppContent() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/install" element={<Installation />} />
 
+        {/* Public Legal Routes */}
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+
         {/* Protected Routes - Core Admins, Operational Staff, AND Teachers (for their admin area) */}
         <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'SENIOR_CLERK', 'BURSAR', 'FINANCE', 'RECEPTION', 'SECURITY_GUARD', 'LIBRARIAN', 'TEACHER', 'SUBJECT_TEACHER', 'SENIOR_TEACHER', 'CLASS_TEACHER', 'SEN_COORDINATOR', 'HOD']}><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -146,6 +160,7 @@ function AppContent() {
           <Route path="/admissions" element={<Admissions />} />
           <Route path="/fees" element={<FeeCollection />} />
           <Route path="/staff" element={<Staff />} />
+          <Route path="/parents" element={<Parents />} />
           <Route path="/staff/:id" element={<StaffDetail />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/academics" element={<Academics />} />
@@ -169,6 +184,7 @@ function AppContent() {
 
           {/* Specialist Dashboards */}
           <Route path="/dashboard/security" element={<SecurityDashboard />} />
+          <Route path="/dashboard/gate-kiosk" element={<GateKiosk />} />
           <Route path="/dashboard/library" element={<LibrarianDashboard />} />
           <Route path="/dashboard/clinic" element={<NurseDashboard />} />
           <Route path="/dashboard/hostel" element={<HostelWardenDashboard />} />
@@ -324,8 +340,12 @@ function AppContent() {
         <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}><SystemAdminLayout /></ProtectedRoute>}>
           <Route path="/system-admin" element={<GlobalDashboard />} />
           <Route path="/system-admin/schools" element={<SchoolManager />} />
+          <Route path="/system-admin/schools/:id" element={<SystemAdminSchoolProfile />} />
           <Route path="/system-admin/users" element={<GlobalUsers />} />
           <Route path="/system-admin/settings" element={<PlatformSettings />} />
+          <Route path="/system-admin/billing" element={<BillingOverview />} />
+          <Route path="/system-admin/audit-logs" element={<AuditLogs />} />
+          <Route path="/system-admin/health" element={<SystemHealth />} />
         </Route>
 
         <Route path="*" element={<div>Page Not Found</div>} />
@@ -334,6 +354,7 @@ function AppContent() {
   );
 }
 
+// App entry point
 function App() {
   return (
     <AuthProvider>

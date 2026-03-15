@@ -17,7 +17,7 @@ export class LibraryService {
         });
     }
 
-    async findAllBooks(schoolId: string, page = 1, limit = 20) {
+    async findAllBooks(schoolId: string, page = 1, limit = 7) {
         const where = { schoolId };
         const skip = (page - 1) * limit;
         const [data, total] = await Promise.all([
@@ -113,7 +113,7 @@ export class LibraryService {
         });
     }
 
-    async findAllCirculation(schoolId: string, page = 1, limit = 20) {
+    async findAllCirculation(schoolId: string, page = 1, limit = 7) {
         const where = { schoolId };
         const skip = (page - 1) * limit;
         const [data, total] = await Promise.all([

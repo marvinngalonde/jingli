@@ -28,7 +28,7 @@ export class UsersController {
         return this.usersService.findAll(
             me.schoolId!,
             page ? parseInt(page) : 1,
-            limit ? parseInt(limit) : 20,
+            limit ? parseInt(limit) : 7,
             includeInactive === 'true'
         );
     }

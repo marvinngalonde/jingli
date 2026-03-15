@@ -43,7 +43,7 @@ export class VisitorsController {
             req.user.schoolId,
             status,
             page ? parseInt(page) : 1,
-            limit ? parseInt(limit) : 20
+            limit ? parseInt(limit) : 7
         );
     }
 
